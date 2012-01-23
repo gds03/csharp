@@ -120,8 +120,12 @@ namespace DbUtils
                 Dictionary<Type, List<CostumMapping>> backup = _propertiesToMap;
                 var newMappings = NewCopyWithAddedTypeProperties(type);
 
+                #pragma warning disable 420
+
                 if ( _propertiesToMap == backup && Interlocked.CompareExchange(ref _propertiesToMap, newMappings, backup) == backup )
                     break;
+
+                #pragma warning restore 420
 
             } while ( true );
         }
