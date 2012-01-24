@@ -6,6 +6,7 @@ using System.Threading;
 using BO_MAC.Extensions;
 using System.Text;
 using System.Data.SqlClient;
+using System.Data;
 
 namespace DbUtils
 {
@@ -131,8 +132,10 @@ namespace DbUtils
 
 
 
-    public static class ObjectMapper
+    public class ObjectMapper
     {
+        private readonly DbConnection _connection;      // The only Instance variable
+
         private static readonly BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
 
 
@@ -290,7 +293,7 @@ namespace DbUtils
         /// <exception cref="SqlColumnNotFoundException"> Specific column is not found from result set </exception>
         /// <exception cref="PropertyMustBeNullable"> Property that value is mapped is receiving a nullable value and the property is not nullable </exception>
         /// <returns></returns>
-        public static IList<T> MapTo<T>(DbDataReader reader)
+        private static IList<T> MapTo<T>(DbDataReader reader)
         {
             if ( reader == null )
                 throw new NullReferenceException("reader cannot be null");
@@ -450,7 +453,7 @@ namespace DbUtils
             return cmdTxt.ToString();
         }
 
-        public static int Insert<T>(DbConnection connection, T obj)
+        private static int _Insert<T>(DbConnection connection, T obj)
         {
             if ( connection == null )
                 throw new NullReferenceException("connection is null");
@@ -538,7 +541,7 @@ namespace DbUtils
         }
 
 
-        public static int Update<T>(DbConnection connection, T obj)
+        private static int _Update<T>(DbConnection connection, T obj)
         {
             if ( connection == null )
                 throw new NullReferenceException("connection is null");
@@ -613,7 +616,7 @@ namespace DbUtils
         }
 
 
-        public static int Delete<T>(DbConnection connection, T obj)
+        private static int _Delete<T>(DbConnection connection, T obj)
         {
             if ( connection == null )
                 throw new NullReferenceException("connection is null");
@@ -639,5 +642,53 @@ namespace DbUtils
 
             return cmd.ExecuteNonQuery();
         }
+
+
+
+
+
+
+        public ObjectMapper(DbConnection connection)
+        {
+            _connection = connection;
+        }
+
+
+
+
+
+        public IList<T> Read<T>(CommandType commandType, string commandText, params SqlParameter[] parameters)
+        {
+            if ( _connection.State == ConnectionState.Closed )
+                _connection.Open();
+
+            DbCommand comm = _connection.CreateCommand();
+
+            comm.CommandType = commandType;
+            comm.CommandText = commandText;
+
+            // Set parameters
+            if ( parameters != null )
+                comm.Parameters.AddRange(parameters);
+
+            return MapTo<T>(comm.ExecuteReader());
+        }
+
+        public int Insert<T>(T obj)
+        {
+            return _Insert(_connection, obj);
+        }
+
+        public int Update<T>(T obj)
+        {
+            return _Update(_connection, obj);
+        }
+
+        public int Delete<T>(T obj)
+        {
+            return _Delete(_connection, obj);
+        }
+
+
     }
 }
