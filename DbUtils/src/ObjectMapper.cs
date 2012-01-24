@@ -4,26 +4,66 @@ using System.Data.Common;
 using System.Reflection;
 using System.Threading;
 using BO_MAC.Extensions;
+using System.Text;
+using System.Data.SqlClient;
 
 namespace DbUtils
 {
 
-    #region Inner Classes
+    #region Mapper Attributes
+
+    
+    public sealed class Identity : Attribute
+    {
+        
+    }
+
+    public sealed class Table : Attribute
+    {
+        internal String overridedName;
+
+        internal Table(String tableName)
+        {
+            overridedName = tableName;
+        }
+    }
+
+    public sealed class Key : Attribute
+    {
+        
+    }
 
     public sealed class Exclude : Attribute
     {
 
     }
 
-    public sealed class BindTo : Attribute
+    public sealed class SelectMapping : Attribute
     {
-        internal String _sqlColumn;
+        internal String overridedReadColumn;
 
-        public BindTo(String sqlColumn)
+        public SelectMapping(String sqlColumn)
         {
-            _sqlColumn = sqlColumn;
+            overridedReadColumn = sqlColumn;
         }
     }
+
+    public sealed class BindTo : Attribute
+    {
+        internal String _connectedTo;
+
+        public BindTo(String toSqlColumn)
+        {
+            _connectedTo = toSqlColumn;
+        }
+    }
+
+
+    #endregion
+
+
+
+    #region Mapper Exceptions
 
     public sealed class SqlColumnNotFoundException : Exception
     {
@@ -34,95 +74,196 @@ namespace DbUtils
     {
         internal PropertyMustBeNullable(string msg) : base(msg) { }
     }
+    
+    #endregion
 
 
-    // Used to map SQL Columns to CLR Properties
-    internal sealed class CostumMapping
+
+    #region Mapper Classes 
+
+    internal sealed class TypeSchema
     {
-        internal String _fromSql;           // When null, by convention, the mapper must get data from column with the same name of the clrProperty!
-        internal String _toClrProperty;
+        internal String TableName;                  // If != null overrides the type name (used for CUD operations)
+        internal IList<KeyMapping> Keys;            // Stores the keys of the type
+        internal IList<CostumMapping> Mappings;     // For each property, we have a costum mapping
+        internal String IdentityProperty;           // If != null, this stores the property of the type that is identity
 
-        internal CostumMapping(String toClrProperty)
+        internal TypeSchema()
         {
-            _toClrProperty = toClrProperty;
-            _fromSql = null;
+            Mappings = new List<CostumMapping>();
+            Keys = new List<KeyMapping>();
         }
 
-        internal CostumMapping(String fromSql, String toClrProperty)
+        internal TypeSchema(String tableName) : this()
         {
-            _fromSql = fromSql;
-            _toClrProperty = toClrProperty;
+            TableName = tableName;            
+        }
+    }
+
+    internal sealed class CostumMapping
+    {
+        internal String FromSelectColumn;
+        internal String ClrProperty;
+        internal String BindedToColumn;
+
+        internal CostumMapping(String clrProperty)
+        {
+            FromSelectColumn = BindedToColumn = ClrProperty = clrProperty;
+        }  
+    }
+
+    internal sealed class KeyMapping
+    {
+        internal String SqlColumn;
+        internal String ClrProperty;
+
+        public KeyMapping(String sqlColumn, String clrProperty)
+        {
+            SqlColumn = sqlColumn;
+            ClrProperty = clrProperty;
         }
     }
 
 
     #endregion
 
+
+
+
+
     public static class ObjectMapper
     {
+        private static readonly BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+
+
         // For specific type, stores the properties that must be mapped from SQL
-        private static volatile Dictionary<Type, List<CostumMapping>> _propertiesToMap =
-                            new Dictionary<Type, List<CostumMapping>>();                   // Accessed in context of multiple threads
+        private static volatile Dictionary<Type, TypeSchema> _typesSchema =
+                            new Dictionary<Type, TypeSchema>();     // Accessed in context of multiple threads
 
 
 
-        private static Dictionary<Type, List<CostumMapping>> NewCopyWithAddedTypeProperties(Type type)
+        private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
         {
-            //
-            // Copies most recent dictionary and add new List for specific type (this is local to the thread)
+            // Copy last dictionary and add new Schema for type (local for each thread)
+            var result = new Dictionary<Type, TypeSchema>(_typesSchema) { { type, new TypeSchema() } };
 
-            var props = new Dictionary<Type, List<CostumMapping>>(_propertiesToMap) { { type, new List<CostumMapping>() } };
+            // Set table name (By convention have the same name that the type)
+            result[type].TableName = type.Name;
 
-            foreach ( PropertyInfo pi in type.GetProperties(BindingFlags.Public | BindingFlags.Instance) )
+            // Search for Table attribute on the type
+            foreach ( object o in type.GetCustomAttributes(false) )
+            {
+                Table t = o as Table;
+
+                if ( t != null ) {
+                    result[type].TableName = t.overridedName;       // override the default name
+                    break;                                          // We are done.
+                }
+            }
+
+            
+            // Iterate over each property of the type set mappings references
+            foreach ( PropertyInfo pi in type.GetProperties(flags) )
             {
                 bool mapProperty = true;                                // Always to map, unless specified Exclude costum attribute
-                CostumMapping mapVar = new CostumMapping(pi.Name);      // CLR property is always the property name of the type
+                bool isKey       = false;                               // Only if attribute were found, sets this flag to true
+                bool isIdentity  = false;                               // For each type, we must have only one Entity
 
-                //
-                // Each property can have N costum attributes
+                CostumMapping mapVar = new CostumMapping(pi.Name);      // By convention all mappings match the propertyName
+
+
+                // Iterate over each attribute on context property
                 foreach ( object o in pi.GetCustomAttributes(false) ) {
 
                     if ( o is Exclude ) {
-                        mapProperty = false;    // don't map and exit!
-                        break;
+                        mapProperty = false;
+                        break;                  // break immediately and don't map this property
+                    }
+
+                    Key k = o as Key;
+
+                    if ( k != null )
+                    {
+                        isKey = true;
+                        continue;
+                    }
+
+                    Identity i = o as Identity;
+
+                    if ( i != null )
+                    {
+                        isIdentity = true;
+                        continue;
+                    }
+
+                    SelectMapping selectFrom = o as SelectMapping;
+
+                    if ( selectFrom != null )
+                    {
+                        mapVar.FromSelectColumn = selectFrom.overridedReadColumn;      // override read column behavior
+                        continue;
                     }
 
                     BindTo bt = o as BindTo;
 
-                    if ( bt != null )           // override map behaviour and exit!
+                    if ( bt != null )
                     {
-                        mapVar._fromSql = bt._sqlColumn;
-                        break;
+                        mapVar.BindedToColumn = bt._connectedTo;                        // override CUD behavior
                     }
                 }
 
-                if ( mapProperty )
-                    props[type].Add(mapVar);
+                if ( mapProperty ) {
+
+                    //
+                    // We are here if Exclude wasn't present on the property
+                    // 
+
+                    result[type].Mappings.Add(mapVar);
+
+                    if ( isKey )
+                    {
+                        // Add on keys collection
+                        result[type].Keys.Add(new KeyMapping(mapVar.BindedToColumn, pi.Name));
+                    }
+
+                    if ( isIdentity )
+                    {
+                        //
+                        // Only can exist one identity!
+                        //
+
+                        if ( result[type].IdentityProperty != null )
+                            throw new InvalidOperationException("Type {0} cannot have multiple identity columns".FRMT(type.Name));
+
+                        result[type].IdentityProperty = pi.Name;
+                    }
+                }
             }
 
-            return props;
+            return result;
         }
 
-        private static void FillPropertiesForType(Type type)
+        private static void ConfigureMetadataFor(Type type)
         {
             do
             {
-                List<CostumMapping> l;
+                TypeSchema s;
 
-                if ( _propertiesToMap.TryGetValue(type, out l) ) // Typically, this is the most common case to occur
+                if ( _typesSchema.TryGetValue(type, out s) ) // Typically, this is the most common case to occur
                     break;
 
                 //
-                // Properties must be mapped! - multiple threads can be here.. 
-                // (Altought isn't a commun case)
+                // Schema must be setted! - multiple threads can be here.. 
+                // (Altought isn't a commun case for the same type at the same time)
                 // 
 
-                Dictionary<Type, List<CostumMapping>> backup = _propertiesToMap;
-                var newMappings = NewCopyWithAddedTypeProperties(type);
+                Dictionary<Type, TypeSchema> backup = _typesSchema;     // Get a local copy for each thread.
+                var newSchema = NewCopyWithAddedTypeSchema(type);       // Copy and add metadata for specific Type
+                
 
                 #pragma warning disable 420
 
-                if ( _propertiesToMap == backup && Interlocked.CompareExchange(ref _propertiesToMap, newMappings, backup) == backup )
+                if ( _typesSchema == backup && Interlocked.CompareExchange(ref _typesSchema, newSchema, backup) == backup )
                     break;
 
                 #pragma warning restore 420
@@ -131,11 +272,6 @@ namespace DbUtils
         }
 
 
-
-
-        // 
-        // This is a static method, so can be called by multiple threads
-        //
 
 
         
@@ -169,7 +305,7 @@ namespace DbUtils
             Type type = typeof(T);
 
             // Lock-Free
-            FillPropertiesForType(type);
+            ConfigureMetadataFor(type);
 
             //
             // If we are here, the properties for specific type are filled 
@@ -186,21 +322,20 @@ namespace DbUtils
                 Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
 
                 // Map properties to the newInstance
-                foreach ( CostumMapping map in _propertiesToMap[type] )
+                foreach ( CostumMapping map in _typesSchema[type].Mappings )
                 {
                     object value;
-                    string sqlColumn = map._fromSql == null ? map._toClrProperty 
-                                                            : map._fromSql;
+                    string sqlColumn = map.FromSelectColumn;
 
                     try { value = reader[sqlColumn]; }
                     catch ( IndexOutOfRangeException ) { 
                         throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".FRMT(sqlColumn));
                     }
 
-                    PropertyInfo ctxProperty = newInstanceRep.GetProperty(map._toClrProperty);
+                    PropertyInfo ctxProperty = newInstanceRep.GetProperty(map.ClrProperty);
 
                     //
-                    // Nullable condition
+                    // Nullable condition checker!
                     //
 
                     if ( value.GetType() == typeof(DBNull) ) 
@@ -235,5 +370,274 @@ namespace DbUtils
             return bundle;
         }
 
+
+
+
+
+        private static String PrepareColumnType(PropertyInfo pi, object obj)
+        {
+            object value = pi.GetValue(obj, null);
+
+            if(value == null)
+                return "NULL";
+
+            if ( pi.PropertyType == typeof(String) )
+                return "'" + value.ToString() + "'";
+
+            if ( pi.PropertyType == typeof(bool) )
+                return ( (bool)value ) ? "1" : "0";
+
+            if ( pi.PropertyType == typeof(DateTime) )
+            {
+                DateTime d = (DateTime)value;
+                return "convert(datetime, '{0}', 105)".FRMT(d);
+            }
+
+
+            // return default
+            return value.ToString();
+        }
+
+
+
+
+
+
+        private static String PrepareInsertCmd<T>(Type type, T obj)
+        {
+            Type objRepresentor = obj.GetType();
+            StringBuilder cmdTxt = new StringBuilder();
+
+            //
+            // Obtain local copy because another thread can change the reference of _typesSchema
+            // and we need iterate in a secure way.
+            //
+
+            TypeSchema schema = _typesSchema[type];         // Get schema information for specific Type
+            
+            cmdTxt.Append("INSERT INTO {0} (".FRMT(schema.TableName));
+            
+
+            // Build header (exclude identities)
+            foreach ( CostumMapping cm in schema.Mappings )
+            {
+                if ( cm.ClrProperty == schema.IdentityProperty ) 
+                    continue;
+
+                cmdTxt.Append(cm.BindedToColumn);       
+                cmdTxt.Append(", ");
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
+            cmdTxt.Append(") values (");
+
+            // Build body (exclude identities)
+            foreach ( CostumMapping cm in schema.Mappings )
+            {
+                if ( cm.ClrProperty == schema.IdentityProperty )
+                    continue;
+
+                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);
+
+                cmdTxt.Append(valueTxt);
+                cmdTxt.Append(", ");
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
+            cmdTxt.Append(")");
+
+            return cmdTxt.ToString();
+        }
+
+        public static int Insert<T>(DbConnection connection, T obj)
+        {
+            if ( connection == null )
+                throw new NullReferenceException("connection is null");
+
+            if ( connection.State != System.Data.ConnectionState.Open )
+                throw new InvalidOperationException("connection must be opened");
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            String insertCmd = PrepareInsertCmd<T>(type, obj);
+            DbCommand cmd = connection.CreateCommand();
+
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = insertCmd;
+
+            return cmd.ExecuteNonQuery();
+        }
+
+
+
+
+
+        private static String PrepareUpdateCmd<T>(Type type, T obj)
+        {
+            Type objRepresentor = obj.GetType();
+            
+            //
+            // Obtain local copy because another thread can change the reference of _typesSchema
+            // and we need iterate in a secure way.
+            //
+
+            TypeSchema schema = _typesSchema[type];
+            
+            if ( schema.Keys.Count == 0 )
+                throw new InvalidOperationException("Type {0} must have at least one key for updating".FRMT(type.Name));
+
+            //
+            // Update only if we have keys, to find the tuple
+            // 
+
+            StringBuilder cmdTxt = new StringBuilder();
+            cmdTxt.Append("UPDATE {0} SET ".FRMT(schema.TableName));  
+
+            
+            // Build Set clause
+            foreach ( CostumMapping cm in schema.Mappings )
+            {
+                if ( cm.ClrProperty == schema.IdentityProperty )
+                    continue;
+
+                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);
+
+                cmdTxt.Append("{0} = {1}, ".FRMT(cm.BindedToColumn, valueTxt));
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
+
+            // Build Where clause
+            cmdTxt.Append(" WHERE ");
+
+            int count = 0;
+            foreach ( KeyMapping map in schema.Keys )
+            {
+                PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);
+
+                cmdTxt.Append("{0} = {1}".FRMT(map.SqlColumn, valueTxt));
+
+                if ( ( count + 1 ) < schema.Keys.Count )
+                    cmdTxt.Append(" AND ");
+
+                count++;
+            }  
+
+            return cmdTxt.ToString();
+        }
+
+
+        public static int Update<T>(DbConnection connection, T obj)
+        {
+            if ( connection == null )
+                throw new NullReferenceException("connection is null");
+
+            if ( connection.State != System.Data.ConnectionState.Open )
+                throw new InvalidOperationException("connection must be opened");
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            String updateCmd = PrepareUpdateCmd<T>(type, obj);
+            DbCommand cmd = connection.CreateCommand();
+
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = updateCmd;
+
+            return cmd.ExecuteNonQuery();
+        }
+
+
+
+
+
+        private static String PrepareDeleteCmd<T>(Type type, T obj)
+        {
+            Type objRepresentor = obj.GetType();
+
+            //
+            // Obtain local copy because another thread can change the reference of _typesSchema
+            // and we need iterate in a secure way.
+            //
+
+            TypeSchema schema = _typesSchema[type];
+
+            if ( schema.Keys.Count == 0 )
+                throw new InvalidOperationException("Type {0} must have at least one key for deleting".FRMT(type.Name));
+
+
+            //
+            // Delete only if we have keys, to find the tuple
+            // 
+
+            StringBuilder cmdTxt = new StringBuilder();
+            cmdTxt.Append("DELETE FROM {0}".FRMT(schema.TableName));              
+
+            
+            // Build Where clause if keys are defined
+            cmdTxt.Append(" WHERE ");
+
+            int count = 0;
+            foreach ( KeyMapping map in schema.Keys )
+            {
+                PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);
+
+                cmdTxt.Append("{0} = {1}".FRMT(map.SqlColumn, valueTxt));
+
+                if ( ( count + 1 ) < schema.Keys.Count )
+                    cmdTxt.Append(" AND ");
+
+                count++;
+            }
+
+            return cmdTxt.ToString();
+        }
+
+
+        public static int Delete<T>(DbConnection connection, T obj)
+        {
+            if ( connection == null )
+                throw new NullReferenceException("connection is null");
+
+            if ( connection.State != System.Data.ConnectionState.Open )
+                throw new InvalidOperationException("connection must be opened");
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            String deleteCmd = PrepareDeleteCmd<T>(type, obj);
+            DbCommand cmd = connection.CreateCommand();
+
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = deleteCmd;
+
+            return cmd.ExecuteNonQuery();
+        }
     }
 }
