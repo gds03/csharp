@@ -7,6 +7,7 @@ using BO_MAC.Extensions;
 using System.Text;
 using System.Data.SqlClient;
 using System.Data;
+using System.Linq.Expressions;
 
 namespace DbUtils
 {
@@ -125,6 +126,18 @@ namespace DbUtils
         }
     }
 
+    internal sealed class FilterMap<T>
+    {
+        public T From { get; set; }
+        public T To { get; set; }
+
+        internal FilterMap(T from, T to)
+        {
+            From = from;
+            To = to;
+        }
+    }
+
 
     #endregion
 
@@ -136,13 +149,28 @@ namespace DbUtils
     {
         private readonly DbConnection _connection;      // The only Instance variable
 
+
+        #region Static Fields
+
         private static readonly BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+        
+        private static readonly FilterMap<String>[] overrides = {
+            new FilterMap<String>("&&", "AND"),
+            new FilterMap<String>("||", "OR") 
+        };            
 
 
         // For specific type, stores the properties that must be mapped from SQL
         private static volatile Dictionary<Type, TypeSchema> _typesSchema =
                             new Dictionary<Type, TypeSchema>();     // Accessed in context of multiple threads
 
+
+        #endregion
+
+
+
+
+        #region Static Shared Methods
 
 
         private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
@@ -274,108 +302,13 @@ namespace DbUtils
             } while ( true );
         }
 
-
-
-
-        
-        /// <summary>
-        ///     Creates a list of T objects based on reader.
-        ///     This method must receive reader opened and use convention to map
-        ///     sql columns to properties of CLR types.
-        ///     You can use Exclude to exclude a property.
-        ///     You can use BindTo("PropertyName") to override convention behavior of mapping
-        /// </summary>
-        /// <typeparam name="T"> The type that must be mapped </typeparam>
-        /// <param name="reader"> The reader that must be opened to iterating and mapping the values </param>
-
-        /// <exception cref="NullReferenceException"> Reader is null </exception>
-        /// <exception cref="InvalidOperationException"> Reader is closed </exception>
-        /// <exception cref="SqlColumnNotFoundException"> Specific column is not found from result set </exception>
-        /// <exception cref="PropertyMustBeNullable"> Property that value is mapped is receiving a nullable value and the property is not nullable </exception>
-        /// <returns></returns>
-        private static IList<T> MapTo<T>(DbDataReader reader)
+        private static string replaceFilterExpressionToLogical(string filter)
         {
-            if ( reader == null )
-                throw new NullReferenceException("reader cannot be null");
+            foreach ( FilterMap<String> fm in overrides )
+                filter = filter.Replace(fm.From, fm.To);        // Can be more efficient but for simple filters haven't any problem!
 
-            if ( reader.IsClosed )
-                throw new InvalidOperationException("reader connection is closed and objects cannot be mapped");
-
-            if ( !reader.HasRows )
-                return new List<T>();
-
-
-            Type type = typeof(T);
-
-            // Lock-Free
-            ConfigureMetadataFor(type);
-
-            //
-            // If we are here, the properties for specific type are filled 
-            // and never be touched (modified) again for the type.
-            // 
-
-            // Map cursor lines from database to CLR objects based on T
-
-            List<T> bundle = new List<T>();
-
-            while ( reader.Read() )
-            {
-                T newInstance = (T)Activator.CreateInstance(type);
-                Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
-
-                // Map properties to the newInstance
-                foreach ( CostumMapping map in _typesSchema[type].Mappings )
-                {
-                    object value;
-                    string sqlColumn = map.FromSelectColumn;
-
-                    try { value = reader[sqlColumn]; }
-                    catch ( IndexOutOfRangeException ) { 
-                        throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".FRMT(sqlColumn));
-                    }
-
-                    PropertyInfo ctxProperty = newInstanceRep.GetProperty(map.ClrProperty);
-
-                    //
-                    // Nullable condition checker!
-                    //
-
-                    if ( value.GetType() == typeof(DBNull) ) 
-                    {
-                        if ( ctxProperty.PropertyType.IsPrimitive ) {
-                            throw new PropertyMustBeNullable(
-                                "Property {0} must be nullable for mapping a null value".FRMT(ctxProperty.Name)
-                            );
-                        }
-                        
-                        value = null;
-                    }
-
-                        
-
-                    //
-                    // Set property value
-                    // 
-
-                    
-                    ctxProperty.SetValue(newInstance, value, null);     // WARNING: Conversion Types..
-                }
-
-                // Add element to the collection
-                bundle.Add(newInstance);
-            }
-
-            // Free Connection Resources
-            reader.Close();
-            reader.Dispose();
-
-            return bundle;
+            return filter;
         }
-
-
-
-
 
         private static String PrepareColumnType(PropertyInfo pi, object obj)
         {
@@ -402,6 +335,20 @@ namespace DbUtils
         }
 
 
+        #endregion
+
+
+
+
+
+
+
+
+
+
+
+
+        #region Insert
 
 
 
@@ -481,6 +428,14 @@ namespace DbUtils
         }
 
 
+
+
+        #endregion
+
+
+
+
+        #region Update
 
 
 
@@ -569,7 +524,12 @@ namespace DbUtils
         }
 
 
+        #endregion
 
+
+
+
+        #region Delete
 
 
         private static String PrepareDeleteCmd<T>(Type type, T obj)
@@ -644,6 +604,171 @@ namespace DbUtils
         }
 
 
+        #endregion
+
+
+
+
+        #region Select / Read
+
+
+        private static Type _PrepareSelect<T>(DbConnection connection)
+        {
+            if ( connection == null )
+                throw new NullReferenceException("connection is null");
+
+            if ( connection.State == ConnectionState.Closed )
+                connection.Open();
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+            return type;
+        }
+
+        
+        private static IList<T> _MapTo<T>(DbDataReader reader)
+        {
+            if ( reader == null )
+                throw new NullReferenceException("reader cannot be null");
+
+            if ( reader.IsClosed )
+                throw new InvalidOperationException("reader connection is closed and objects cannot be mapped");
+
+            if ( !reader.HasRows )
+                return new List<T>();
+
+
+            Type type = typeof(T);
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            // Map cursor lines from database to CLR objects based on T
+
+            List<T> bundle = new List<T>();
+
+            while ( reader.Read() )
+            {
+                T newInstance = (T)Activator.CreateInstance(type);
+                Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
+
+                // Map properties to the newInstance
+                foreach ( CostumMapping map in _typesSchema[type].Mappings )
+                {
+                    object value;
+                    string sqlColumn = map.FromSelectColumn;
+
+                    try { value = reader[sqlColumn]; }
+                    catch ( IndexOutOfRangeException )
+                    {
+                        throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".FRMT(sqlColumn));
+                    }
+
+                    PropertyInfo ctxProperty = newInstanceRep.GetProperty(map.ClrProperty);
+
+                    //
+                    // Nullable condition checker!
+                    //
+
+                    if ( value.GetType() == typeof(DBNull) )
+                    {
+                        if ( ctxProperty.PropertyType.IsPrimitive )
+                        {
+                            throw new PropertyMustBeNullable(
+                                "Property {0} must be nullable for mapping a null value".FRMT(ctxProperty.Name)
+                            );
+                        }
+
+                        value = null;
+                    }
+
+
+
+                    //
+                    // Set property value
+                    // 
+
+
+                    ctxProperty.SetValue(newInstance, value, null);     // WARNING: Conversion Types..
+                }
+
+                // Add element to the collection
+                bundle.Add(newInstance);
+            }
+
+            // Free Connection Resources
+            reader.Close();
+            reader.Dispose();
+
+            return bundle;
+        }
+
+
+        private static String PrepareSelectCmd<T>(Type type, Expression<Func<T, bool>> filter)
+        {
+            StringBuilder cmdTxt = new StringBuilder();
+
+            //
+            // Obtain local copy because another thread can change the reference of _typesSchema
+            // and we need iterate in a secure way.
+            //
+
+            TypeSchema schema = _typesSchema[type];         // Get schema information for specific Type
+            String prefix = filter.Parameters[0].Name;
+
+
+            cmdTxt.Append("SELECT ");
+
+            // Select all columns that are mapped
+            foreach ( CostumMapping cm in schema.Mappings )
+            {
+                cmdTxt.Append(prefix + ".");
+                cmdTxt.Append(cm.FromSelectColumn);
+                cmdTxt.Append(", ");
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
+            cmdTxt.Append(" FROM {0} {1} ".FRMT(schema.TableName, prefix));
+
+            if ( filter != null )
+            {
+                // Apply filter
+                cmdTxt.Append("WHERE ");
+                String ReplacedFiltereds = replaceFilterExpressionToLogical(filter.Body.ToString());
+                cmdTxt.Append(ReplacedFiltereds);
+            }
+
+            return cmdTxt.ToString();
+        }
+
+        
+        private static IList<T> _Select<T>(DbConnection connection, Expression<Func<T, bool>> filter)
+        {
+            Type type = _PrepareSelect<T>(connection);
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            String selectCmd = PrepareSelectCmd<T>(type, filter);
+            DbCommand cmd = connection.CreateCommand();
+
+            cmd.CommandType = System.Data.CommandType.Text;     // dynamic SQL
+            cmd.CommandText = selectCmd;
+
+            return _MapTo<T>(cmd.ExecuteReader());
+        }
+
+
+
+        #endregion
+
+
 
 
 
@@ -657,10 +782,17 @@ namespace DbUtils
 
 
 
-        public IList<T> Read<T>(CommandType commandType, string commandText, params SqlParameter[] parameters)
+        #region Public Interface
+
+
+        public IList<T> Select<T>(CommandType commandType, string commandText, params SqlParameter[] parameters) 
         {
-            if ( _connection.State == ConnectionState.Closed )
-                _connection.Open();
+            Type type = _PrepareSelect<T>(_connection);
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
 
             DbCommand comm = _connection.CreateCommand();
 
@@ -671,7 +803,12 @@ namespace DbUtils
             if ( parameters != null )
                 comm.Parameters.AddRange(parameters);
 
-            return MapTo<T>(comm.ExecuteReader());
+            return _MapTo<T>(comm.ExecuteReader());
+        }
+
+        public IList<T> Select<T>(Expression<Func<T, bool>> filter)
+        {
+            return _Select<T>(_connection, filter);
         }
 
         public int Insert<T>(T obj)
@@ -688,6 +825,9 @@ namespace DbUtils
         {
             return _Delete(_connection, obj);
         }
+
+
+        #endregion
 
 
     }
