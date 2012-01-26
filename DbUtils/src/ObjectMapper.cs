@@ -12,7 +12,7 @@ using System.Linq.Expressions;
 namespace DbUtils
 {
 
-    #region Mapper Attributes
+    #region Mapper Attributes (public)
 
     
     public sealed class Identity : Attribute
@@ -65,7 +65,7 @@ namespace DbUtils
 
 
 
-    #region Mapper Exceptions
+    #region Mapper Exceptions (public)
 
     public sealed class SqlColumnNotFoundException : Exception
     {
@@ -81,83 +81,20 @@ namespace DbUtils
 
 
 
-    #region Mapper Classes 
-
-    internal sealed class TypeSchema
-    {
-        internal String TableName;                  // If != null overrides the type name (used for CUD operations)
-        internal IList<KeyMapping> Keys;            // Stores the keys of the type
-        internal IList<CostumMapping> Mappings;     // For each property, we have a costum mapping
-        internal String IdentityProperty;           // If != null, this stores the property of the type that is identity
-
-        internal TypeSchema()
-        {
-            Mappings = new List<CostumMapping>();
-            Keys = new List<KeyMapping>();
-        }
-
-        internal TypeSchema(String tableName) : this()
-        {
-            TableName = tableName;            
-        }
-    }
-
-    internal sealed class CostumMapping
-    {
-        internal String FromSelectColumn;
-        internal String ClrProperty;
-        internal String BindedToColumn;
-
-        internal CostumMapping(String clrProperty)
-        {
-            FromSelectColumn = BindedToColumn = ClrProperty = clrProperty;
-        }  
-    }
-
-    internal sealed class KeyMapping
-    {
-        internal String SqlColumn;
-        internal String ClrProperty;
-
-        public KeyMapping(String sqlColumn, String clrProperty)
-        {
-            SqlColumn = sqlColumn;
-            ClrProperty = clrProperty;
-        }
-    }
-
-    internal sealed class FilterMap<T>
-    {
-        public T From { get; set; }
-        public T To { get; set; }
-
-        internal FilterMap(T from, T to)
-        {
-            From = from;
-            To = to;
-        }
-    }
-
-
-    #endregion
-
-
-
-
 
     public class ObjectMapper
     {
+
         private readonly DbConnection _connection;      // The only Instance variable
+
+
 
 
         #region Static Fields
 
         private static readonly BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
         
-        private static readonly FilterMap<String>[] overrides = {
-            new FilterMap<String>("&&", "AND"),
-            new FilterMap<String>("||", "OR") 
-        };            
+                   
 
 
         // For specific type, stores the properties that must be mapped from SQL
@@ -165,13 +102,110 @@ namespace DbUtils
                             new Dictionary<Type, TypeSchema>();     // Accessed in context of multiple threads
 
 
+        private static Dictionary<ExpressionType, String> _expressionOperator = new Dictionary<ExpressionType, string>();
+
+
+
+        static ObjectMapper()
+        {
+            _expressionOperator.Add(ExpressionType.AndAlso, "AND");
+            _expressionOperator.Add(ExpressionType.Equal, "=");
+            _expressionOperator.Add(ExpressionType.GreaterThan, ">");
+            _expressionOperator.Add(ExpressionType.GreaterThanOrEqual, ">=");
+            _expressionOperator.Add(ExpressionType.LessThan, "<");
+            _expressionOperator.Add(ExpressionType.LessThanOrEqual, "<=");
+            _expressionOperator.Add(ExpressionType.Modulo, "%");
+            _expressionOperator.Add(ExpressionType.Multiply, "*");
+            _expressionOperator.Add(ExpressionType.NotEqual, "<>");
+            _expressionOperator.Add(ExpressionType.OrElse, "OR");
+            _expressionOperator.Add(ExpressionType.Subtract, "-");
+            _expressionOperator.Add(ExpressionType.Add, "+");
+
+
+        }
+
+
         #endregion
 
 
 
 
-        #region Static Shared Methods
+        #region Mapper Private Classes
 
+        private sealed class TypeSchema
+        {
+            internal String TableName;                  // If != null overrides the type name (used for CUD operations)
+            internal IList<KeyMapping> Keys;            // Stores the keys of the type
+            internal IList<CostumMapping> Mappings;     // For each property, we have a costum mapping
+            internal String IdentityProperty;           // If != null, this stores the property of the type that is identity
+
+            internal TypeSchema()
+            {
+                Mappings = new List<CostumMapping>();
+                Keys = new List<KeyMapping>();
+            }
+
+            internal TypeSchema(String tableName)
+                : this()
+            {
+                TableName = tableName;
+            }
+        }
+
+        private sealed class CostumMapping
+        {
+            internal String FromSelectColumn;
+            internal String ClrProperty;
+            internal String BindedToColumn;
+
+            internal CostumMapping(String clrProperty)
+            {
+                FromSelectColumn = BindedToColumn = ClrProperty = clrProperty;
+            }
+        }
+
+        private sealed class KeyMapping
+        {
+            internal String SqlColumn;
+            internal String ClrProperty;
+
+            public KeyMapping(String sqlColumn, String clrProperty)
+            {
+                SqlColumn = sqlColumn;
+                ClrProperty = clrProperty;
+            }
+        }
+
+        private sealed class ExpressionUtilFilterClass
+        {
+            internal Type parameterType;
+            internal String data;
+        }
+
+
+        #endregion
+
+
+
+
+        #region Static Auxiliary Methods
+
+        private static bool protectedAgainsSQLInjection(String txt)
+        {
+            String[] filter = {
+                "select", "drop", ";", "--", "insert", "delete", "xp_", "#", "%", "&",
+                "'", "(", ")", "/", "\\", ":", ";", "<", ">", "=",
+	            "[", "]", "?", "`", "|", "declare", "convert"
+            };
+
+            foreach ( String injectionHit in filter )
+            {
+                if ( txt.Contains(injectionHit) )
+                    return false;
+            }
+
+            return true;
+        }
 
         private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
         {
@@ -302,14 +336,6 @@ namespace DbUtils
             } while ( true );
         }
 
-        private static string replaceFilterExpressionToLogical(string filter)
-        {
-            foreach ( FilterMap<String> fm in overrides )
-                filter = filter.Replace(fm.From, fm.To);        // Can be more efficient but for simple filters haven't any problem!
-
-            return filter;
-        }
-
         private static String PrepareColumnType(PropertyInfo pi, object obj)
         {
             object value = pi.GetValue(obj, null);
@@ -333,6 +359,124 @@ namespace DbUtils
             // return default
             return value.ToString();
         }
+
+        private static String GetMappingForProperty(Type t, String propertyName)
+        {
+            TypeSchema schema = _typesSchema[t];
+
+            foreach ( CostumMapping cm in schema.Mappings )
+            {
+                if ( cm.ClrProperty == propertyName )
+                    return cm.BindedToColumn;
+            }
+
+            throw new InvalidOperationException("shouldn't be here'");
+        }
+
+        private static String ParseFilter(Expression expr)
+        {
+            return ParseFilter(expr, new ExpressionUtilFilterClass()).data.ToString();
+        }
+
+        // Recursive algorithm
+        private
+        static
+        ExpressionUtilFilterClass                            // Return type
+        ParseFilter(
+            Expression expr,
+            ExpressionUtilFilterClass info          // Used to pass information in recursive manner
+        )
+        {
+
+            Type exprType = expr.GetType();
+
+            if ( exprType != typeof(BinaryExpression) && exprType != typeof(MemberExpression) && exprType != typeof(ConstantExpression) )
+                throw new InvalidOperationException("unsupported filter");
+
+
+            if ( exprType == typeof(BinaryExpression) )
+            {
+                //
+                // We have 2 expressions (left and right)
+                // 
+
+                BinaryExpression bExpr = (BinaryExpression)expr;
+                ExpressionUtilFilterClass recursion;
+
+                StringBuilder subOperation = new StringBuilder();
+                recursion = ParseFilter(bExpr.Left, info);              // Go left in depth - we don't know the type yet
+
+                subOperation.Append("( ");
+                subOperation.Append(recursion.data);
+                subOperation.Append(" ");
+
+                subOperation.Append(_expressionOperator[bExpr.NodeType]);
+                subOperation.Append(" ");
+
+                recursion = ParseFilter(bExpr.Right, recursion);               // Pass reference that contains type information!
+
+                subOperation.Append(recursion.data);
+                subOperation.Append(" )");
+
+                // Affect data subpart and pass to upper caller
+                recursion.data = subOperation.ToString();
+
+                return recursion;
+            }
+
+            else
+            {
+                MemberExpression mExpr;
+                ParameterExpression pExpr;
+                ConstantExpression cExpr;
+
+                //
+                // We need distinct if we are accessing to capturated variables (need map to sql) or constant variables
+                //
+
+                if ( ( mExpr = expr as MemberExpression ) != null )
+                {
+                    if ( ( pExpr = ( mExpr.Expression as ParameterExpression ) ) != null )
+                    {
+                        info.parameterType = mExpr.Expression.Type;        // Type of parameter (must be untouched)
+                        info.data = GetMappingForProperty(info.parameterType, mExpr.Member.Name);                     // Must have a map to SQL (criar metodo que faz mapeamento)!!!!!!!!!!!!!!!!!
+
+                        return info;
+                    }
+                    else
+                    {
+                        cExpr = (ConstantExpression)mExpr.Expression;
+
+                        object obj = cExpr.Value;               // Get anonymous object
+                        string objField = mExpr.Member.Name;
+
+                        FieldInfo value = obj.GetType().GetField(objField);  // Read native value
+
+                        string nativeData = value.GetValue(obj).ToString();
+                        if ( !protectedAgainsSQLInjection(nativeData) )
+                            throw new InvalidOperationException("injection was detected");
+
+                        info.data = nativeData;
+                        return info;
+                    }
+                }
+                else
+                {
+                    cExpr = (ConstantExpression)expr;
+
+                    string nativeData = cExpr.Value.ToString();
+
+                    if ( !protectedAgainsSQLInjection(nativeData) )
+                        throw new InvalidOperationException("injection was detected");
+
+                    info.data = nativeData;
+                    return info;
+                }
+            }
+        }
+
+
+        
 
 
         #endregion
@@ -386,6 +530,9 @@ namespace DbUtils
             {
                 if ( cm.ClrProperty == schema.IdentityProperty )
                     continue;
+
+                if ( !protectedAgainsSQLInjection(cm.ClrProperty) )
+                    throw new InvalidOperationException("injection was detected");
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
@@ -466,6 +613,9 @@ namespace DbUtils
             {
                 if ( cm.ClrProperty == schema.IdentityProperty )
                     continue;
+
+                if ( !protectedAgainsSQLInjection(cm.ClrProperty) )
+                    throw new InvalidOperationException("injection was detected");
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
@@ -561,6 +711,9 @@ namespace DbUtils
             int count = 0;
             foreach ( KeyMapping map in schema.Keys )
             {
+                if ( !protectedAgainsSQLInjection(map.ClrProperty) )
+                    throw new InvalidOperationException("injection was detected");
+
                 PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
 
@@ -612,22 +765,6 @@ namespace DbUtils
         #region Select / Read
 
 
-        private static Type _PrepareSelect<T>(DbConnection connection)
-        {
-            if ( connection == null )
-                throw new NullReferenceException("connection is null");
-
-            if ( connection.State == ConnectionState.Closed )
-                connection.Open();
-
-            Type type = typeof(T);
-
-            // Lock-Free
-            ConfigureMetadataFor(type);
-            return type;
-        }
-
-        
         private static IList<T> _MapTo<T>(DbDataReader reader)
         {
             if ( reader == null )
@@ -707,7 +844,6 @@ namespace DbUtils
             return bundle;
         }
 
-
         private static String PrepareSelectCmd<T>(Type type, Expression<Func<T, bool>> filter)
         {
             StringBuilder cmdTxt = new StringBuilder();
@@ -718,7 +854,6 @@ namespace DbUtils
             //
 
             TypeSchema schema = _typesSchema[type];         // Get schema information for specific Type
-            String prefix = filter.Parameters[0].Name;
 
 
             cmdTxt.Append("SELECT ");
@@ -726,26 +861,43 @@ namespace DbUtils
             // Select all columns that are mapped
             foreach ( CostumMapping cm in schema.Mappings )
             {
-                cmdTxt.Append(prefix + ".");
                 cmdTxt.Append(cm.FromSelectColumn);
                 cmdTxt.Append(", ");
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            cmdTxt.Append(" FROM {0} {1} ".FRMT(schema.TableName, prefix));
+            cmdTxt.Append(" FROM {0} ".FRMT(schema.TableName));
 
             if ( filter != null )
             {
+                //
                 // Apply filter
+                //
+
                 cmdTxt.Append("WHERE ");
-                String ReplacedFiltereds = replaceFilterExpressionToLogical(filter.Body.ToString());
-                cmdTxt.Append(ReplacedFiltereds);
+                String filtered = ParseFilter(filter.Body);
+
+                cmdTxt.Append(filtered);
             }
 
             return cmdTxt.ToString();
         }
 
-        
+        private static Type _PrepareSelect<T>(DbConnection connection)
+        {
+            if ( connection == null )
+                throw new NullReferenceException("connection is null");
+
+            if ( connection.State == ConnectionState.Closed )
+                connection.Open();
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+            return type;
+        }
+                
         private static IList<T> _Select<T>(DbConnection connection, Expression<Func<T, bool>> filter)
         {
             Type type = _PrepareSelect<T>(connection);
@@ -783,6 +935,8 @@ namespace DbUtils
 
 
         #region Public Interface
+
+
 
 
         public IList<T> Select<T>(CommandType commandType, string commandText, params SqlParameter[] parameters) 
@@ -825,6 +979,9 @@ namespace DbUtils
         {
             return _Delete(_connection, obj);
         }
+
+
+
 
 
         #endregion
