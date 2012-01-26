@@ -190,22 +190,6 @@ namespace DbUtils
 
         #region Static Auxiliary Methods
 
-        private static bool protectedAgainsSQLInjection(String txt)
-        {
-            String[] filter = {
-                "select", "drop", ";", "--", "insert", "delete", "xp_", "#", "%", "&",
-                "'", "(", ")", "/", "\\", ":", ";", "<", ">", "=",
-	            "[", "]", "?", "`", "|", "declare", "convert"
-            };
-
-            foreach ( String injectionHit in filter )
-            {
-                if ( txt.Contains(injectionHit) )
-                    return false;
-            }
-
-            return true;
-        }
 
         private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
         {
@@ -343,11 +327,8 @@ namespace DbUtils
             if(value == null)
                 return "NULL";
 
-            if ( pi.PropertyType == typeof(String) )
-                return "'" + value.ToString() + "'";
-
             if ( pi.PropertyType == typeof(bool) )
-                return ( (bool)value ) ? "1" : "0";
+                return ( (bool)value ) ? "'1'" : "'0'";
 
             if ( pi.PropertyType == typeof(DateTime) )
             {
@@ -357,7 +338,7 @@ namespace DbUtils
 
 
             // return default
-            return value.ToString();
+            return "'" + value.ToString() + "'";
         }
 
         private static String GetMappingForProperty(Type t, String propertyName)
@@ -451,10 +432,7 @@ namespace DbUtils
                         string objField = mExpr.Member.Name;
 
                         FieldInfo value = obj.GetType().GetField(objField);  // Read native value
-
                         string nativeData = value.GetValue(obj).ToString();
-                        if ( !protectedAgainsSQLInjection(nativeData) )
-                            throw new InvalidOperationException("injection was detected");
 
                         info.data = nativeData;
                         return info;
@@ -463,11 +441,7 @@ namespace DbUtils
                 else
                 {
                     cExpr = (ConstantExpression)expr;
-
                     string nativeData = cExpr.Value.ToString();
-
-                    if ( !protectedAgainsSQLInjection(nativeData) )
-                        throw new InvalidOperationException("injection was detected");
 
                     info.data = nativeData;
                     return info;
@@ -530,9 +504,6 @@ namespace DbUtils
             {
                 if ( cm.ClrProperty == schema.IdentityProperty )
                     continue;
-
-                if ( !protectedAgainsSQLInjection(cm.ClrProperty) )
-                    throw new InvalidOperationException("injection was detected");
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
@@ -613,9 +584,6 @@ namespace DbUtils
             {
                 if ( cm.ClrProperty == schema.IdentityProperty )
                     continue;
-
-                if ( !protectedAgainsSQLInjection(cm.ClrProperty) )
-                    throw new InvalidOperationException("injection was detected");
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
@@ -711,9 +679,6 @@ namespace DbUtils
             int count = 0;
             foreach ( KeyMapping map in schema.Keys )
             {
-                if ( !protectedAgainsSQLInjection(map.ClrProperty) )
-                    throw new InvalidOperationException("injection was detected");
-
                 PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
 
