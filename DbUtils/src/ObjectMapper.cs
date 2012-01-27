@@ -330,7 +330,7 @@ namespace DbUtils
             if ( pi.PropertyType == typeof(bool) )
                 return ( (bool)value ) ? "'1'" : "'0'";
 
-            if ( pi.PropertyType == typeof(DateTime) )
+            if ( pi.PropertyType == typeof(DateTime) || pi.PropertyType == typeof(Nullable<DateTime>) )
             {
                 DateTime d = (DateTime)value;
                 return "convert(datetime, '{0}', 105)".FRMT(d);
