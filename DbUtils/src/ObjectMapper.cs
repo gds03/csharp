@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Reflection;
 using System.Threading;
-using BO_MAC.Extensions;
 using System.Text;
 using System.Data.SqlClient;
 using System.Data;
 using System.Linq.Expressions;
+
 
 namespace DbUtils
 {
@@ -81,9 +81,26 @@ namespace DbUtils
 
 
 
+    #region Mapper Extensions (public)
+
+
+
+    internal static class StringExtensions
+    {
+        public static String FRMT(this String str, params object[] args)
+        {
+            return String.Format(str, args);
+        }
+    }
+
+
+    #endregion
+
 
     public class ObjectMapper
     {
+
+
 
         private readonly DbConnection _connection;      // The only Instance variable
 
