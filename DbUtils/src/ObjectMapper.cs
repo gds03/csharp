@@ -40,13 +40,13 @@ namespace DbUtils
 
     }
 
-    public sealed class SelectMapping : Attribute
+    public sealed class BindFrom : Attribute
     {
         internal String overridedReadColumn;
 
-        public SelectMapping(String sqlColumn)
+        public BindFrom(String sqlColumnResult)
         {
-            overridedReadColumn = sqlColumn;
+            overridedReadColumn = sqlColumnResult;
         }
     }
 
@@ -54,9 +54,9 @@ namespace DbUtils
     {
         internal String _connectedTo;
 
-        public BindTo(String toSqlColumn)
+        public BindTo(String sqlColumnSchema)
         {
-            _connectedTo = toSqlColumn;
+            _connectedTo = sqlColumnSchema;
         }
     }
 
@@ -102,24 +102,29 @@ namespace DbUtils
 
 
 
-        private readonly DbConnection _connection;      // The only Instance variable
+        protected readonly DbConnection _connection;      // The only Instance variable
 
 
 
 
         #region Static Fields
 
-        private static readonly BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+        protected static readonly BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
         
                    
 
 
         // For specific type, stores the properties that must be mapped from SQL
-        private static volatile Dictionary<Type, TypeSchema> _typesSchema =
+        protected static volatile Dictionary<Type, TypeSchema> _typesSchema =
                             new Dictionary<Type, TypeSchema>();     // Accessed in context of multiple threads
 
 
         private static Dictionary<ExpressionType, String> _expressionOperator = new Dictionary<ExpressionType, string>();
+
+
+        #endregion
+
+
 
 
 
@@ -142,14 +147,14 @@ namespace DbUtils
         }
 
 
-        #endregion
+        
 
 
 
 
-        #region Mapper Private Classes
+        #region Mapper Protected Classes
 
-        private sealed class TypeSchema
+        protected sealed class TypeSchema
         {
             internal String TableName;                  // If != null overrides the type name (used for CUD operations)
             internal IList<KeyMapping> Keys;            // Stores the keys of the type
@@ -169,7 +174,7 @@ namespace DbUtils
             }
         }
 
-        private sealed class CostumMapping
+        protected sealed class CostumMapping
         {
             internal String FromSelectColumn;
             internal String ClrProperty;
@@ -181,7 +186,7 @@ namespace DbUtils
             }
         }
 
-        private sealed class KeyMapping
+        protected sealed class KeyMapping
         {
             internal String SqlColumn;
             internal String ClrProperty;
@@ -208,6 +213,28 @@ namespace DbUtils
         #region Static Auxiliary Methods
 
 
+        private static String PrepareColumnType(PropertyInfo pi, object obj)
+        {
+            object value = pi.GetValue(obj, null);
+
+            if ( value == null )
+                return "NULL";
+
+            if ( pi.PropertyType == typeof(bool) )
+                return ( (bool)value ) ? "'1'" : "'0'";
+
+            if ( pi.PropertyType == typeof(DateTime) || pi.PropertyType == typeof(Nullable<DateTime>) )
+            {
+                DateTime d = (DateTime)value;
+                return "convert(datetime, '{0}', 105)".FRMT(d);
+            }
+
+
+            // return default
+            return "'" + value.ToString() + "'";
+        }
+
+        // Used by ConfigureMetadataFor
         private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
         {
             // Copy last dictionary and add new Schema for type (local for each thread)
@@ -262,7 +289,7 @@ namespace DbUtils
                         continue;
                     }
 
-                    SelectMapping selectFrom = o as SelectMapping;
+                    BindFrom selectFrom = o as BindFrom;
 
                     if ( selectFrom != null )
                     {
@@ -309,7 +336,9 @@ namespace DbUtils
             return result;
         }
 
-        private static void ConfigureMetadataFor(Type type)
+
+
+        protected static void ConfigureMetadataFor(Type type)
         {
             do
             {
@@ -337,28 +366,7 @@ namespace DbUtils
             } while ( true );
         }
 
-        private static String PrepareColumnType(PropertyInfo pi, object obj)
-        {
-            object value = pi.GetValue(obj, null);
-
-            if(value == null)
-                return "NULL";
-
-            if ( pi.PropertyType == typeof(bool) )
-                return ( (bool)value ) ? "'1'" : "'0'";
-
-            if ( pi.PropertyType == typeof(DateTime) || pi.PropertyType == typeof(Nullable<DateTime>) )
-            {
-                DateTime d = (DateTime)value;
-                return "convert(datetime, '{0}', 105)".FRMT(d);
-            }
-
-
-            // return default
-            return "'" + value.ToString() + "'";
-        }
-
-        private static String GetMappingForProperty(Type t, String propertyName)
+        protected static String GetMappingForProperty(Type t, String propertyName)
         {
             TypeSchema schema = _typesSchema[t];
 
@@ -370,6 +378,15 @@ namespace DbUtils
 
             throw new InvalidOperationException("shouldn't be here'");
         }
+
+        
+
+
+
+
+
+        #region Parser for Where Filter
+
 
         private static String ParseFilter(Expression expr)
         {
@@ -467,286 +484,6 @@ namespace DbUtils
         }
 
 
-        
-
-
-        #endregion
-
-
-
-
-
-
-
-
-
-
-
-
-        #region Insert
-
-
-
-
-        private static String PrepareInsertCmd<T>(Type type, T obj)
-        {
-            Type objRepresentor = obj.GetType();
-            StringBuilder cmdTxt = new StringBuilder();
-
-            //
-            // Obtain local copy because another thread can change the reference of _typesSchema
-            // and we need iterate in a secure way.
-            //
-
-            TypeSchema schema = _typesSchema[type];         // Get schema information for specific Type
-            
-            cmdTxt.Append("INSERT INTO {0} (".FRMT(schema.TableName));
-            
-
-            // Build header (exclude identities)
-            foreach ( CostumMapping cm in schema.Mappings )
-            {
-                if ( cm.ClrProperty == schema.IdentityProperty ) 
-                    continue;
-
-                cmdTxt.Append(cm.BindedToColumn);       
-                cmdTxt.Append(", ");
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            cmdTxt.Append(") values (");
-
-            // Build body (exclude identities)
-            foreach ( CostumMapping cm in schema.Mappings )
-            {
-                if ( cm.ClrProperty == schema.IdentityProperty )
-                    continue;
-
-                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = PrepareColumnType(pi, obj);
-
-                cmdTxt.Append(valueTxt);
-                cmdTxt.Append(", ");
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            cmdTxt.Append(")");
-
-            return cmdTxt.ToString();
-        }
-
-        private static int _Insert<T>(DbConnection connection, T obj)
-        {
-            if ( connection == null )
-                throw new NullReferenceException("connection is null");
-
-            if ( connection.State != System.Data.ConnectionState.Open )
-                throw new InvalidOperationException("connection must be opened");
-
-            Type type = typeof(T);
-
-            // Lock-Free
-            ConfigureMetadataFor(type);
-
-            //
-            // If we are here, the properties for specific type are filled 
-            // and never be touched (modified) again for the type.
-            // 
-
-            String insertCmd = PrepareInsertCmd<T>(type, obj);
-            DbCommand cmd = connection.CreateCommand();
-
-            cmd.CommandType = System.Data.CommandType.Text;
-            cmd.CommandText = insertCmd;
-
-            return cmd.ExecuteNonQuery();
-        }
-
-
-
-
-        #endregion
-
-
-
-
-        #region Update
-
-
-
-        private static String PrepareUpdateCmd<T>(Type type, T obj)
-        {
-            Type objRepresentor = obj.GetType();
-            
-            //
-            // Obtain local copy because another thread can change the reference of _typesSchema
-            // and we need iterate in a secure way.
-            //
-
-            TypeSchema schema = _typesSchema[type];
-            
-            if ( schema.Keys.Count == 0 )
-                throw new InvalidOperationException("Type {0} must have at least one key for updating".FRMT(type.Name));
-
-            //
-            // Update only if we have keys, to find the tuple
-            // 
-
-            StringBuilder cmdTxt = new StringBuilder();
-            cmdTxt.Append("UPDATE {0} SET ".FRMT(schema.TableName));  
-
-            
-            // Build Set clause
-            foreach ( CostumMapping cm in schema.Mappings )
-            {
-                if ( cm.ClrProperty == schema.IdentityProperty )
-                    continue;
-
-                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = PrepareColumnType(pi, obj);
-
-                cmdTxt.Append("{0} = {1}, ".FRMT(cm.BindedToColumn, valueTxt));
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-
-            // Build Where clause
-            cmdTxt.Append(" WHERE ");
-
-            int count = 0;
-            foreach ( KeyMapping map in schema.Keys )
-            {
-                PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
-                String valueTxt = PrepareColumnType(pi, obj);
-
-                cmdTxt.Append("{0} = {1}".FRMT(map.SqlColumn, valueTxt));
-
-                if ( ( count + 1 ) < schema.Keys.Count )
-                    cmdTxt.Append(" AND ");
-
-                count++;
-            }  
-
-            return cmdTxt.ToString();
-        }
-
-
-        private static int _Update<T>(DbConnection connection, T obj)
-        {
-            if ( connection == null )
-                throw new NullReferenceException("connection is null");
-
-            if ( connection.State != System.Data.ConnectionState.Open )
-                throw new InvalidOperationException("connection must be opened");
-
-            Type type = typeof(T);
-
-            // Lock-Free
-            ConfigureMetadataFor(type);
-
-            //
-            // If we are here, the properties for specific type are filled 
-            // and never be touched (modified) again for the type.
-            // 
-
-            String updateCmd = PrepareUpdateCmd<T>(type, obj);
-            DbCommand cmd = connection.CreateCommand();
-
-            cmd.CommandType = System.Data.CommandType.Text;
-            cmd.CommandText = updateCmd;
-
-            return cmd.ExecuteNonQuery();
-        }
-
-
-        #endregion
-
-
-
-
-        #region Delete
-
-
-        private static String PrepareDeleteCmd<T>(Type type, T obj)
-        {
-            Type objRepresentor = obj.GetType();
-
-            //
-            // Obtain local copy because another thread can change the reference of _typesSchema
-            // and we need iterate in a secure way.
-            //
-
-            TypeSchema schema = _typesSchema[type];
-
-            if ( schema.Keys.Count == 0 )
-                throw new InvalidOperationException("Type {0} must have at least one key for deleting".FRMT(type.Name));
-
-
-            //
-            // Delete only if we have keys, to find the tuple
-            // 
-
-            StringBuilder cmdTxt = new StringBuilder();
-            cmdTxt.Append("DELETE FROM {0}".FRMT(schema.TableName));              
-
-            
-            // Build Where clause if keys are defined
-            cmdTxt.Append(" WHERE ");
-
-            int count = 0;
-            foreach ( KeyMapping map in schema.Keys )
-            {
-                PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
-                String valueTxt = PrepareColumnType(pi, obj);
-
-                cmdTxt.Append("{0} = {1}".FRMT(map.SqlColumn, valueTxt));
-
-                if ( ( count + 1 ) < schema.Keys.Count )
-                    cmdTxt.Append(" AND ");
-
-                count++;
-            }
-
-            return cmdTxt.ToString();
-        }
-
-
-        private static int _Delete<T>(DbConnection connection, T obj)
-        {
-            if ( connection == null )
-                throw new NullReferenceException("connection is null");
-
-            if ( connection.State != System.Data.ConnectionState.Open )
-                throw new InvalidOperationException("connection must be opened");
-
-            Type type = typeof(T);
-
-            // Lock-Free
-            ConfigureMetadataFor(type);
-
-            //
-            // If we are here, the properties for specific type are filled 
-            // and never be touched (modified) again for the type.
-            // 
-
-            String deleteCmd = PrepareDeleteCmd<T>(type, obj);
-            DbCommand cmd = connection.CreateCommand();
-
-            cmd.CommandType = System.Data.CommandType.Text;
-            cmd.CommandText = deleteCmd;
-
-            return cmd.ExecuteNonQuery();
-        }
-
-
-        #endregion
-
-
-
-
-        #region Select / Read
-
-
         private static IList<T> _MapTo<T>(DbDataReader reader)
         {
             if ( reader == null )
@@ -826,6 +563,47 @@ namespace DbUtils
             return bundle;
         }
 
+
+        #endregion
+
+
+
+
+        #endregion
+
+
+
+
+        #region Instance Auxiliary Methods
+
+
+        protected Type _PrepareSelect<T>()
+        {
+            if ( _connection == null )
+                throw new NullReferenceException("connection is null");
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+
+            // Open connection
+            if ( _connection.State == ConnectionState.Closed )
+                _connection.Open();
+
+            return type;
+        }
+
+
+        #endregion
+
+
+
+
+        #region Commands Preparers
+
+
+
         private static String PrepareSelectCmd<T>(Type type, Expression<Func<T, bool>> filter)
         {
             StringBuilder cmdTxt = new StringBuilder();
@@ -865,37 +643,150 @@ namespace DbUtils
             return cmdTxt.ToString();
         }
 
-        private static Type _PrepareSelect<T>(DbConnection connection)
+        private static String PrepareInsertCmd<T>(Type type, T obj)
         {
-            if ( connection == null )
-                throw new NullReferenceException("connection is null");
-
-            if ( connection.State == ConnectionState.Closed )
-                connection.Open();
-
-            Type type = typeof(T);
-
-            // Lock-Free
-            ConfigureMetadataFor(type);
-            return type;
-        }
-                
-        private static IList<T> _Select<T>(DbConnection connection, Expression<Func<T, bool>> filter)
-        {
-            Type type = _PrepareSelect<T>(connection);
+            Type objRepresentor = obj.GetType();
+            StringBuilder cmdTxt = new StringBuilder();
 
             //
-            // If we are here, the properties for specific type are filled 
-            // and never be touched (modified) again for the type.
+            // Obtain local copy because another thread can change the reference of _typesSchema
+            // and we need iterate in a secure way.
+            //
+
+            TypeSchema schema = _typesSchema[type];         // Get schema information for specific Type
+
+            cmdTxt.Append("INSERT INTO {0} (".FRMT(schema.TableName));
+
+
+            // Build header (exclude identities)
+            foreach ( CostumMapping cm in schema.Mappings )
+            {
+                if ( cm.ClrProperty == schema.IdentityProperty )
+                    continue;
+
+                cmdTxt.Append(cm.BindedToColumn);
+                cmdTxt.Append(", ");
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
+            cmdTxt.Append(") values (");
+
+            // Build body (exclude identities)
+            foreach ( CostumMapping cm in schema.Mappings )
+            {
+                if ( cm.ClrProperty == schema.IdentityProperty )
+                    continue;
+
+                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);
+
+                cmdTxt.Append(valueTxt);
+                cmdTxt.Append(", ");
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
+            cmdTxt.Append(")");
+
+            return cmdTxt.ToString();
+        }
+
+        private static String PrepareUpdateCmd<T>(Type type, T obj)
+        {
+            Type objRepresentor = obj.GetType();
+
+            //
+            // Obtain local copy because another thread can change the reference of _typesSchema
+            // and we need iterate in a secure way.
+            //
+
+            TypeSchema schema = _typesSchema[type];
+
+            if ( schema.Keys.Count == 0 )
+                throw new InvalidOperationException("Type {0} must have at least one key for updating".FRMT(type.Name));
+
+            //
+            // Update only if we have keys, to find the tuple
             // 
 
-            String selectCmd = PrepareSelectCmd<T>(type, filter);
-            DbCommand cmd = connection.CreateCommand();
+            StringBuilder cmdTxt = new StringBuilder();
+            cmdTxt.Append("UPDATE {0} SET ".FRMT(schema.TableName));
 
-            cmd.CommandType = System.Data.CommandType.Text;     // dynamic SQL
-            cmd.CommandText = selectCmd;
 
-            return _MapTo<T>(cmd.ExecuteReader());
+            // Build Set clause
+            foreach ( CostumMapping cm in schema.Mappings )
+            {
+                if ( cm.ClrProperty == schema.IdentityProperty )
+                    continue;
+
+                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);
+
+                cmdTxt.Append("{0} = {1}, ".FRMT(cm.BindedToColumn, valueTxt));
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
+
+            // Build Where clause
+            cmdTxt.Append(" WHERE ");
+
+            int count = 0;
+            foreach ( KeyMapping map in schema.Keys )
+            {
+                PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);
+
+                cmdTxt.Append("{0} = {1}".FRMT(map.SqlColumn, valueTxt));
+
+                if ( ( count + 1 ) < schema.Keys.Count )
+                    cmdTxt.Append(" AND ");
+
+                count++;
+            }
+
+            return cmdTxt.ToString();
+        }
+
+        private static String PrepareDeleteCmd<T>(Type type, T obj)
+        {
+            Type objRepresentor = obj.GetType();
+
+            //
+            // Obtain local copy because another thread can change the reference of _typesSchema
+            // and we need iterate in a secure way.
+            //
+
+            TypeSchema schema = _typesSchema[type];
+
+            if ( schema.Keys.Count == 0 )
+                throw new InvalidOperationException("Type {0} must have at least one key for deleting".FRMT(type.Name));
+
+
+            //
+            // Delete only if we have keys, to find the tuple
+            // 
+
+            StringBuilder cmdTxt = new StringBuilder();
+            cmdTxt.Append("DELETE FROM {0}".FRMT(schema.TableName));
+
+
+            // Build Where clause if keys are defined
+            cmdTxt.Append(" WHERE ");
+
+            int count = 0;
+            foreach ( KeyMapping map in schema.Keys )
+            {
+                PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);
+
+                cmdTxt.Append("{0} = {1}".FRMT(map.SqlColumn, valueTxt));
+
+                if ( ( count + 1 ) < schema.Keys.Count )
+                    cmdTxt.Append(" AND ");
+
+                count++;
+            }
+
+            return cmdTxt.ToString();
         }
 
 
@@ -909,8 +800,13 @@ namespace DbUtils
 
         public ObjectMapper(DbConnection connection)
         {
+            if ( connection == null )
+                throw new NullReferenceException();
+
             _connection = connection;
         }
+
+
 
 
 
@@ -921,9 +817,9 @@ namespace DbUtils
 
 
 
-        public IList<T> Select<T>(CommandType commandType, string commandText, params SqlParameter[] parameters) 
+        public virtual IList<T> Select<T>(CommandType commandType, string commandText, params SqlParameter[] parameters) 
         {
-            Type type = _PrepareSelect<T>(_connection);
+            Type type = _PrepareSelect<T>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -942,24 +838,103 @@ namespace DbUtils
             return _MapTo<T>(comm.ExecuteReader());
         }
 
-        public IList<T> Select<T>(Expression<Func<T, bool>> filter)
+        public virtual IList<T> Select<T>(Expression<Func<T, bool>> filter)
         {
-            return _Select<T>(_connection, filter);
+            Type type = _PrepareSelect<T>();
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            String selectCmd = PrepareSelectCmd<T>(type, filter);
+            DbCommand cmd = _connection.CreateCommand();
+
+            cmd.CommandType = System.Data.CommandType.Text;     // dynamic SQL
+            cmd.CommandText = selectCmd;
+
+            return _MapTo<T>(cmd.ExecuteReader());
         }
 
-        public int Insert<T>(T obj)
+        public virtual int Insert<T>(T obj)
         {
-            return _Insert(_connection, obj);
+            if ( _connection == null )
+                throw new NullReferenceException("connection is null");
+
+            if ( _connection.State != System.Data.ConnectionState.Open )
+                throw new InvalidOperationException("connection must be opened");
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            String insertCmd = PrepareInsertCmd<T>(type, obj);
+            DbCommand cmd = _connection.CreateCommand();
+
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = insertCmd;
+
+            return cmd.ExecuteNonQuery();
         }
 
-        public int Update<T>(T obj)
+        public virtual int Update<T>(T obj)
         {
-            return _Update(_connection, obj);
+            if ( _connection == null )
+                throw new NullReferenceException("connection is null");
+
+            if ( _connection.State != System.Data.ConnectionState.Open )
+                throw new InvalidOperationException("connection must be opened");
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            String updateCmd = PrepareUpdateCmd<T>(type, obj);
+            DbCommand cmd = _connection.CreateCommand();
+
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = updateCmd;
+
+            return cmd.ExecuteNonQuery();
         }
 
-        public int Delete<T>(T obj)
+        public virtual int Delete<T>(T obj)
         {
-            return _Delete(_connection, obj);
+            if ( _connection == null )
+                throw new NullReferenceException("connection is null");
+
+            if ( _connection.State != System.Data.ConnectionState.Open )
+                throw new InvalidOperationException("connection must be opened");
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            String deleteCmd = PrepareDeleteCmd<T>(type, obj);
+            DbCommand cmd = _connection.CreateCommand();
+
+            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandText = deleteCmd;
+
+            return cmd.ExecuteNonQuery();
         }
 
 
