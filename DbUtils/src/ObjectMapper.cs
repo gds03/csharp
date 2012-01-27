@@ -817,7 +817,7 @@ namespace DbUtils
 
 
 
-        public virtual IList<T> Select<T>(CommandType commandType, string commandText, params SqlParameter[] parameters) 
+        public virtual IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) 
         {
             Type type = _PrepareSelect<T>();
 
