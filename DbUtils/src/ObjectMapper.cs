@@ -21,11 +21,11 @@ namespace DbUtils
 
     public sealed class Table : Attribute
     {
-        internal String overridedName;
+        internal String OverridedName;
 
         internal Table(String tableName)
         {
-            overridedName = tableName;
+            OverridedName = tableName;
         }
     }
 
@@ -41,21 +41,21 @@ namespace DbUtils
 
     public sealed class BindFrom : Attribute
     {
-        internal String overridedReadColumn;
+        internal String OverridedReadColumn;
 
         public BindFrom(String sqlColumnResult)
         {
-            overridedReadColumn = sqlColumnResult;
+            OverridedReadColumn = sqlColumnResult;
         }
     }
 
     public sealed class BindTo : Attribute
     {
-        internal String _connectedTo;
+        internal String OverridedSqlColumn;
 
         public BindTo(String sqlColumnSchema)
         {
-            _connectedTo = sqlColumnSchema;
+            OverridedSqlColumn = sqlColumnSchema;
         }
     }
 
@@ -86,7 +86,7 @@ namespace DbUtils
 
     internal static class StringExtensions
     {
-        public static String FRMT(this String str, params object[] args)
+        public static String Frmt(this String str, params object[] args)
         {
             return String.Format(str, args);
         }
@@ -101,24 +101,24 @@ namespace DbUtils
 
 
 
-        protected readonly DbConnection _connection;      // The only Instance variable
+        protected readonly DbConnection Connection;      // The only Instance variable
 
 
 
 
         #region Static Fields
 
-        protected static readonly BindingFlags flags = BindingFlags.Public | BindingFlags.Instance;
+        protected static readonly BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance;
         
                    
 
 
         // For specific type, stores the properties that must be mapped from SQL
-        protected static volatile Dictionary<Type, TypeSchema> _typesSchema =
+        protected static volatile Dictionary<Type, TypeSchema> TypesSchema =
                             new Dictionary<Type, TypeSchema>();     // Accessed in context of multiple threads
 
 
-        private static Dictionary<ExpressionType, String> _expressionOperator = new Dictionary<ExpressionType, string>();
+        private static readonly Dictionary<ExpressionType, String> ExpressionOperator = new Dictionary<ExpressionType, string>();
 
 
         #endregion
@@ -129,18 +129,18 @@ namespace DbUtils
 
         static ObjectMapper()
         {
-            _expressionOperator.Add(ExpressionType.AndAlso, "AND");
-            _expressionOperator.Add(ExpressionType.Equal, "=");
-            _expressionOperator.Add(ExpressionType.GreaterThan, ">");
-            _expressionOperator.Add(ExpressionType.GreaterThanOrEqual, ">=");
-            _expressionOperator.Add(ExpressionType.LessThan, "<");
-            _expressionOperator.Add(ExpressionType.LessThanOrEqual, "<=");
-            _expressionOperator.Add(ExpressionType.Modulo, "%");
-            _expressionOperator.Add(ExpressionType.Multiply, "*");
-            _expressionOperator.Add(ExpressionType.NotEqual, "<>");
-            _expressionOperator.Add(ExpressionType.OrElse, "OR");
-            _expressionOperator.Add(ExpressionType.Subtract, "-");
-            _expressionOperator.Add(ExpressionType.Add, "+");
+            ExpressionOperator.Add(ExpressionType.AndAlso, "AND");
+            ExpressionOperator.Add(ExpressionType.Equal, "=");
+            ExpressionOperator.Add(ExpressionType.GreaterThan, ">");
+            ExpressionOperator.Add(ExpressionType.GreaterThanOrEqual, ">=");
+            ExpressionOperator.Add(ExpressionType.LessThan, "<");
+            ExpressionOperator.Add(ExpressionType.LessThanOrEqual, "<=");
+            ExpressionOperator.Add(ExpressionType.Modulo, "%");
+            ExpressionOperator.Add(ExpressionType.Multiply, "*");
+            ExpressionOperator.Add(ExpressionType.NotEqual, "<>");
+            ExpressionOperator.Add(ExpressionType.OrElse, "OR");
+            ExpressionOperator.Add(ExpressionType.Subtract, "-");
+            ExpressionOperator.Add(ExpressionType.Add, "+");
 
 
         }
@@ -158,7 +158,7 @@ namespace DbUtils
             internal String TableName;                  // If != null overrides the type name (used for CUD operations)
             internal IList<KeyMapping> Keys;            // Stores the keys of the type
             internal IList<CostumMapping> Mappings;     // For each property, we have a costum mapping
-            internal String IdentityProperty;           // If != null, this stores the property of the type that is identity
+            internal String IdentityPropertyName;           // If != null, this stores the property of the type that is identity
 
             internal TypeSchema()
             {
@@ -181,7 +181,8 @@ namespace DbUtils
 
             internal CostumMapping(String clrProperty)
             {
-                FromSelectColumn = BindedToColumn = ClrProperty = clrProperty;
+                // Initially all points to the name of the clrProperty (convention is used)
+                FromSelectColumn = BindedToColumn = ClrProperty = clrProperty;      
             }
         }
 
@@ -199,8 +200,8 @@ namespace DbUtils
 
         private sealed class ExpressionUtilFilterClass
         {
-            internal Type parameterType;
-            internal String data;
+            internal Type ParameterType;
+            internal String Data;
         }
 
 
@@ -225,7 +226,7 @@ namespace DbUtils
             if ( pi.PropertyType == typeof(DateTime) || pi.PropertyType == typeof(Nullable<DateTime>) )
             {
                 DateTime d = (DateTime)value;
-                return "convert(datetime, '{0}', 105)".FRMT(d);
+                return "convert(datetime, '{0}', 105)".Frmt(d);
             }
 
 
@@ -237,7 +238,7 @@ namespace DbUtils
         private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
         {
             // Copy last dictionary and add new Schema for type (local for each thread)
-            var result = new Dictionary<Type, TypeSchema>(_typesSchema) { { type, new TypeSchema() } };
+            var result = new Dictionary<Type, TypeSchema>(TypesSchema) { { type, new TypeSchema() } };
 
             // Set table name (By convention have the same name that the type)
             result[type].TableName = type.Name;
@@ -248,14 +249,14 @@ namespace DbUtils
                 Table t = o as Table;
 
                 if ( t != null ) {
-                    result[type].TableName = t.overridedName;       // override the default name
+                    result[type].TableName = t.OverridedName;       // override the default name
                     break;                                          // We are done.
                 }
             }
 
             
             // Iterate over each property of the type set mappings references
-            foreach ( PropertyInfo pi in type.GetProperties(flags) )
+            foreach ( PropertyInfo pi in type.GetProperties(Flags) )
             {
                 bool mapProperty = true;                                // Always to map, unless specified Exclude costum attribute
                 bool isKey       = false;                               // Only if attribute were found, sets this flag to true
@@ -292,7 +293,7 @@ namespace DbUtils
 
                     if ( selectFrom != null )
                     {
-                        mapVar.FromSelectColumn = selectFrom.overridedReadColumn;      // override read column behavior
+                        mapVar.FromSelectColumn = selectFrom.OverridedReadColumn;      // override read column behavior
                         continue;
                     }
 
@@ -300,7 +301,7 @@ namespace DbUtils
 
                     if ( bt != null )
                     {
-                        mapVar.BindedToColumn = bt._connectedTo;                        // override CUD behavior
+                        mapVar.BindedToColumn = bt.OverridedSqlColumn;                        // override CUD behavior
                     }
                 }
 
@@ -324,10 +325,10 @@ namespace DbUtils
                         // Only can exist one identity!
                         //
 
-                        if ( result[type].IdentityProperty != null )
-                            throw new InvalidOperationException("Type {0} cannot have multiple identity columns".FRMT(type.Name));
+                        if ( result[type].IdentityPropertyName != null )
+                            throw new InvalidOperationException("Type {0} cannot have multiple identity columns".Frmt(type.Name));
 
-                        result[type].IdentityProperty = pi.Name;
+                        result[type].IdentityPropertyName = pi.Name;
                     }
                 }
             }
@@ -343,7 +344,7 @@ namespace DbUtils
             {
                 TypeSchema s;
 
-                if ( _typesSchema.TryGetValue(type, out s) ) // Typically, this is the most common case to occur
+                if ( TypesSchema.TryGetValue(type, out s) ) // Typically, this is the most common case to occur
                     break;
 
                 //
@@ -351,13 +352,13 @@ namespace DbUtils
                 // (Altought isn't a commun case for the same type at the same time)
                 // 
 
-                Dictionary<Type, TypeSchema> backup = _typesSchema;     // Get a local copy for each thread.
+                Dictionary<Type, TypeSchema> backup = TypesSchema;     // Get a local copy for each thread.
                 var newSchema = NewCopyWithAddedTypeSchema(type);       // Copy and add metadata for specific Type
                 
 
                 #pragma warning disable 420
 
-                if ( _typesSchema == backup && Interlocked.CompareExchange(ref _typesSchema, newSchema, backup) == backup )
+                if ( TypesSchema == backup && Interlocked.CompareExchange(ref TypesSchema, newSchema, backup) == backup )
                     break;
 
                 #pragma warning restore 420
@@ -367,7 +368,7 @@ namespace DbUtils
 
         protected static String GetMappingForProperty(Type t, String propertyName)
         {
-            TypeSchema schema = _typesSchema[t];
+            TypeSchema schema = TypesSchema[t];
 
             foreach ( CostumMapping cm in schema.Mappings )
             {
@@ -389,7 +390,7 @@ namespace DbUtils
 
         private static String ParseFilter(Expression expr)
         {
-            return ParseFilter(expr, new ExpressionUtilFilterClass()).data.ToString();
+            return ParseFilter(expr, new ExpressionUtilFilterClass()).Data.ToString();
         }
 
         // Recursive algorithm
@@ -421,19 +422,19 @@ namespace DbUtils
                 recursion = ParseFilter(bExpr.Left, info);              // Go left in depth - we don't know the type yet
 
                 subOperation.Append("( ");
-                subOperation.Append(recursion.data);
+                subOperation.Append(recursion.Data);
                 subOperation.Append(" ");
 
-                subOperation.Append(_expressionOperator[bExpr.NodeType]);
+                subOperation.Append(ExpressionOperator[bExpr.NodeType]);
                 subOperation.Append(" ");
 
                 recursion = ParseFilter(bExpr.Right, recursion);               // Pass reference that contains type information!
 
-                subOperation.Append(recursion.data);
+                subOperation.Append(recursion.Data);
                 subOperation.Append(" )");
 
                 // Affect data subpart and pass to upper caller
-                recursion.data = subOperation.ToString();
+                recursion.Data = subOperation.ToString();
 
                 return recursion;
             }
@@ -441,7 +442,6 @@ namespace DbUtils
             else
             {
                 MemberExpression mExpr;
-                ParameterExpression pExpr;
                 ConstantExpression cExpr;
 
                 //
@@ -450,10 +450,10 @@ namespace DbUtils
 
                 if ( ( mExpr = expr as MemberExpression ) != null )
                 {
-                    if ( ( pExpr = ( mExpr.Expression as ParameterExpression ) ) != null )
+                    if ( ( ( mExpr.Expression as ParameterExpression ) ) != null )
                     {
-                        info.parameterType = mExpr.Expression.Type;        // Type of parameter (must be untouched)
-                        info.data = GetMappingForProperty(info.parameterType, mExpr.Member.Name);                     // Must have a map to SQL (criar metodo que faz mapeamento)!!!!!!!!!!!!!!!!!
+                        info.ParameterType = mExpr.Expression.Type;        // Type of parameter (must be untouched)
+                        info.Data = GetMappingForProperty(info.ParameterType, mExpr.Member.Name);                     // Must have a map to SQL (criar metodo que faz mapeamento)!!!!!!!!!!!!!!!!!
 
                         return info;
                     }
@@ -467,7 +467,7 @@ namespace DbUtils
                         FieldInfo value = obj.GetType().GetField(objField);  // Read native value
                         string nativeData = value.GetValue(obj).ToString();
 
-                        info.data = nativeData;
+                        info.Data = nativeData;
                         return info;
                     }
                 }
@@ -476,14 +476,14 @@ namespace DbUtils
                     cExpr = (ConstantExpression)expr;
                     string nativeData = cExpr.Value.ToString();
 
-                    info.data = nativeData;
+                    info.Data = nativeData;
                     return info;
                 }
             }
         }
 
 
-        private static IList<T> _MapTo<T>(DbDataReader reader)
+        private static IList<T> MapTo<T>(DbDataReader reader)
         {
             if ( reader == null )
                 throw new NullReferenceException("reader cannot be null");
@@ -496,6 +496,7 @@ namespace DbUtils
 
 
             Type type = typeof(T);
+            TypeSchema schema = TypesSchema[type];
 
             //
             // If we are here, the properties for specific type are filled 
@@ -512,7 +513,7 @@ namespace DbUtils
                 Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
 
                 // Map properties to the newInstance
-                foreach ( CostumMapping map in _typesSchema[type].Mappings )
+                foreach (CostumMapping map in schema.Mappings)
                 {
                     object value;
                     string sqlColumn = map.FromSelectColumn;
@@ -520,7 +521,7 @@ namespace DbUtils
                     try { value = reader[sqlColumn]; }
                     catch ( IndexOutOfRangeException )
                     {
-                        throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".FRMT(sqlColumn));
+                        throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".Frmt(sqlColumn));
                     }
 
                     PropertyInfo ctxProperty = newInstanceRep.GetProperty(map.ClrProperty);
@@ -534,7 +535,7 @@ namespace DbUtils
                         if ( ctxProperty.PropertyType.IsPrimitive )
                         {
                             throw new PropertyMustBeNullable(
-                                "Property {0} must be nullable for mapping a null value".FRMT(ctxProperty.Name)
+                                "Property {0} must be nullable for mapping a null value".Frmt(ctxProperty.Name)
                             );
                         }
 
@@ -576,9 +577,9 @@ namespace DbUtils
         #region Instance Auxiliary Methods
 
 
-        protected Type _PrepareSelect<T>()
+        protected Type PrepareSelect<T>()
         {
-            if ( _connection == null )
+            if ( Connection == null )
                 throw new NullReferenceException("connection is null");
 
             Type type = typeof(T);
@@ -587,8 +588,8 @@ namespace DbUtils
             ConfigureMetadataFor(type);
 
             // Open connection
-            if ( _connection.State == ConnectionState.Closed )
-                _connection.Open();
+            if ( Connection.State == ConnectionState.Closed )
+                Connection.Open();
 
             return type;
         }
@@ -612,7 +613,7 @@ namespace DbUtils
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = _typesSchema[type];         // Get schema information for specific Type
+            TypeSchema schema = TypesSchema[type];         // Get schema information for specific Type
 
 
             cmdTxt.Append("SELECT ");
@@ -625,7 +626,7 @@ namespace DbUtils
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            cmdTxt.Append(" FROM {0} ".FRMT(schema.TableName));
+            cmdTxt.Append(" FROM {0} ".Frmt(schema.TableName));
 
             if ( filter != null )
             {
@@ -652,15 +653,15 @@ namespace DbUtils
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = _typesSchema[type];         // Get schema information for specific Type
+            TypeSchema schema = TypesSchema[type];         // Get schema information for specific Type
 
-            cmdTxt.Append("INSERT INTO {0} (".FRMT(schema.TableName));
+            cmdTxt.Append("INSERT INTO {0} (".Frmt(schema.TableName));
 
 
             // Build header (exclude identities)
             foreach ( CostumMapping cm in schema.Mappings )
             {
-                if ( cm.ClrProperty == schema.IdentityProperty )
+                if ( cm.ClrProperty == schema.IdentityPropertyName )
                     continue;
 
                 cmdTxt.Append(cm.BindedToColumn);
@@ -673,7 +674,7 @@ namespace DbUtils
             // Build body (exclude identities)
             foreach ( CostumMapping cm in schema.Mappings )
             {
-                if ( cm.ClrProperty == schema.IdentityProperty )
+                if ( cm.ClrProperty == schema.IdentityPropertyName )
                     continue;
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
@@ -698,29 +699,29 @@ namespace DbUtils
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = _typesSchema[type];
+            TypeSchema schema = TypesSchema[type];
 
             if ( schema.Keys.Count == 0 )
-                throw new InvalidOperationException("Type {0} must have at least one key for updating".FRMT(type.Name));
+                throw new InvalidOperationException("Type {0} must have at least one key for updating".Frmt(type.Name));
 
             //
             // Update only if we have keys, to find the tuple
             // 
 
             StringBuilder cmdTxt = new StringBuilder();
-            cmdTxt.Append("UPDATE {0} SET ".FRMT(schema.TableName));
+            cmdTxt.Append("UPDATE {0} SET ".Frmt(schema.TableName));
 
 
             // Build Set clause
             foreach ( CostumMapping cm in schema.Mappings )
             {
-                if ( cm.ClrProperty == schema.IdentityProperty )
+                if ( cm.ClrProperty == schema.IdentityPropertyName )
                     continue;
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
 
-                cmdTxt.Append("{0} = {1}, ".FRMT(cm.BindedToColumn, valueTxt));
+                cmdTxt.Append("{0} = {1}, ".Frmt(cm.BindedToColumn, valueTxt));
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
@@ -734,7 +735,7 @@ namespace DbUtils
                 PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
 
-                cmdTxt.Append("{0} = {1}".FRMT(map.SqlColumn, valueTxt));
+                cmdTxt.Append("{0} = {1}".Frmt(map.SqlColumn, valueTxt));
 
                 if ( ( count + 1 ) < schema.Keys.Count )
                     cmdTxt.Append(" AND ");
@@ -754,10 +755,10 @@ namespace DbUtils
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = _typesSchema[type];
+            TypeSchema schema = TypesSchema[type];
 
             if ( schema.Keys.Count == 0 )
-                throw new InvalidOperationException("Type {0} must have at least one key for deleting".FRMT(type.Name));
+                throw new InvalidOperationException("Type {0} must have at least one key for deleting".Frmt(type.Name));
 
 
             //
@@ -765,7 +766,7 @@ namespace DbUtils
             // 
 
             StringBuilder cmdTxt = new StringBuilder();
-            cmdTxt.Append("DELETE FROM {0}".FRMT(schema.TableName));
+            cmdTxt.Append("DELETE FROM {0}".Frmt(schema.TableName));
 
 
             // Build Where clause if keys are defined
@@ -777,7 +778,7 @@ namespace DbUtils
                 PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
 
-                cmdTxt.Append("{0} = {1}".FRMT(map.SqlColumn, valueTxt));
+                cmdTxt.Append("{0} = {1}".Frmt(map.SqlColumn, valueTxt));
 
                 if ( ( count + 1 ) < schema.Keys.Count )
                     cmdTxt.Append(" AND ");
@@ -802,7 +803,7 @@ namespace DbUtils
             if ( connection == null )
                 throw new NullReferenceException();
 
-            _connection = connection;
+            Connection = connection;
         }
 
 
@@ -818,14 +819,14 @@ namespace DbUtils
 
         public virtual IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) 
         {
-            Type type = _PrepareSelect<T>();
+            PrepareSelect<T>();
 
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            DbCommand comm = _connection.CreateCommand();
+            DbCommand comm = Connection.CreateCommand();
 
             comm.CommandType = commandType;
             comm.CommandText = commandText;
@@ -834,33 +835,33 @@ namespace DbUtils
             if ( parameters != null )
                 comm.Parameters.AddRange(parameters);
 
-            return _MapTo<T>(comm.ExecuteReader());
+            return MapTo<T>(comm.ExecuteReader());
         }
 
         public virtual IList<T> Select<T>(Expression<Func<T, bool>> filter)
         {
-            Type type = _PrepareSelect<T>();
+            Type type = PrepareSelect<T>();
 
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            String selectCmd = PrepareSelectCmd<T>(type, filter);
-            DbCommand cmd = _connection.CreateCommand();
+            String selectCmd = PrepareSelectCmd(type, filter);
+            DbCommand cmd = Connection.CreateCommand();
 
-            cmd.CommandType = System.Data.CommandType.Text;     // dynamic SQL
+            cmd.CommandType = CommandType.Text;     // dynamic SQL
             cmd.CommandText = selectCmd;
 
-            return _MapTo<T>(cmd.ExecuteReader());
+            return MapTo<T>(cmd.ExecuteReader());
         }
 
         public virtual int Insert<T>(T obj)
         {
-            if ( _connection == null )
+            if ( Connection == null )
                 throw new NullReferenceException("connection is null");
 
-            if ( _connection.State != System.Data.ConnectionState.Open )
+            if ( Connection.State != System.Data.ConnectionState.Open )
                 throw new InvalidOperationException("connection must be opened");
 
             Type type = typeof(T);
@@ -873,10 +874,10 @@ namespace DbUtils
             // and never be touched (modified) again for the type.
             // 
 
-            String insertCmd = PrepareInsertCmd<T>(type, obj);
-            DbCommand cmd = _connection.CreateCommand();
+            String insertCmd = PrepareInsertCmd(type, obj);
+            DbCommand cmd = Connection.CreateCommand();
 
-            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandType = CommandType.Text;
             cmd.CommandText = insertCmd;
 
             return cmd.ExecuteNonQuery();
@@ -884,10 +885,10 @@ namespace DbUtils
 
         public virtual int Update<T>(T obj)
         {
-            if ( _connection == null )
+            if ( Connection == null )
                 throw new NullReferenceException("connection is null");
 
-            if ( _connection.State != System.Data.ConnectionState.Open )
+            if ( Connection.State != System.Data.ConnectionState.Open )
                 throw new InvalidOperationException("connection must be opened");
 
             Type type = typeof(T);
@@ -900,10 +901,10 @@ namespace DbUtils
             // and never be touched (modified) again for the type.
             // 
 
-            String updateCmd = PrepareUpdateCmd<T>(type, obj);
-            DbCommand cmd = _connection.CreateCommand();
+            String updateCmd = PrepareUpdateCmd(type, obj);
+            DbCommand cmd = Connection.CreateCommand();
 
-            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandType = CommandType.Text;
             cmd.CommandText = updateCmd;
 
             return cmd.ExecuteNonQuery();
@@ -911,10 +912,10 @@ namespace DbUtils
 
         public virtual int Delete<T>(T obj)
         {
-            if ( _connection == null )
+            if ( Connection == null )
                 throw new NullReferenceException("connection is null");
 
-            if ( _connection.State != System.Data.ConnectionState.Open )
+            if ( Connection.State != ConnectionState.Open )
                 throw new InvalidOperationException("connection must be opened");
 
             Type type = typeof(T);
@@ -927,10 +928,10 @@ namespace DbUtils
             // and never be touched (modified) again for the type.
             // 
 
-            String deleteCmd = PrepareDeleteCmd<T>(type, obj);
-            DbCommand cmd = _connection.CreateCommand();
+            String deleteCmd = PrepareDeleteCmd(type, obj);
+            DbCommand cmd = Connection.CreateCommand();
 
-            cmd.CommandType = System.Data.CommandType.Text;
+            cmd.CommandType = CommandType.Text;
             cmd.CommandText = deleteCmd;
 
             return cmd.ExecuteNonQuery();
