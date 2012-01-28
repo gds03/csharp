@@ -577,7 +577,7 @@ namespace DbUtils
         #region Instance Auxiliary Methods
 
 
-        protected Type PrepareSelect<T>()
+        protected Type SelectInitShared<T>()
         {
             if ( Connection == null )
                 throw new NullReferenceException("connection is null");
@@ -600,7 +600,7 @@ namespace DbUtils
 
 
 
-        #region Commands Preparers
+        #region Commands Dynamic SQL Preparers
 
 
 
@@ -819,7 +819,7 @@ namespace DbUtils
 
         public virtual IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) 
         {
-            PrepareSelect<T>();
+            SelectInitShared<T>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -840,7 +840,7 @@ namespace DbUtils
 
         public virtual IList<T> Select<T>(Expression<Func<T, bool>> filter)
         {
-            Type type = PrepareSelect<T>();
+            Type type = SelectInitShared<T>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -861,7 +861,7 @@ namespace DbUtils
             if ( Connection == null )
                 throw new NullReferenceException("connection is null");
 
-            if ( Connection.State != System.Data.ConnectionState.Open )
+            if ( Connection.State != ConnectionState.Open )
                 throw new InvalidOperationException("connection must be opened");
 
             Type type = typeof(T);
@@ -888,7 +888,7 @@ namespace DbUtils
             if ( Connection == null )
                 throw new NullReferenceException("connection is null");
 
-            if ( Connection.State != System.Data.ConnectionState.Open )
+            if ( Connection.State != ConnectionState.Open )
                 throw new InvalidOperationException("connection must be opened");
 
             Type type = typeof(T);
