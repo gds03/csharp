@@ -13,7 +13,6 @@ namespace DbUtils
 
     #region Mapper Attributes (public)
 
-    
     public sealed class Identity : Attribute
     {
         
@@ -96,6 +95,8 @@ namespace DbUtils
     #endregion
 
 
+
+
     public class ObjectMapper
     {
 
@@ -156,9 +157,9 @@ namespace DbUtils
         protected sealed class TypeSchema
         {
             internal String TableName;                  // If != null overrides the type name (used for CUD operations)
-            internal IList<KeyMapping> Keys;            // Stores the keys of the type
+            internal IList<KeyMapping> Keys;            // Stores the keys of the type (to uniquelly identify the one entity)
             internal IList<CostumMapping> Mappings;     // For each property, we have a costum mapping
-            internal String IdentityPropertyName;           // If != null, this stores the property of the type that is identity
+            internal String IdentityPropertyName;       // If != null, this stores the property of the type that is identity
 
             internal TypeSchema()
             {
@@ -175,28 +176,29 @@ namespace DbUtils
 
         protected sealed class CostumMapping
         {
-            internal String FromSelectColumn;
             internal String ClrProperty;
-            internal String BindedToColumn;
+            internal String ToSqlTableColumn;
+            internal String FromResultSetColumn;
 
             internal CostumMapping(String clrProperty)
             {
                 // Initially all points to the name of the clrProperty (convention is used)
-                FromSelectColumn = BindedToColumn = ClrProperty = clrProperty;      
+                FromResultSetColumn = ToSqlTableColumn = ClrProperty = clrProperty;      
             }
         }
 
         protected sealed class KeyMapping
         {
-            internal String SqlColumn;
-            internal String ClrProperty;
+            internal String To;
+            internal String From;
 
-            public KeyMapping(String sqlColumn, String clrProperty)
+            public KeyMapping(String to, String from)
             {
-                SqlColumn = sqlColumn;
-                ClrProperty = clrProperty;
+                To = to;
+                From = from;
             }
         }
+
 
         private sealed class ExpressionUtilFilterClass
         {
@@ -289,11 +291,11 @@ namespace DbUtils
                         continue;
                     }
 
-                    BindFrom selectFrom = o as BindFrom;
+                    BindFrom bf = o as BindFrom;
 
-                    if ( selectFrom != null )
+                    if ( bf != null )
                     {
-                        mapVar.FromSelectColumn = selectFrom.OverridedReadColumn;      // override read column behavior
+                        mapVar.FromResultSetColumn = bf.OverridedReadColumn;      // override read column behavior
                         continue;
                     }
 
@@ -301,7 +303,8 @@ namespace DbUtils
 
                     if ( bt != null )
                     {
-                        mapVar.BindedToColumn = bt.OverridedSqlColumn;                        // override CUD behavior
+                        mapVar.ToSqlTableColumn = bt.OverridedSqlColumn;                        // override CUD behavior
+                        continue;
                     }
                 }
 
@@ -316,7 +319,7 @@ namespace DbUtils
                     if ( isKey )
                     {
                         // Add on keys collection
-                        result[type].Keys.Add(new KeyMapping(mapVar.BindedToColumn, pi.Name));
+                        result[type].Keys.Add(new KeyMapping(mapVar.ToSqlTableColumn, pi.Name));
                     }
 
                     if ( isIdentity )
@@ -373,7 +376,7 @@ namespace DbUtils
             foreach ( CostumMapping cm in schema.Mappings )
             {
                 if ( cm.ClrProperty == propertyName )
-                    return cm.BindedToColumn;
+                    return cm.ToSqlTableColumn;
             }
 
             throw new InvalidOperationException("shouldn't be here'");
@@ -516,7 +519,7 @@ namespace DbUtils
                 foreach (CostumMapping map in schema.Mappings)
                 {
                     object value;
-                    string sqlColumn = map.FromSelectColumn;
+                    string sqlColumn = map.FromResultSetColumn;
 
                     try { value = reader[sqlColumn]; }
                     catch ( IndexOutOfRangeException )
@@ -621,7 +624,7 @@ namespace DbUtils
             // Select all columns that are mapped
             foreach ( CostumMapping cm in schema.Mappings )
             {
-                cmdTxt.Append(cm.FromSelectColumn);
+                cmdTxt.Append(cm.FromResultSetColumn);
                 cmdTxt.Append(", ");
             }
 
@@ -664,7 +667,7 @@ namespace DbUtils
                 if ( cm.ClrProperty == schema.IdentityPropertyName )
                     continue;
 
-                cmdTxt.Append(cm.BindedToColumn);
+                cmdTxt.Append(cm.ToSqlTableColumn);
                 cmdTxt.Append(", ");
             }
 
@@ -721,7 +724,7 @@ namespace DbUtils
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
                 String valueTxt = PrepareColumnType(pi, obj);
 
-                cmdTxt.Append("{0} = {1}, ".Frmt(cm.BindedToColumn, valueTxt));
+                cmdTxt.Append("{0} = {1}, ".Frmt(cm.ToSqlTableColumn, valueTxt));
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
@@ -732,10 +735,10 @@ namespace DbUtils
             int count = 0;
             foreach ( KeyMapping map in schema.Keys )
             {
-                PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
+                PropertyInfo pi = objRepresentor.GetProperty(map.From);
                 String valueTxt = PrepareColumnType(pi, obj);
 
-                cmdTxt.Append("{0} = {1}".Frmt(map.SqlColumn, valueTxt));
+                cmdTxt.Append("{0} = {1}".Frmt(map.To, valueTxt));
 
                 if ( ( count + 1 ) < schema.Keys.Count )
                     cmdTxt.Append(" AND ");
@@ -775,10 +778,10 @@ namespace DbUtils
             int count = 0;
             foreach ( KeyMapping map in schema.Keys )
             {
-                PropertyInfo pi = objRepresentor.GetProperty(map.ClrProperty);
+                PropertyInfo pi = objRepresentor.GetProperty(map.From);
                 String valueTxt = PrepareColumnType(pi, obj);
 
-                cmdTxt.Append("{0} = {1}".Frmt(map.SqlColumn, valueTxt));
+                cmdTxt.Append("{0} = {1}".Frmt(map.To, valueTxt));
 
                 if ( ( count + 1 ) < schema.Keys.Count )
                     cmdTxt.Append(" AND ");
