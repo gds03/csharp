@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Reflection;
 using System.Threading;
 using System.Text;
@@ -13,9 +14,33 @@ namespace DbUtils
 
     #region Mapper Attributes (public)
 
+    [Flags]
+    public enum SPMode
+    {
+        Insert = 1,
+        Update = 2,
+        Delete = 4
+    }
+
+    public sealed class StoredProc : Attribute
+    {
+        internal String ParameterName;
+        internal SPMode Mode;
+
+        public StoredProc(SPMode mode)
+        {
+            Mode = mode;
+        }
+
+        public StoredProc(SPMode mode, String name) : this(mode)
+        {
+            ParameterName = name;
+        }
+    }
+
     public sealed class Identity : Attribute
     {
-        
+
     }
 
     public sealed class Table : Attribute
@@ -30,7 +55,7 @@ namespace DbUtils
 
     public sealed class Key : Attribute
     {
-        
+
     }
 
     public sealed class Exclude : Attribute
@@ -74,7 +99,7 @@ namespace DbUtils
     {
         internal PropertyMustBeNullable(string msg) : base(msg) { }
     }
-    
+
     #endregion
 
 
@@ -102,23 +127,23 @@ namespace DbUtils
 
 
 
-        protected readonly DbConnection Connection;      // The only Instance variable
+        private readonly DbConnection Connection;      // The only Instance variable
 
 
 
 
         #region Static Fields
 
-        protected static readonly BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance;
-        
-                   
+        private static readonly BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance;
 
 
+
+        // 
         // For specific type, stores the properties that must be mapped from SQL
-        protected static volatile Dictionary<Type, TypeSchema> TypesSchema =
-                            new Dictionary<Type, TypeSchema>();     // Accessed in context of multiple threads
+        // (Accessed in context of multiple threads)
+        private static volatile Dictionary<Type, TypeSchema> TypesSchema = new Dictionary<Type, TypeSchema>();     
 
-
+        // Map expressionType (LINQ expression nodes to strings (e.g && -> AND, || -> OR, etc..)
         private static readonly Dictionary<ExpressionType, String> ExpressionOperator = new Dictionary<ExpressionType, string>();
 
 
@@ -147,7 +172,7 @@ namespace DbUtils
         }
 
 
-        
+
 
 
 
@@ -159,12 +184,15 @@ namespace DbUtils
             internal String TableName;                  // If != null overrides the type name (used for CUD operations)
             internal IList<KeyMapping> Keys;            // Stores the keys of the type (to uniquelly identify the one entity)
             internal IList<CostumMapping> Mappings;     // For each property, we have a costum mapping
+            internal IList<ProcMapping> Procedures;     // Stores parameters that must be used when ExecuteProc command is executed to send them to Stored Procedures
             internal String IdentityPropertyName;       // If != null, this stores the property of the type that is identity
+            
 
             internal TypeSchema()
             {
-                Mappings = new List<CostumMapping>();
-                Keys = new List<KeyMapping>();
+                Mappings    = new List<CostumMapping>();
+                Keys        = new List<KeyMapping>();
+                Procedures  = new List<ProcMapping>();
             }
 
             internal TypeSchema(String tableName)
@@ -183,19 +211,33 @@ namespace DbUtils
             internal CostumMapping(String clrProperty)
             {
                 // Initially all points to the name of the clrProperty (convention is used)
-                FromResultSetColumn = ToSqlTableColumn = ClrProperty = clrProperty;      
+                FromResultSetColumn = ToSqlTableColumn = ClrProperty = clrProperty;
             }
         }
 
         protected sealed class KeyMapping
         {
-            internal String To;
             internal String From;
+            internal String To;            
 
             public KeyMapping(String to, String from)
             {
                 To = to;
                 From = from;
+            }
+        }
+
+        // Map CLR property type to a stored procedure parameter
+        protected sealed class ProcMapping
+        {
+            internal KeyMapping Map;        
+            internal SPMode Mode;
+
+            internal ProcMapping(String clrProperty, SPMode mode)
+            {
+                // Initially points to the name of the clrProperty (convention is used)
+                Map = new KeyMapping(clrProperty, clrProperty);
+                Mode = mode;
             }
         }
 
@@ -250,27 +292,29 @@ namespace DbUtils
             {
                 Table t = o as Table;
 
-                if ( t != null ) {
+                if ( t != null )
+                {
                     result[type].TableName = t.OverridedName;       // override the default name
                     break;                                          // We are done.
                 }
             }
 
-            
-            // Iterate over each property of the type set mappings references
+
+            // Iterate over each property of the type
             foreach ( PropertyInfo pi in type.GetProperties(Flags) )
             {
                 bool mapProperty = true;                                // Always to map, unless specified Exclude costum attribute
-                bool isKey       = false;                               // Only if attribute were found, sets this flag to true
-                bool isIdentity  = false;                               // For each type, we must have only one Entity
+                bool isKey = false;                                     // Only if attribute were found, sets this flag to true
+                bool isIdentity = false;                                // For each type, we must have only one Entity
 
                 CostumMapping mapVar = new CostumMapping(pi.Name);      // By convention all mappings match the propertyName
 
 
                 // Iterate over each attribute on context property
-                foreach ( object o in pi.GetCustomAttributes(false) ) {
-
-                    if ( o is Exclude ) {
+                foreach ( object o in pi.GetCustomAttributes(false) )
+                {
+                    if ( o is Exclude )
+                    {
                         mapProperty = false;
                         break;                  // break immediately and don't map this property
                     }
@@ -303,12 +347,26 @@ namespace DbUtils
 
                     if ( bt != null )
                     {
-                        mapVar.ToSqlTableColumn = bt.OverridedSqlColumn;                        // override CUD behavior
+                        mapVar.ToSqlTableColumn = bt.OverridedSqlColumn;          // override CUD behavior
+                        continue;
+                    }
+
+                    StoredProc sp = o as StoredProc;
+
+                    if ( sp != null )
+                    {
+                        ProcMapping pm = new ProcMapping(pi.Name, sp.Mode);
+
+                        if ( sp.ParameterName != null )
+                            pm.Map.To = sp.ParameterName;                        // override sp parameter
+
+                        result[type].Procedures.Add(pm);
                         continue;
                     }
                 }
 
-                if ( mapProperty ) {
+                if ( mapProperty )
+                {
 
                     //
                     // We are here if Exclude wasn't present on the property
@@ -341,7 +399,7 @@ namespace DbUtils
 
 
 
-        protected static void ConfigureMetadataFor(Type type)
+        private static void ConfigureMetadataFor(Type type)
         {
             do
             {
@@ -351,13 +409,14 @@ namespace DbUtils
                     break;
 
                 //
-                // Schema must be setted! - multiple threads can be here.. 
-                // (Altought isn't a commun case for the same type at the same time)
+                // Schema must be setted! - multiple threads can be here;
+                // Threads can be here concurrently when a new type is added, 
+                // or then 2 or more threads are setting the same type metadata
                 // 
 
                 Dictionary<Type, TypeSchema> backup = TypesSchema;     // Get a local copy for each thread.
-                var newSchema = NewCopyWithAddedTypeSchema(type);       // Copy and add metadata for specific Type
-                
+                var newSchema = NewCopyWithAddedTypeSchema(type);      // Copy and add metadata for specific Type
+
 
                 #pragma warning disable 420
 
@@ -369,7 +428,7 @@ namespace DbUtils
             } while ( true );
         }
 
-        protected static String GetMappingForProperty(Type t, String propertyName)
+        private static String GetMappingForProperty(Type t, String propertyName)
         {
             TypeSchema schema = TypesSchema[t];
 
@@ -382,7 +441,7 @@ namespace DbUtils
             throw new InvalidOperationException("shouldn't be here'");
         }
 
-        
+
 
 
 
@@ -516,7 +575,7 @@ namespace DbUtils
                 Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
 
                 // Map properties to the newInstance
-                foreach (CostumMapping map in schema.Mappings)
+                foreach ( CostumMapping map in schema.Mappings )
                 {
                     object value;
                     string sqlColumn = map.FromResultSetColumn;
@@ -580,7 +639,7 @@ namespace DbUtils
         #region Instance Auxiliary Methods
 
 
-        protected Type SelectInitShared<T>()
+        private Type SelectInitShared<T>()
         {
             if ( Connection == null )
                 throw new NullReferenceException("connection is null");
@@ -820,7 +879,7 @@ namespace DbUtils
 
 
 
-        public virtual IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) 
+        public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters)
         {
             SelectInitShared<T>();
 
@@ -841,7 +900,7 @@ namespace DbUtils
             return MapTo<T>(comm.ExecuteReader());
         }
 
-        public virtual IList<T> Select<T>(Expression<Func<T, bool>> filter)
+        public IList<T> Select<T>(Expression<Func<T, bool>> filter)
         {
             Type type = SelectInitShared<T>();
 
@@ -859,7 +918,7 @@ namespace DbUtils
             return MapTo<T>(cmd.ExecuteReader());
         }
 
-        public virtual int Insert<T>(T obj)
+        public int Insert<T>(T obj)
         {
             if ( Connection == null )
                 throw new NullReferenceException("connection is null");
@@ -886,7 +945,7 @@ namespace DbUtils
             return cmd.ExecuteNonQuery();
         }
 
-        public virtual int Update<T>(T obj)
+        public int Update<T>(T obj)
         {
             if ( Connection == null )
                 throw new NullReferenceException("connection is null");
@@ -913,7 +972,7 @@ namespace DbUtils
             return cmd.ExecuteNonQuery();
         }
 
-        public virtual int Delete<T>(T obj)
+        public int Delete<T>(T obj)
         {
             if ( Connection == null )
                 throw new NullReferenceException("connection is null");
@@ -942,6 +1001,52 @@ namespace DbUtils
 
 
 
+
+
+        public int ExecuteProc<T>(string procedureName, SPMode mode, T obj)
+        {
+            if ( Connection == null )
+                throw new NullReferenceException("connection is null");
+
+            if ( Connection.State != ConnectionState.Open )
+                throw new InvalidOperationException("connection must be opened");
+
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
+
+
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+
+            DbCommand cmd = Connection.CreateCommand();
+
+            cmd.CommandType = CommandType.StoredProcedure;      // Procedure
+            cmd.CommandText = procedureName;
+
+            //
+
+            Type objRepresentor = obj.GetType();
+            TypeSchema schema = TypesSchema[type];
+
+            foreach ( ProcMapping pm in schema.Procedures )
+            {
+                if ( ( pm.Mode & mode ) == mode )      // Mode match!
+                {
+                    object value = objRepresentor.GetProperty(pm.Map.From, Flags).GetValue(obj, null);
+                    object value2 = value == null ? DBNull.Value : value;
+
+                    cmd.Parameters.Add(new SqlParameter(pm.Map.To, value2));
+                }
+            }
+
+            return cmd.ExecuteNonQuery();
+        }
 
 
         #endregion
