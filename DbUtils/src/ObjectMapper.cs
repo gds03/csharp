@@ -900,6 +900,11 @@ namespace DbUtils
             return MapTo<T>(comm.ExecuteReader());
         }
 
+        public IList<T> Select<T>() 
+        {
+            return Select<T>(null);
+        }
+
         public IList<T> Select<T>(Expression<Func<T, bool>> filter)
         {
             Type type = SelectInitShared<T>();
@@ -917,6 +922,8 @@ namespace DbUtils
 
             return MapTo<T>(cmd.ExecuteReader());
         }
+
+
 
         public int Insert<T>(T obj)
         {
