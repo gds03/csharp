@@ -9,7 +9,7 @@ using System.Data;
 using System.Linq.Expressions;
 
 
-namespace DbUtils
+namespace DbMapper
 {
 
     #region Mapper Attributes (public)
