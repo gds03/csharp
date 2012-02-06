@@ -639,7 +639,7 @@ namespace DbMapper
                 try {
                     Connection.Open();
                 }
-                catch (Exception ex) { throw new InvalidOperationException("connection is not in good conditions"); }
+                catch (Exception) { throw new InvalidOperationException("connection is not in good conditions"); }
             }
 
         }
@@ -693,9 +693,8 @@ namespace DbMapper
             return cmdTxt.ToString();
         }
 
-        private static String PrepareInsertCmd<T>(Type type, T obj)
+        private static String PrepareInsertCmd<T>(Type type, T obj, Type objRepresentor, string scopeIdentity)
         {
-            Type objRepresentor = obj.GetType();
             StringBuilder cmdTxt = new StringBuilder();
 
             //
@@ -736,6 +735,7 @@ namespace DbMapper
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             cmdTxt.Append(")");
+            cmdTxt.Append(" select SCOPE_IDENTITY() as [{0}]".Frmt(scopeIdentity));
 
             return cmdTxt.ToString();
         }
@@ -947,7 +947,7 @@ namespace DbMapper
 
 
         /// <summary>
-        ///     Inserts the object on database.
+        ///     Inserts the object on database and update the identity property in CLR object (if annotated with)
         ///     The property annotated with Identity Attribute is ignored on insert command.
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to insert</typeparam>
@@ -956,6 +956,9 @@ namespace DbMapper
         public int Insert<T>(T obj)
         {
             Type type = typeof(T);
+            Type objRepresentor = obj.GetType();
+
+            string scopy_id_name = "Scope_Identity";
 
             // Lock-Free
             ConfigureMetadataFor(type); 
@@ -965,7 +968,9 @@ namespace DbMapper
             // and never be touched (modified) again for the type.
             // 
 
-            String insertCmd = PrepareInsertCmd(type, obj);
+            TypeSchema schema = TypesSchema[type];
+
+            String insertCmd = PrepareInsertCmd(type, obj, objRepresentor, scopy_id_name);
             DbCommand cmd = Connection.CreateCommand();
 
             cmd.CommandType = CommandType.Text;
@@ -973,7 +978,31 @@ namespace DbMapper
 
             // Open connection if not opened
             SetupConnection();  
-            return cmd.ExecuteNonQuery();
+
+            // Execute query and if identity defined execute scalar sql command
+            if(schema.IdentityPropertyName == null)
+                return cmd.ExecuteNonQuery();
+                        
+            //
+            // The type have identity column and we must set the identity to instance of the object
+            //
+
+            // Execute scalar query
+            object scope_identity;
+
+            if( (scope_identity = cmd.ExecuteScalar()) == null )
+                return 0;
+            
+            // Set scope_identity to object property identity
+            PropertyInfo pi = objRepresentor.GetProperty(schema.IdentityPropertyName);
+
+            // Convert type from db to property type
+            object converted_identity = Convert.ChangeType(scope_identity, pi.PropertyType);
+
+            // Set property identity
+            pi.SetValue(obj, converted_identity, null);
+
+            return 1;
         }
 
 
