@@ -441,7 +441,79 @@ namespace DbMapper
             throw new InvalidOperationException("shouldn't be here'");
         }
 
+        private static IList<T> MapTo<T>(DbDataReader reader) {
+            if (reader == null)
+                throw new NullReferenceException("reader cannot be null");
 
+            if (reader.IsClosed)
+                throw new InvalidOperationException("reader connection is closed and objects cannot be mapped");
+
+            if (!reader.HasRows)
+                return new List<T>();
+
+
+            Type type = typeof(T);
+            TypeSchema schema = TypesSchema[type];
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            // Map cursor lines from database to CLR objects based on T
+
+            List<T> bundle = new List<T>();
+
+            while (reader.Read()) {
+                T newInstance = (T)Activator.CreateInstance(type);
+                Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
+
+                // Map properties to the newInstance
+                foreach (CostumMapping map in schema.Mappings) {
+                    object value;
+                    string sqlColumn = map.FromResultSetColumn;
+
+                    try { value = reader[sqlColumn]; }
+                    catch (IndexOutOfRangeException) {
+                        throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".Frmt(sqlColumn));
+                    }
+
+                    PropertyInfo ctxProperty = newInstanceRep.GetProperty(map.ClrProperty);
+
+                    //
+                    // Nullable condition checker!
+                    //
+
+                    if (value.GetType() == typeof(DBNull)) {
+                        if (ctxProperty.PropertyType.IsPrimitive) {
+                            throw new PropertyMustBeNullable(
+                                "Property {0} must be nullable for mapping a null value".Frmt(ctxProperty.Name)
+                            );
+                        }
+
+                        value = null;
+                    }
+
+
+
+                    //
+                    // Set property value
+                    // 
+
+
+                    ctxProperty.SetValue(newInstance, value, null);     // WARNING: Conversion Types..
+                }
+
+                // Add element to the collection
+                bundle.Add(newInstance);
+            }
+
+            // Free Connection Resources
+            reader.Close();
+            reader.Dispose();
+
+            return bundle;
+        }
 
 
 
@@ -545,86 +617,6 @@ namespace DbMapper
         }
 
 
-        private static IList<T> MapTo<T>(DbDataReader reader)
-        {
-            if ( reader == null )
-                throw new NullReferenceException("reader cannot be null");
-
-            if ( reader.IsClosed )
-                throw new InvalidOperationException("reader connection is closed and objects cannot be mapped");
-
-            if ( !reader.HasRows )
-                return new List<T>();
-
-
-            Type type = typeof(T);
-            TypeSchema schema = TypesSchema[type];
-
-            //
-            // If we are here, the properties for specific type are filled 
-            // and never be touched (modified) again for the type.
-            // 
-
-            // Map cursor lines from database to CLR objects based on T
-
-            List<T> bundle = new List<T>();
-
-            while ( reader.Read() )
-            {
-                T newInstance = (T)Activator.CreateInstance(type);
-                Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
-
-                // Map properties to the newInstance
-                foreach ( CostumMapping map in schema.Mappings )
-                {
-                    object value;
-                    string sqlColumn = map.FromResultSetColumn;
-
-                    try { value = reader[sqlColumn]; }
-                    catch ( IndexOutOfRangeException )
-                    {
-                        throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".Frmt(sqlColumn));
-                    }
-
-                    PropertyInfo ctxProperty = newInstanceRep.GetProperty(map.ClrProperty);
-
-                    //
-                    // Nullable condition checker!
-                    //
-
-                    if ( value.GetType() == typeof(DBNull) )
-                    {
-                        if ( ctxProperty.PropertyType.IsPrimitive )
-                        {
-                            throw new PropertyMustBeNullable(
-                                "Property {0} must be nullable for mapping a null value".Frmt(ctxProperty.Name)
-                            );
-                        }
-
-                        value = null;
-                    }
-
-
-
-                    //
-                    // Set property value
-                    // 
-
-
-                    ctxProperty.SetValue(newInstance, value, null);     // WARNING: Conversion Types..
-                }
-
-                // Add element to the collection
-                bundle.Add(newInstance);
-            }
-
-            // Free Connection Resources
-            reader.Close();
-            reader.Dispose();
-
-            return bundle;
-        }
-
 
         #endregion
 
@@ -639,21 +631,17 @@ namespace DbMapper
         #region Instance Auxiliary Methods
 
 
-        private Type SelectInitShared<T>()
-        {
-            if ( Connection == null )
+        private void SetupConnection() {
+            if (Connection == null)
                 throw new NullReferenceException("connection is null");
 
-            Type type = typeof(T);
+            if (Connection.State != ConnectionState.Open) {
+                try {
+                    Connection.Open();
+                }
+                catch (Exception ex) { throw new InvalidOperationException("connection is not in good conditions"); }
+            }
 
-            // Lock-Free
-            ConfigureMetadataFor(type);
-
-            // Open connection
-            if ( Connection.State == ConnectionState.Closed )
-                Connection.Open();
-
-            return type;
         }
 
 
@@ -863,7 +851,7 @@ namespace DbMapper
         public ObjectMapper(DbConnection connection)
         {
             if ( connection == null )
-                throw new NullReferenceException();
+                throw new NullReferenceException("connection cannot be null");
 
             Connection = connection;
         }
@@ -878,10 +866,20 @@ namespace DbMapper
 
 
 
-
+        /// <summary>
+        ///     Maps the result set to a list of T by convention, and leave the possibility to pass the commandType, commandText and DbParameters.
+        /// </summary>
+        /// <typeparam name="T">The type of the object that you want to get</typeparam>
+        /// <param name="commandType">The type of the command</param>
+        /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
+        /// <param name="parameters">The parameters that command use. (optional)</param>
+        /// <returns>A list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
         public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters)
         {
-            SelectInitShared<T>();
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
 
             //
             // If we are here, the properties for specific type are filled 
@@ -897,17 +895,36 @@ namespace DbMapper
             if ( parameters != null )
                 comm.Parameters.AddRange(parameters);
 
+            // Open connection if not opened
+            SetupConnection();  
             return MapTo<T>(comm.ExecuteReader());
         }
 
+
+
+        /// <summary>
+        ///     Maps the table from database to a list of T by convention.
+        /// </summary>
+        /// <typeparam name="T">The type of the object that you want to get</typeparam>
+        /// <returns>A list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
         public IList<T> Select<T>() 
         {
             return Select<T>(null);
         }
 
+
+        /// <summary>
+        ///     Maps the table tuples from database to a list of T by convention that satisfy the filter.
+        /// </summary>
+        /// <typeparam name="T">The type of the object that you want to get</typeparam>
+        /// <param name="filter">The filter that you must use to filter a sub part of the result</param>
+        /// <returns>A list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
         public IList<T> Select<T>(Expression<Func<T, bool>> filter)
         {
-            Type type = SelectInitShared<T>();
+            Type type = typeof(T);
+
+            // Lock-Free
+            ConfigureMetadataFor(type);
 
             //
             // If we are here, the properties for specific type are filled 
@@ -920,23 +937,28 @@ namespace DbMapper
             cmd.CommandType = CommandType.Text;     // dynamic SQL
             cmd.CommandText = selectCmd;
 
+            // Open connection if not opened
+            SetupConnection();  
             return MapTo<T>(cmd.ExecuteReader());
         }
 
 
 
+
+
+        /// <summary>
+        ///     Inserts the object on database.
+        ///     The property annotated with Identity Attribute is ignored on insert command.
+        /// </summary>
+        /// <typeparam name="T">The type of the object that you want to insert</typeparam>
+        /// <param name="obj">The object that you want to insert</param>
+        /// <returns>The number of affected rows in database</returns>
         public int Insert<T>(T obj)
         {
-            if ( Connection == null )
-                throw new NullReferenceException("connection is null");
-
-            if ( Connection.State != ConnectionState.Open )
-                throw new InvalidOperationException("connection must be opened");
-
             Type type = typeof(T);
 
             // Lock-Free
-            ConfigureMetadataFor(type);
+            ConfigureMetadataFor(type); 
 
             //
             // If we are here, the properties for specific type are filled 
@@ -949,21 +971,25 @@ namespace DbMapper
             cmd.CommandType = CommandType.Text;
             cmd.CommandText = insertCmd;
 
+            // Open connection if not opened
+            SetupConnection();  
             return cmd.ExecuteNonQuery();
         }
 
+
+
+        /// <summary>
+        ///     Based on primary key of the type, update the object on database
+        /// </summary>
+        /// <typeparam name="T">The type of the object that you want to update. Note: This type must be annotated with [Key]</typeparam>
+        /// <param name="obj">The object that you want to update</param>
+        /// <returns>The number of affected rows in database</returns>
         public int Update<T>(T obj)
         {
-            if ( Connection == null )
-                throw new NullReferenceException("connection is null");
-
-            if ( Connection.State != ConnectionState.Open )
-                throw new InvalidOperationException("connection must be opened");
-
             Type type = typeof(T);
 
             // Lock-Free
-            ConfigureMetadataFor(type);
+            ConfigureMetadataFor(type); 
 
             //
             // If we are here, the properties for specific type are filled 
@@ -976,17 +1002,22 @@ namespace DbMapper
             cmd.CommandType = CommandType.Text;
             cmd.CommandText = updateCmd;
 
+            // Open connection if not opened
+            SetupConnection();  
             return cmd.ExecuteNonQuery();
         }
 
+
+
+
+        /// <summary>
+        ///     Based on primary key of the type, delete the object from database
+        /// </summary>
+        /// <typeparam name="T">The type of the object that you want to delete. Note: This type must be annotated with [Key]</typeparam>
+        /// <param name="obj">The object that you want to delete</param>
+        /// <returns>The number of affected rows in database</returns>
         public int Delete<T>(T obj)
         {
-            if ( Connection == null )
-                throw new NullReferenceException("connection is null");
-
-            if ( Connection.State != ConnectionState.Open )
-                throw new InvalidOperationException("connection must be opened");
-
             Type type = typeof(T);
 
             // Lock-Free
@@ -1003,6 +1034,8 @@ namespace DbMapper
             cmd.CommandType = CommandType.Text;
             cmd.CommandText = deleteCmd;
 
+            // Open connection if not opened
+            SetupConnection();  
             return cmd.ExecuteNonQuery();
         }
 
@@ -1010,14 +1043,26 @@ namespace DbMapper
 
 
 
-        public int ExecuteProc<T>(string procedureName, SPMode mode, T obj)
+
+
+
+
+
+
+
+
+
+        /// <summary>
+        ///     Build DbParameters that match with the mode and execute the stored procedure.
+        ///     All stored procedures must have the same name of parameters for all modes when using this method.
+        /// </summary>
+        /// <typeparam name="T">The type that must have their properties annotated with [StoredProc]</typeparam>
+        /// <param name="obj">The object that you want to retrieve the information and build sql parameters dynamically based on their values</param>
+        /// <param name="mode">The mode of the procedure</param>
+        /// <param name="procedureName">The name of the procedure</param>
+        /// <returns>The number of affected rows in database</returns>
+        public int ExecuteProc<T>(T obj, SPMode mode, string procedureName)
         {
-            if ( Connection == null )
-                throw new NullReferenceException("connection is null");
-
-            if ( Connection.State != ConnectionState.Open )
-                throw new InvalidOperationException("connection must be opened");
-
             Type type = typeof(T);
 
             // Lock-Free
@@ -1052,7 +1097,33 @@ namespace DbMapper
                 }
             }
 
+            // Open connection if not opened
+            SetupConnection();  
             return cmd.ExecuteNonQuery();
+        }
+
+
+        /// <summary>
+        ///     Execute the query against database.
+        /// </summary>
+        /// <param name="commandType">The type of the command</param>
+        /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
+        /// <param name="parameters">The parameters that command use. (optional)</param>
+        /// <returns>The number of affected rows in database</returns>
+        public int Execute(CommandType commandType, string commandText, params DbParameter[] parameters) {
+            DbCommand comm = Connection.CreateCommand();
+
+            comm.CommandType = commandType;
+            comm.CommandText = commandText;
+
+            // Set parameters
+            if (parameters != null)
+                comm.Parameters.AddRange(parameters);
+
+            // Open connection if not opened
+            SetupConnection();  
+            return comm.ExecuteNonQuery();
+
         }
 
 
