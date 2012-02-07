@@ -9,7 +9,7 @@ using System.Data;
 using System.Linq.Expressions;
 
 
-namespace DbMapper
+namespace DbTools
 {
 
     #region Mapper Attributes (public)
@@ -135,16 +135,18 @@ namespace DbMapper
         #region Static Fields
 
         private static readonly BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance;
+        private const int SchemaInitCapacity = 53;
+        private const int OperatorsInitCapacity = 23;
 
 
 
         // 
         // For specific type, stores the properties that must be mapped from SQL
         // (Accessed in context of multiple threads)
-        private static volatile Dictionary<Type, TypeSchema> TypesSchema = new Dictionary<Type, TypeSchema>();     
+        private static volatile Dictionary<Type, TypeSchema> TypesSchema = new Dictionary<Type, TypeSchema>(SchemaInitCapacity);     
 
         // Map expressionType (LINQ expression nodes to strings (e.g && -> AND, || -> OR, etc..)
-        private static readonly Dictionary<ExpressionType, String> ExpressionOperator = new Dictionary<ExpressionType, string>();
+        private static readonly Dictionary<ExpressionType, String> ExpressionOperator = new Dictionary<ExpressionType, string>(OperatorsInitCapacity);
 
 
         #endregion
