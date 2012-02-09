@@ -122,7 +122,7 @@ namespace DbTools
 
 
 
-    public class ObjectMapper
+    public class ObjectMapper : IDisposable
     {
 
 
@@ -1154,12 +1154,44 @@ namespace DbTools
             // Open connection if not opened
             SetupConnection();  
             return comm.ExecuteNonQuery();
+        }
 
+
+        /// <summary>
+        ///     Execute the query against database.
+        /// </summary>
+        /// <param name="commandType">The type of the command</param>
+        /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
+        /// <param name="parameters">The parameters that command use. (optional)</param>
+        /// <returns>the first column of the first row in the resultset returned by the query</returns>
+        public object ExecuteScalar(CommandType commandType, string commandText, params DbParameter[] parameters) {
+            DbCommand comm = Connection.CreateCommand();
+
+            comm.CommandType = commandType;
+            comm.CommandText = commandText;
+
+            // Set parameters
+            if ( parameters != null )
+                comm.Parameters.AddRange(parameters);
+
+            // Open connection if not opened
+            SetupConnection();
+            return comm.ExecuteScalar();
         }
 
 
         #endregion
 
 
+
+
+
+
+        public void Dispose() {
+            if ( Connection != null ) {
+                Connection.Close();
+                Connection.Dispose();
+            }
+        }
     }
 }
