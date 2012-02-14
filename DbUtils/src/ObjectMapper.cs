@@ -244,13 +244,6 @@ namespace DbTools
         }
 
 
-        private sealed class ExpressionUtilFilterClass
-        {
-            internal Type ParameterType;
-            internal String Data;
-        }
-
-
         #endregion
 
 
@@ -524,98 +517,87 @@ namespace DbTools
         #region Parser for Where Filter
 
 
+        // Recursive algorithm
         private static String ParseFilter(Expression expr)
         {
-            return ParseFilter(expr, new ExpressionUtilFilterClass()).Data.ToString();
-        }
+            //
+            // This is a simple filter, we only want (and parse) simple expressions.
+            // 
 
-        // Recursive algorithm
-        private
-        static
-        ExpressionUtilFilterClass                            // Return type
-        ParseFilter(
-            Expression expr,
-            ExpressionUtilFilterClass info          // Used to pass information in recursive manner
-        )
-        {
+            BinaryExpression bExpr;
+            MemberExpression mExpr;
+            ConstantExpression cExpr;
 
-            Type exprType = expr.GetType();
-
-            if ( exprType != typeof(BinaryExpression) && exprType != typeof(MemberExpression) && exprType != typeof(ConstantExpression) )
-                throw new InvalidOperationException("unsupported filter");
-
-
-            if ( exprType == typeof(BinaryExpression) )
+            if ( (bExpr = expr as BinaryExpression) != null )
             {
                 //
                 // We have 2 expressions (left and right)
+                // We get the first left result use the operator and get the right part 
+                // (that can contain another BinaryExpression For example)
                 // 
 
-                BinaryExpression bExpr = (BinaryExpression)expr;
-                ExpressionUtilFilterClass recursion;
+                StringBuilder innerText         = new StringBuilder();
+                String recursiveResult;
 
-                StringBuilder subOperation = new StringBuilder();
-                recursion = ParseFilter(bExpr.Left, info);              // Go left in depth - we don't know the type yet
+                recursiveResult = ParseFilter(bExpr.Left);                 // Go left
 
-                subOperation.Append("( ");
-                subOperation.Append(recursion.Data);
-                subOperation.Append(" ");
+                innerText.Append("( ");
+                innerText.Append(recursiveResult);
+                innerText.Append(" ");
 
-                subOperation.Append(ExpressionOperator[bExpr.NodeType]);
-                subOperation.Append(" ");
+                innerText.Append(ExpressionOperator[bExpr.NodeType]);      // Map node types to SQL operators
+                innerText.Append(" ");
 
-                recursion = ParseFilter(bExpr.Right, recursion);               // Pass reference that contains type information!
+                recursiveResult = ParseFilter(bExpr.Right);               // Go right
 
-                subOperation.Append(recursion.Data);
-                subOperation.Append(" )");
+                innerText.Append(recursiveResult);
+                innerText.Append(" )");
 
-                // Affect data subpart and pass to upper caller
-                recursion.Data = subOperation.ToString();
-
-                return recursion;
+                return innerText.ToString();
             }
 
-            else
-            {
-                MemberExpression mExpr;
-                ConstantExpression cExpr;
-
-                //
-                // We need distinct if we are accessing to capturated variables (need map to sql) or constant variables
-                //
-
-                if ( ( mExpr = expr as MemberExpression ) != null )
-                {
-                    if ( ( ( mExpr.Expression as ParameterExpression ) ) != null )
-                    {
-                        info.ParameterType = mExpr.Expression.Type;        // Type of parameter (must be untouched)
-                        info.Data = GetMappingForProperty(info.ParameterType, mExpr.Member.Name);                     // Must have a map to SQL (criar metodo que faz mapeamento)!!!!!!!!!!!!!!!!!
-
-                        return info;
-                    }
-                    else
-                    {
-                        cExpr = (ConstantExpression)mExpr.Expression;
-
-                        object obj = cExpr.Value;               // Get anonymous object
-                        string objField = mExpr.Member.Name;
-
-                        FieldInfo value = obj.GetType().GetField(objField);  // Read native value
-                        string nativeData = value.GetValue(obj).ToString();
-
-                        info.Data = nativeData;
-                        return info;
-                    }
-                }
-                else
-                {
-                    cExpr = (ConstantExpression)expr;
-                    string nativeData = cExpr.Value.ToString();
-
-                    info.Data = nativeData;
-                    return info;
-                }
+            if ( ( cExpr = expr as ConstantExpression ) != null ) {
+                return cExpr.Value.ToString();                                      // Only works for not complex types
             }
+
+            if ( ( mExpr = expr as MemberExpression ) == null )
+                throw new NotSupportedException("unsupported filter");
+
+            // expr is of MemberExpression type            
+            Expression innerExpr = mExpr.Expression;
+
+            ParameterExpression pInnerExpr;
+            MemberExpression mInnerExpr;
+            ConstantExpression cInnerExpr;
+            BinaryExpression bInnerExpr;
+
+            if ( (bInnerExpr = innerExpr as BinaryExpression) != null )
+                return ParseFilter(bInnerExpr);                                          // Go recursive    
+
+            if ( (pInnerExpr = innerExpr as ParameterExpression) != null ) {
+                return GetMappingForProperty(pInnerExpr.Type, mExpr.Member.Name);        // We must map property of the type to SQL Column
+            }
+
+            if ( (cInnerExpr = innerExpr as ConstantExpression) != null ) {
+                object obj = cInnerExpr.Value;                                           // Get anonymous object (captured by the compiler)
+
+                FieldInfo value = obj.GetType().GetField(mExpr.Member.Name);             // Get the field of the anonymous object 
+                return value.GetValue(obj).ToString();                                   // Only works for not complex types
+            }
+
+            if( (mInnerExpr = innerExpr as MemberExpression) == null )
+                throw new NotSupportedException("unsupported filter");
+            
+            // innerExpr is MemberExpression!
+            if( (cInnerExpr = mInnerExpr.Expression as ConstantExpression) == null )
+                throw new NotSupportedException("unsupported filter");
+
+            object objValue = cInnerExpr.Value;                                                     // Get anonymous object (captured by the compiler)
+
+            FieldInfo fieldValue = objValue.GetType().GetField(mInnerExpr.Member.Name);             // Get the field of the anonymous object 
+            object obj2 = fieldValue.GetValue(objValue);                                            // Get the object in the field
+
+            return obj2.GetType().GetProperty(mExpr.Member.Name).GetValue(obj2, null).ToString();   // Based on the object, finally get the value in the property 
         }
 
 
@@ -637,13 +619,9 @@ namespace DbTools
             if (Connection == null)
                 throw new NullReferenceException("connection is null");
 
-            if (Connection.State != ConnectionState.Open) {
-                try {
-                    Connection.Open();
-                }
-                catch (Exception) { throw new InvalidOperationException("connection is not in good conditions"); }
-            }
-
+            // Try open the connection if not opened!
+            if(Connection.State !=  ConnectionState.Open)
+                Connection.Open();
         }
 
 
@@ -1187,11 +1165,14 @@ namespace DbTools
 
 
 
-        public void Dispose() {
+        public void Dispose() 
+        {
+
             if ( Connection != null ) {
                 Connection.Close();
                 Connection.Dispose();
             }
+
         }
     }
 }
