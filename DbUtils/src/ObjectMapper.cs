@@ -283,7 +283,7 @@ namespace DbTools
             result[type].TableName = type.Name;
 
             // Search for Table attribute on the type
-            foreach ( object o in type.GetCustomAttributes(false) )
+            foreach ( object o in type.GetCustomAttributes(true) )
             {
                 Table t = o as Table;
 
