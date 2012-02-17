@@ -1,3 +1,11 @@
+
+//
+// Released at: 17 February 2012
+// Author: Gonçalo Dias
+//
+
+
+
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -137,6 +145,7 @@ namespace DbTools
         private static readonly BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance;
         private const int SchemaInitCapacity = 53;
         private const int OperatorsInitCapacity = 23;
+        private const int ClrTypesMappingCapacity = 47;
 
 
 
@@ -148,6 +157,9 @@ namespace DbTools
         // Map expressionType (LINQ expression nodes to strings (e.g && -> AND, || -> OR, etc..)
         private static readonly Dictionary<ExpressionType, String> ExpressionOperator = new Dictionary<ExpressionType, string>(OperatorsInitCapacity);
 
+        private static readonly Dictionary<Type, String> ClrToSqlTypes = new Dictionary<Type, string>(ClrTypesMappingCapacity);
+
+
 
         #endregion
 
@@ -157,25 +169,11 @@ namespace DbTools
 
         static ObjectMapper()
         {
-            ExpressionOperator.Add(ExpressionType.AndAlso, "AND");
-            ExpressionOperator.Add(ExpressionType.Equal, "=");
-            ExpressionOperator.Add(ExpressionType.GreaterThan, ">");
-            ExpressionOperator.Add(ExpressionType.GreaterThanOrEqual, ">=");
-            ExpressionOperator.Add(ExpressionType.LessThan, "<");
-            ExpressionOperator.Add(ExpressionType.LessThanOrEqual, "<=");
-            ExpressionOperator.Add(ExpressionType.Modulo, "%");
-            ExpressionOperator.Add(ExpressionType.Multiply, "*");
-            ExpressionOperator.Add(ExpressionType.NotEqual, "<>");
-            ExpressionOperator.Add(ExpressionType.OrElse, "OR");
-            ExpressionOperator.Add(ExpressionType.Subtract, "-");
-            ExpressionOperator.Add(ExpressionType.Add, "+");
-
-
+            SetExpressionOperator();
+            SetClrToSqlConversions();
         }
 
-
-
-
+       
 
 
 
@@ -252,6 +250,60 @@ namespace DbTools
         #region Static Auxiliary Methods
 
 
+
+        private static void SetExpressionOperator() {
+            ExpressionOperator.Add(ExpressionType.AndAlso, "AND");
+            ExpressionOperator.Add(ExpressionType.Equal, "=");
+            ExpressionOperator.Add(ExpressionType.GreaterThan, ">");
+            ExpressionOperator.Add(ExpressionType.GreaterThanOrEqual, ">=");
+            ExpressionOperator.Add(ExpressionType.LessThan, "<");
+            ExpressionOperator.Add(ExpressionType.LessThanOrEqual, "<=");
+            ExpressionOperator.Add(ExpressionType.Modulo, "%");
+            ExpressionOperator.Add(ExpressionType.Multiply, "*");
+            ExpressionOperator.Add(ExpressionType.NotEqual, "<>");
+            ExpressionOperator.Add(ExpressionType.OrElse, "OR");
+            ExpressionOperator.Add(ExpressionType.Subtract, "-");
+            ExpressionOperator.Add(ExpressionType.Add, "+");
+        }
+
+        private static void SetClrToSqlConversions() {
+            ClrToSqlTypes.Add(typeof(Boolean), "bit");
+            ClrToSqlTypes.Add(typeof(Byte), "tinyint");
+            ClrToSqlTypes.Add(typeof(Int16), "smallint");
+            ClrToSqlTypes.Add(typeof(Int32), "int");
+            ClrToSqlTypes.Add(typeof(Int64), "bigint");
+            ClrToSqlTypes.Add(typeof(Decimal), "decimal");
+            ClrToSqlTypes.Add(typeof(Single), "float");
+            ClrToSqlTypes.Add(typeof(Double), "float");
+            ClrToSqlTypes.Add(typeof(Enum), "int");
+            ClrToSqlTypes.Add(typeof(Char), "smallint");
+            ClrToSqlTypes.Add(typeof(String), "nvarchar(max)");
+            ClrToSqlTypes.Add(typeof(Char[]), "nvarchar(max)");
+            ClrToSqlTypes.Add(typeof(DateTime), "datetime");
+            ClrToSqlTypes.Add(typeof(DateTimeOffset), "datetime2");
+            ClrToSqlTypes.Add(typeof(TimeSpan), "time");
+            ClrToSqlTypes.Add(typeof(Byte[]), "image");
+            ClrToSqlTypes.Add(typeof(Guid), "uniqueidentifier");
+            ClrToSqlTypes.Add(typeof(Object), "sql_variant");
+
+            // For nullables
+            ClrToSqlTypes.Add(typeof(Boolean?), "bit");
+            ClrToSqlTypes.Add(typeof(Byte?), "tinyint");
+            ClrToSqlTypes.Add(typeof(Int16?), "smallint");
+            ClrToSqlTypes.Add(typeof(Int32?), "int");
+            ClrToSqlTypes.Add(typeof(Int64?), "bigint");
+            ClrToSqlTypes.Add(typeof(Decimal?), "decimal");
+            ClrToSqlTypes.Add(typeof(Single?), "float");
+            ClrToSqlTypes.Add(typeof(Double?), "float");
+            ClrToSqlTypes.Add(typeof(Char?), "smallint");
+            ClrToSqlTypes.Add(typeof(DateTime?), "datetime");
+            ClrToSqlTypes.Add(typeof(DateTimeOffset?), "datetime2");
+            ClrToSqlTypes.Add(typeof(TimeSpan?), "time");
+            ClrToSqlTypes.Add(typeof(Guid?), "uniqueidentifier");
+        }
+
+
+
         private static String PrepareColumnType(PropertyInfo pi, object obj)
         {
             object value = pi.GetValue(obj, null);
@@ -260,17 +312,19 @@ namespace DbTools
                 return "NULL";
 
             if ( pi.PropertyType == typeof(bool) )
-                return ( (bool)value ) ? "'1'" : "'0'";
+                return ( (bool)value ) ? "1" : "0";
 
-            if ( pi.PropertyType == typeof(DateTime) || pi.PropertyType == typeof(Nullable<DateTime>) )
-            {
-                DateTime d = (DateTime)value;
-                return "convert(datetime, '{0}', 105)".Frmt(d);
+            if ( pi.PropertyType == typeof(DateTime) || pi.PropertyType == typeof(Nullable<DateTime>) ) {
+                DateTime d = (DateTime) value;
+                return "'" + d.ToString("yyyy-MM-dd HH:mm:ss") + "'";
             }
 
+            if( pi.PropertyType == typeof(Guid) || pi.PropertyType == typeof(DateTime) || pi.PropertyType == typeof(String) || pi.PropertyType == typeof(Char) || pi.PropertyType == typeof(Char[]) )
+                return "'" + value.ToString() + "'";
 
-            // return default
-            return "'" + value.ToString() + "'";
+
+            // return normal
+            return value.ToString();
         }
 
         // Used by ConfigureMetadataFor
@@ -646,17 +700,16 @@ namespace DbTools
             TypeSchema schema = TypesSchema[type];         // Get schema information for specific Type
 
 
-            cmdTxt.Append("SELECT ");
+            cmdTxt.Append("select ");
 
             // Select all columns that are mapped
             foreach ( CostumMapping cm in schema.Mappings )
             {
-                cmdTxt.Append(cm.FromResultSetColumn);
-                cmdTxt.Append(", ");
+                cmdTxt.Append("[{0}], ".Frmt(cm.FromResultSetColumn));
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            cmdTxt.Append(" FROM {0} ".Frmt(schema.TableName));
+            cmdTxt.Append(" from [{0}] ".Frmt(schema.TableName));
 
             if ( filter != null )
             {
@@ -664,7 +717,7 @@ namespace DbTools
                 // Apply filter
                 //
 
-                cmdTxt.Append("WHERE ");
+                cmdTxt.Append("where ");
                 String filtered = ParseFilter(filter.Body);
 
                 cmdTxt.Append(filtered);
@@ -675,7 +728,6 @@ namespace DbTools
 
         private static String PrepareInsertCmd<T>(Type type, T obj, Type objRepresentor, string scopeIdentity)
         {
-            StringBuilder cmdTxt = new StringBuilder();
 
             //
             // Obtain local copy because another thread can change the reference of _typesSchema
@@ -684,39 +736,71 @@ namespace DbTools
 
             TypeSchema schema = TypesSchema[type];         // Get schema information for specific Type
 
-            cmdTxt.Append("INSERT INTO {0} (".Frmt(schema.TableName));
+
+            StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'insert [{0}] (".Frmt(schema.TableName));
 
 
             // Build header (exclude identities)
             foreach ( CostumMapping cm in schema.Mappings )
             {
-                if ( cm.ClrProperty == schema.IdentityPropertyName )
+                if ( cm.ClrProperty == schema.IdentityPropertyName )                    // Identity Column never's updated!
                     continue;
 
-                cmdTxt.Append(cm.ToSqlTableColumn);
-                cmdTxt.Append(", ");
+                cmdTxt.Append("[{0}], ".Frmt(cm.ToSqlTableColumn));
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             cmdTxt.Append(") values (");
 
             // Build body (exclude identities)
+            int paramIndex = 0;
             foreach ( CostumMapping cm in schema.Mappings )
             {
-                if ( cm.ClrProperty == schema.IdentityPropertyName )
+                if ( cm.ClrProperty == schema.IdentityPropertyName )                    // Identity Column never's updated!
                     continue;
 
-                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = PrepareColumnType(pi, obj);
-
-                cmdTxt.Append(valueTxt);
-                cmdTxt.Append(", ");
+                cmdTxt.Append("@{0}, ".Frmt(paramIndex++));
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             cmdTxt.Append(")");
-            cmdTxt.Append(" select SCOPE_IDENTITY() as [{0}]".Frmt(scopeIdentity));
+            cmdTxt.Append(" select SCOPE_IDENTITY() as [{0}]', N'".Frmt(scopeIdentity));
 
+
+            //
+            // Set parameter indexes and types,                                                     @0 varchar(max), @1 int, ...
+            //
+
+            paramIndex = 0;
+            foreach ( CostumMapping cm in schema.Mappings ) {
+                if ( cm.ClrProperty == schema.IdentityPropertyName )                            // Identity Column never's updated!
+                    continue;
+
+                // set sql type based on property type of the object
+                Type propertyType = objRepresentor.GetProperty(cm.ClrProperty).PropertyType;
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ClrToSqlTypes[propertyType]));    // Map CLR property to SqlColumn Type 
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
+            cmdTxt.Append("', ");   // Close quote and add comma
+
+
+            //
+            // Set parameter indexes and data
+            //
+
+            paramIndex = 0;
+            foreach ( CostumMapping cm in schema.Mappings ) {
+                if ( cm.ClrProperty == schema.IdentityPropertyName )                            // Identity Column never's updated!
+                    continue;
+
+                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);                                   // Can contain quotes, based on property type
+
+                cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             return cmdTxt.ToString();
         }
 
@@ -738,41 +822,91 @@ namespace DbTools
             // Update only if we have keys, to find the tuple
             // 
 
-            StringBuilder cmdTxt = new StringBuilder();
-            cmdTxt.Append("UPDATE {0} SET ".Frmt(schema.TableName));
+            StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'update [{0}] set ".Frmt(schema.TableName));
 
 
             // Build Set clause
+            int paramIndex = 0;
             foreach ( CostumMapping cm in schema.Mappings )
             {
-                if ( cm.ClrProperty == schema.IdentityPropertyName )
+                if ( cm.ClrProperty == schema.IdentityPropertyName )                            // Identity Column never's updated!
                     continue;
 
-                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = PrepareColumnType(pi, obj);
-
-                cmdTxt.Append("{0} = {1}, ".Frmt(cm.ToSqlTableColumn, valueTxt));
+                cmdTxt.Append("[{0}] = @{1}, ".Frmt(cm.ToSqlTableColumn, paramIndex++));        // [Column] = @0, [Column2] = @1 ...
             }
 
-            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
+                
 
             // Build Where clause
-            cmdTxt.Append(" WHERE ");
+            cmdTxt.Append(" where ");
 
             int count = 0;
             foreach ( KeyMapping map in schema.Keys )
             {
-                PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = PrepareColumnType(pi, obj);
-
-                cmdTxt.Append("{0} = {1}".Frmt(map.To, valueTxt));
+                cmdTxt.Append("[{0}] = @{1} ".Frmt(map.To, paramIndex++));
 
                 if ( ( count + 1 ) < schema.Keys.Count )
-                    cmdTxt.Append(" AND ");
+                    cmdTxt.Append(" and ");
 
                 count++;
             }
 
+            cmdTxt.Append("', N'"); // Close quote and add comma
+
+            //
+            // Set the types of parameters for set region,                                                     @0 varchar(max), @1 int, ...
+            //
+
+            paramIndex = 0;
+            foreach ( CostumMapping cm in schema.Mappings ) {
+                if ( cm.ClrProperty == schema.IdentityPropertyName )                            // Identity Column never's updated!
+                    continue;
+
+                // set sql type based on property type of the object
+                Type propertyType = objRepresentor.GetProperty(cm.ClrProperty).PropertyType;
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ClrToSqlTypes[propertyType]));    // Map CLR property to SqlColumn Type 
+            }
+
+            // Set the types of parameters for where region
+            foreach ( KeyMapping map in schema.Keys ) {
+
+                // set sql type based on property type of the object
+                Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ClrToSqlTypes[propertyType]));    // Map CLR property to SqlColumn Type 
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
+            cmdTxt.Append("', ");   // Close quote and add comma
+
+
+            //
+            // Set data of parameters in set region
+            //
+
+            paramIndex = 0;
+            foreach ( CostumMapping cm in schema.Mappings ) {
+                if ( cm.ClrProperty == schema.IdentityPropertyName )                            // Identity Column never's updated!
+                    continue;
+
+                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
+                String valueTxt = PrepareColumnType(pi, obj);                                   // Can contain quotes, based on property type
+
+                cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
+            }
+
+            // Set data of parameters in where region
+            foreach ( KeyMapping map in schema.Keys ) {
+
+                PropertyInfo pi = objRepresentor.GetProperty(map.From);
+                String valueTxt = PrepareColumnType(pi, obj);                                   // Can contain quotes, based on property type
+
+                cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
+            }
+            
+            
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             return cmdTxt.ToString();
         }
 
@@ -795,27 +929,57 @@ namespace DbTools
             // Delete only if we have keys, to find the tuple
             // 
 
-            StringBuilder cmdTxt = new StringBuilder();
-            cmdTxt.Append("DELETE FROM {0}".Frmt(schema.TableName));
-
+            StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'delete [{0}]".Frmt(schema.TableName));
 
             // Build Where clause if keys are defined
-            cmdTxt.Append(" WHERE ");
+            cmdTxt.Append(" where ");
 
-            int count = 0;
+            int count = 0, paramIndex = 0;
             foreach ( KeyMapping map in schema.Keys )
             {
-                PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = PrepareColumnType(pi, obj);
-
-                cmdTxt.Append("{0} = {1}".Frmt(map.To, valueTxt));
+                cmdTxt.Append("[{0}] = @{1}".Frmt(map.To, paramIndex++));
 
                 if ( ( count + 1 ) < schema.Keys.Count )
-                    cmdTxt.Append(" AND ");
+                    cmdTxt.Append(" and ");
 
                 count++;
             }
 
+
+            cmdTxt.Append("', N'");
+
+
+            //
+            // Set parameter indexes and types,                                                     @0 varchar(max), @1 int, ...
+            //
+
+            paramIndex = 0;
+            foreach ( KeyMapping map in schema.Keys ) 
+            {
+                Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
+
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ClrToSqlTypes[propertyType]));
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
+            cmdTxt.Append("', ");   // Close quote and add comma
+
+
+
+            //
+            // Set parameter indexes and data
+            //
+
+            paramIndex = 0;
+            foreach ( KeyMapping map in schema.Keys ) 
+            {
+                PropertyInfo pi = objRepresentor.GetProperty(map.From);
+                String valueTxt = PrepareColumnType(pi, obj);                                   // Can contain quotes, based on property type
+
+                cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
+            }
+
+            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             return cmdTxt.ToString();
         }
 
