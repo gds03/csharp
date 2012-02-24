@@ -133,9 +133,14 @@ namespace DbTools
     public class ObjectMapper : IDisposable
     {
 
+        #region Instance Fields
 
 
-        private readonly DbConnection Connection;      // The only Instance variable
+        private          bool         Disposed;
+        private readonly DbConnection Connection;
+
+
+        #endregion
 
 
 
@@ -166,6 +171,8 @@ namespace DbTools
 
 
 
+        #region Type Contructor, Instance Constructor and Finalizer
+
 
         static ObjectMapper()
         {
@@ -173,7 +180,23 @@ namespace DbTools
             SetClrToSqlConversions();
         }
 
-       
+
+        public ObjectMapper(DbConnection connection) {
+            if ( connection == null )
+                throw new ArgumentNullException("connection");
+
+            Connection = connection;
+            Disposed = false;
+        }
+
+
+        ~ObjectMapper() {
+            InternalDispose();
+        }
+
+
+
+        #endregion
 
 
 
@@ -678,6 +701,18 @@ namespace DbTools
                 Connection.Open();
         }
 
+        private void InternalDispose() {
+            if ( Disposed )
+                return;
+
+            if ( Connection != null ) {
+                Connection.Close();
+                Connection.Dispose();
+            }
+
+            Disposed = true;
+        }
+
 
         #endregion
 
@@ -987,18 +1022,6 @@ namespace DbTools
 
         #endregion
 
-
-
-
-
-
-        public ObjectMapper(DbConnection connection)
-        {
-            if ( connection == null )
-                throw new NullReferenceException("connection cannot be null");
-
-            Connection = connection;
-        }
 
 
 
@@ -1322,6 +1345,19 @@ namespace DbTools
         }
 
 
+
+
+        /// <summary>
+        ///   Free the DbConnection associated with the ObjectMapper  
+        /// </summary>
+        public void Dispose() {
+            InternalDispose();
+
+            // Prevent finalization code for this object from executing a second time
+            GC.SuppressFinalize(this);
+        }
+
+
         #endregion
 
 
@@ -1329,14 +1365,6 @@ namespace DbTools
 
 
 
-        public void Dispose() 
-        {
-
-            if ( Connection != null ) {
-                Connection.Close();
-                Connection.Dispose();
-            }
-
-        }
+        
     }
 }
