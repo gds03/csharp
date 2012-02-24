@@ -325,24 +325,23 @@ namespace DbTools
             ClrToSqlTypes.Add(typeof(Guid?), "uniqueidentifier");
         }
 
-
-
-        private static String PrepareColumnType(PropertyInfo pi, object obj)
+        private static String PrepareValue(object value)
         {
-            object value = pi.GetValue(obj, null);
-
             if ( value == null )
                 return "NULL";
 
-            if ( pi.PropertyType == typeof(bool) )
-                return ( (bool)value ) ? "1" : "0";
+            // We must know the concrete type
+            Type type = value.GetType();
 
-            if ( pi.PropertyType == typeof(DateTime) || pi.PropertyType == typeof(Nullable<DateTime>) ) {
+            if ( type == typeof(bool) )
+                return ( (bool) value ) ? "1" : "0";
+
+            if ( type == typeof(DateTime) || type == typeof(Nullable<DateTime>) ) {
                 DateTime d = (DateTime) value;
                 return "'" + d.ToString("yyyy-MM-dd HH:mm:ss") + "'";
             }
 
-            if( pi.PropertyType == typeof(Guid) || pi.PropertyType == typeof(DateTime) || pi.PropertyType == typeof(String) || pi.PropertyType == typeof(Char) || pi.PropertyType == typeof(Char[]) )
+            if ( type == typeof(Guid) || type == typeof(String) || type == typeof(Char) || type == typeof(Char[]) )
                 return "'" + value.ToString() + "'";
 
 
@@ -634,7 +633,7 @@ namespace DbTools
             }
 
             if ( ( cExpr = expr as ConstantExpression ) != null ) {
-                return cExpr.Value.ToString();                                      // Only works for not complex types
+                return PrepareValue(cExpr.Value);
             }
 
             if ( ( mExpr = expr as MemberExpression ) == null )
@@ -659,7 +658,7 @@ namespace DbTools
                 object obj = cInnerExpr.Value;                                           // Get anonymous object (captured by the compiler)
 
                 FieldInfo value = obj.GetType().GetField(mExpr.Member.Name);             // Get the field of the anonymous object 
-                return value.GetValue(obj).ToString();                                   // Only works for not complex types
+                return PrepareValue(value.GetValue(obj));
             }
 
             if( (mInnerExpr = innerExpr as MemberExpression) == null )
@@ -674,7 +673,7 @@ namespace DbTools
             FieldInfo fieldValue = objValue.GetType().GetField(mInnerExpr.Member.Name);             // Get the field of the anonymous object 
             object obj2 = fieldValue.GetValue(objValue);                                            // Get the object in the field
 
-            return obj2.GetType().GetProperty(mExpr.Member.Name).GetValue(obj2, null).ToString();   // Based on the object, finally get the value in the property 
+            return PrepareValue(obj2.GetType().GetProperty(mExpr.Member.Name).GetValue(obj2, null));       // Based on the object, finally get the value in the property 
         }
 
 
@@ -830,7 +829,7 @@ namespace DbTools
                     continue;
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = PrepareColumnType(pi, obj);                                   // Can contain quotes, based on property type
+                String valueTxt = PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }
@@ -926,7 +925,7 @@ namespace DbTools
                     continue;
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = PrepareColumnType(pi, obj);                                   // Can contain quotes, based on property type
+                String valueTxt = PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }
@@ -935,7 +934,7 @@ namespace DbTools
             foreach ( KeyMapping map in schema.Keys ) {
 
                 PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = PrepareColumnType(pi, obj);                                   // Can contain quotes, based on property type
+                String valueTxt = PrepareValue(pi.GetValue(obj, null));                          // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }
@@ -1009,7 +1008,7 @@ namespace DbTools
             foreach ( KeyMapping map in schema.Keys ) 
             {
                 PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = PrepareColumnType(pi, obj);                                   // Can contain quotes, based on property type
+                String valueTxt = PrepareValue(pi.GetValue(obj, null));         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }
