@@ -1,7 +1,15 @@
 
 //
-// Released at: 17 February 2012
 // Author: Gonçalo Dias
+//
+
+
+//
+// Released at: 17 February 2012
+//
+
+//
+// Last Update at: 15 March 2012
 //
 
 
@@ -138,6 +146,7 @@ namespace DbTools
 
         private          bool         Disposed;
         private readonly DbConnection Connection;
+        private readonly int          CommandTimeout;
 
 
         #endregion
@@ -181,12 +190,27 @@ namespace DbTools
         }
 
 
+        /// <summary>
+        ///     Initialize ObjectMapper with specified connection and with a default command timeout of 30 seconds
+        /// </summary>
+        /// <param name="connection"></param>
         public ObjectMapper(DbConnection connection) {
             if ( connection == null )
                 throw new ArgumentNullException("connection");
 
             Connection = connection;
             Disposed = false;
+            CommandTimeout = 30;
+        }
+
+
+        /// <summary>
+        ///     Initialize ObjectMapper with specified connection and with specified command timeout
+        /// </summary>
+        /// <param name="connection"></param>
+        /// <param name="commandTimeout"></param>
+        public ObjectMapper(DbConnection connection, int commandTimeout) : this(connection) {
+            CommandTimeout = commandTimeout;
         }
 
 
@@ -200,22 +224,24 @@ namespace DbTools
 
 
 
+
+
         #region Mapper Protected Classes
 
         protected sealed class TypeSchema
         {
-            internal String TableName;                  // If != null overrides the type name (used for CUD operations)
-            internal IList<KeyMapping> Keys;            // Stores the keys of the type (to uniquelly identify the one entity)
-            internal IList<CostumMapping> Mappings;     // For each property, we have a costum mapping
-            internal IList<ProcMapping> Procedures;     // Stores parameters that must be used when ExecuteProc command is executed to send them to Stored Procedures
-            internal String IdentityPropertyName;       // If != null, this stores the property of the type that is identity
+            internal String TableName;                        // If != null overrides the type name (used for CUD operations)
+            internal ICollection<KeyMapping> Keys;            // Stores the keys of the type (to uniquelly identify the one entity)
+            internal ICollection<CostumMapping> Mappings;     // For each property, we have a costum mapping
+            internal ICollection<ProcMapping> Procedures;     // Stores parameters that must be used when ExecuteProc command is executed to send them to Stored Procedures
+            internal String IdentityPropertyName;             // If != null, this stores the property of the type that is identity
             
 
             internal TypeSchema()
             {
-                Mappings    = new List<CostumMapping>();
-                Keys        = new List<KeyMapping>();
-                Procedures  = new List<ProcMapping>();
+                Mappings    = new LinkedList<CostumMapping>();
+                Keys        = new LinkedList<KeyMapping>();
+                Procedures  = new LinkedList<ProcMapping>();
             }
 
             internal TypeSchema(String tableName)
@@ -512,14 +538,15 @@ namespace DbTools
             throw new InvalidOperationException("shouldn't be here'");
         }
 
-        private static IList<T> MapTo<T>(DbDataReader reader) {
-            if (reader == null)
+        private static IList<T> MapTo<T>(DbDataReader reader) 
+        {
+            if ( reader == null )
                 throw new NullReferenceException("reader cannot be null");
 
-            if (reader.IsClosed)
+            if ( reader.IsClosed )
                 throw new InvalidOperationException("reader connection is closed and objects cannot be mapped");
 
-            if (!reader.HasRows)
+            if ( !reader.HasRows )
                 return new List<T>();
 
 
@@ -533,14 +560,16 @@ namespace DbTools
 
             // Map cursor lines from database to CLR objects based on T
 
-            List<T> bundle = new List<T>();
+            IList<T> set = new List<T>(47);
 
-            while (reader.Read()) {
+            while ( reader.Read() )
+            {
                 T newInstance = (T)Activator.CreateInstance(type);
                 Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
 
                 // Map properties to the newInstance
-                foreach (CostumMapping map in schema.Mappings) {
+                foreach (CostumMapping map in schema.Mappings) 
+                {
                     object value;
                     string sqlColumn = map.FromResultSetColumn;
 
@@ -576,14 +605,14 @@ namespace DbTools
                 }
 
                 // Add element to the collection
-                bundle.Add(newInstance);
+                set.Add(newInstance);
             }
 
             // Free Connection Resources
             reader.Close();
             reader.Dispose();
 
-            return bundle;
+            return set;
         }
 
 
@@ -710,6 +739,16 @@ namespace DbTools
             }
 
             Disposed = true;
+        }
+
+        private DbCommand CmdForConnection(CommandType type, String text) {
+            DbCommand comm = Connection.CreateCommand();
+
+            comm.CommandType = type;
+            comm.CommandText = text;
+            comm.CommandTimeout = CommandTimeout;
+
+            return comm;
         }
 
 
@@ -1039,7 +1078,7 @@ namespace DbTools
         /// <param name="commandType">The type of the command</param>
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
         /// <param name="parameters">The parameters that command use. (optional)</param>
-        /// <returns>A list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
+        /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
         public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters)
         {
             Type type = typeof(T);
@@ -1052,10 +1091,8 @@ namespace DbTools
             // and never be touched (modified) again for the type.
             // 
 
-            DbCommand comm = Connection.CreateCommand();
-
-            comm.CommandType = commandType;
-            comm.CommandText = commandText;
+            // Command Setup parameters
+            DbCommand comm = CmdForConnection(commandType, commandText);            
 
             // Set parameters
             if ( parameters != null )
@@ -1072,7 +1109,7 @@ namespace DbTools
         ///     Maps the table from database to a list of T by convention.
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to get</typeparam>
-        /// <returns>A list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
+        /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
         public IList<T> Select<T>() 
         {
             return Select<T>(null);
@@ -1084,7 +1121,7 @@ namespace DbTools
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to get</typeparam>
         /// <param name="filter">The filter that you must use to filter a sub part of the result</param>
-        /// <returns>A list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
+        /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
         public IList<T> Select<T>(Expression<Func<T, bool>> filter)
         {
             Type type = typeof(T);
@@ -1097,11 +1134,11 @@ namespace DbTools
             // and never be touched (modified) again for the type.
             // 
 
+            // Prepare select statement for type
             String selectCmd = PrepareSelectCmd(type, filter);
-            DbCommand cmd = Connection.CreateCommand();
 
-            cmd.CommandType = CommandType.Text;     // dynamic SQL
-            cmd.CommandText = selectCmd;
+            // Command Setup parameters
+            DbCommand cmd = CmdForConnection(CommandType.Text, selectCmd);
 
             // Open connection if not opened
             SetupConnection();  
@@ -1136,11 +1173,11 @@ namespace DbTools
 
             TypeSchema schema = TypesSchema[type];
 
+            // Prepare insert statement for type
             String insertCmd = PrepareInsertCmd(type, obj, objRepresentor, scopy_id_name);
-            DbCommand cmd = Connection.CreateCommand();
 
-            cmd.CommandType = CommandType.Text;
-            cmd.CommandText = insertCmd;
+            // Command Setup parameters
+            DbCommand cmd = CmdForConnection(CommandType.Text, insertCmd);
 
             // Open connection if not opened
             SetupConnection();  
@@ -1191,11 +1228,11 @@ namespace DbTools
             // and never be touched (modified) again for the type.
             // 
 
+            // Prepare update statement for type
             String updateCmd = PrepareUpdateCmd(type, obj);
-            DbCommand cmd = Connection.CreateCommand();
 
-            cmd.CommandType = CommandType.Text;
-            cmd.CommandText = updateCmd;
+            // Command Setup parameters
+            DbCommand cmd = CmdForConnection(CommandType.Text, updateCmd);
 
             // Open connection if not opened
             SetupConnection();  
@@ -1223,11 +1260,11 @@ namespace DbTools
             // and never be touched (modified) again for the type.
             // 
 
+            // Prepare delete statement for type
             String deleteCmd = PrepareDeleteCmd(type, obj);
-            DbCommand cmd = Connection.CreateCommand();
 
-            cmd.CommandType = CommandType.Text;
-            cmd.CommandText = deleteCmd;
+            // Command Setup parameters
+            DbCommand cmd = CmdForConnection(CommandType.Text, deleteCmd);
 
             // Open connection if not opened
             SetupConnection();  
@@ -1270,11 +1307,9 @@ namespace DbTools
             // and never be touched (modified) again for the type.
             // 
 
+            // Command Setup parameters
+            DbCommand cmd = CmdForConnection(CommandType.StoredProcedure, procedureName);
 
-            DbCommand cmd = Connection.CreateCommand();
-
-            cmd.CommandType = CommandType.StoredProcedure;      // Procedure
-            cmd.CommandText = procedureName;
 
             //
 
@@ -1305,11 +1340,10 @@ namespace DbTools
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
         /// <param name="parameters">The parameters that command use. (optional)</param>
         /// <returns>The number of affected rows in database</returns>
-        public int Execute(CommandType commandType, string commandText, params DbParameter[] parameters) {
-            DbCommand comm = Connection.CreateCommand();
-
-            comm.CommandType = commandType;
-            comm.CommandText = commandText;
+        public int Execute(CommandType commandType, string commandText, params DbParameter[] parameters) 
+        {
+            // Command Setup parameters
+            DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
             if (parameters != null)
@@ -1328,11 +1362,10 @@ namespace DbTools
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
         /// <param name="parameters">The parameters that command use. (optional)</param>
         /// <returns>the first column of the first row in the resultset returned by the query</returns>
-        public object ExecuteScalar(CommandType commandType, string commandText, params DbParameter[] parameters) {
-            DbCommand comm = Connection.CreateCommand();
-
-            comm.CommandType = commandType;
-            comm.CommandText = commandText;
+        public object ExecuteScalar(CommandType commandType, string commandText, params DbParameter[] parameters) 
+        {
+            // Command Setup parameters
+            DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
             if ( parameters != null )
@@ -1349,7 +1382,8 @@ namespace DbTools
         /// <summary>
         ///   Free the DbConnection associated with the ObjectMapper  
         /// </summary>
-        public void Dispose() {
+        public void Dispose()
+        {
             InternalDispose();
 
             // Prevent finalization code for this object from executing a second time
