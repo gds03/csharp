@@ -1,15 +1,7 @@
 
 //
-// Author: Gonçalo Dias
-//
-
-
-//
 // Released at: 17 February 2012
-//
-
-//
-// Last Update at: 15 March 2012
+// Author: Gonçalo Dias
 //
 
 
@@ -362,9 +354,20 @@ namespace DbTools
             if ( type == typeof(bool) )
                 return ( (bool) value ) ? "1" : "0";
 
-            if ( type == typeof(DateTime) || type == typeof(Nullable<DateTime>) ) {
+            if ( type == typeof(DateTime) ) {
                 DateTime d = (DateTime) value;
                 return "'" + d.ToString("yyyy-MM-dd HH:mm:ss") + "'";
+            }
+
+            if ( type == typeof(Nullable<DateTime>) ) {
+                DateTime? dn = (DateTime?) value;
+
+                if ( dn.HasValue ) {
+                    return "'" + dn.Value.ToString("yyyy-MM-dd HH:mm:ss") + "'";
+                }
+                else {
+                    return dn.ToString();
+                }
             }
 
             if ( type == typeof(Guid) || type == typeof(String) || type == typeof(Char) || type == typeof(Char[]) )
