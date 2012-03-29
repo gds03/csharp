@@ -3,6 +3,9 @@
 // Released at: 17 February 2012
 // Author: Gonçalo Dias
 //
+//
+// Last updated date: 29 March 2012
+//
 
 
 
@@ -541,7 +544,7 @@ namespace DbTools
             throw new InvalidOperationException("shouldn't be here'");
         }
 
-        private static IList<T> MapTo<T>(DbDataReader reader) 
+        private static IList<T> MapTo<T>(DbDataReader reader) where T : class
         {
             if ( reader == null )
                 throw new NullReferenceException("reader cannot be null");
@@ -764,7 +767,7 @@ namespace DbTools
 
 
 
-        private static String PrepareSelectCmd<T>(Type type, Expression<Func<T, bool>> filter)
+        private static String PrepareSelectCmd<T>(Type type, Expression<Func<T, bool>> filter) where T : class
         {
             StringBuilder cmdTxt = new StringBuilder();
 
@@ -802,7 +805,7 @@ namespace DbTools
             return cmdTxt.ToString();
         }
 
-        private static String PrepareInsertCmd<T>(Type type, T obj, Type objRepresentor, string scopeIdentity)
+        private static String PrepareInsertCmd<T>(Type type, T obj, Type objRepresentor, string scopeIdentity) where T : class
         {
 
             //
@@ -880,7 +883,7 @@ namespace DbTools
             return cmdTxt.ToString();
         }
 
-        private static String PrepareUpdateCmd<T>(Type type, T obj)
+        private static String PrepareUpdateCmd<T>(Type type, T obj) where T : class
         {
             Type objRepresentor = obj.GetType();
 
@@ -986,7 +989,7 @@ namespace DbTools
             return cmdTxt.ToString();
         }
 
-        private static String PrepareDeleteCmd<T>(Type type, T obj)
+        private static String PrepareDeleteCmd<T>(Type type, T obj) where T : class
         {
             Type objRepresentor = obj.GetType();
 
@@ -1082,7 +1085,7 @@ namespace DbTools
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
         /// <param name="parameters">The parameters that command use. (optional)</param>
         /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
-        public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters)
+        public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) where T : class
         {
             Type type = typeof(T);
 
@@ -1113,7 +1116,7 @@ namespace DbTools
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to get</typeparam>
         /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
-        public IList<T> Select<T>() 
+        public IList<T> Select<T>() where T : class
         {
             return Select<T>(null);
         }
@@ -1124,8 +1127,8 @@ namespace DbTools
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to get</typeparam>
         /// <param name="filter">The filter that you must use to filter a sub part of the result</param>
-        /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
-        public IList<T> Select<T>(Expression<Func<T, bool>> filter)
+        /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns> 
+        public IList<T> Select<T>(Expression<Func<T, bool>> filter) where T : class
         {
             Type type = typeof(T);
 
@@ -1159,7 +1162,7 @@ namespace DbTools
         /// <typeparam name="T">The type of the object that you want to insert</typeparam>
         /// <param name="obj">The object that you want to insert</param>
         /// <returns>The number of affected rows in database</returns>
-        public int Insert<T>(T obj)
+        public int Insert<T>(T obj) where T : class
         {
             Type type = typeof(T);
             Type objRepresentor = obj.GetType();
@@ -1219,7 +1222,7 @@ namespace DbTools
         /// <typeparam name="T">The type of the object that you want to update. Note: This type must be annotated with [Key]</typeparam>
         /// <param name="obj">The object that you want to update</param>
         /// <returns>The number of affected rows in database</returns>
-        public int Update<T>(T obj)
+        public int Update<T>(T obj) where T : class
         {
             Type type = typeof(T);
 
@@ -1251,7 +1254,7 @@ namespace DbTools
         /// <typeparam name="T">The type of the object that you want to delete. Note: This type must be annotated with [Key]</typeparam>
         /// <param name="obj">The object that you want to delete</param>
         /// <returns>The number of affected rows in database</returns>
-        public int Delete<T>(T obj)
+        public int Delete<T>(T obj) where T : class
         {
             Type type = typeof(T);
 
@@ -1296,7 +1299,7 @@ namespace DbTools
         /// <param name="mode">The mode of the procedure</param>
         /// <param name="procedureName">The name of the procedure</param>
         /// <returns>The number of affected rows in database</returns>
-        public int ExecuteProc<T>(T obj, SPMode mode, string procedureName)
+        public int ExecuteProc<T>(T obj, SPMode mode, string procedureName) where T : class
         {
             Type type = typeof(T);
 
