@@ -38,13 +38,12 @@ namespace DbTools
         internal String ParameterName;
         internal SPMode Mode;
 
-        public StoredProc(SPMode mode)
-        {
+        public StoredProc(SPMode mode) {
             Mode = mode;
         }
 
-        public StoredProc(SPMode mode, String name) : this(mode)
-        {
+        public StoredProc(SPMode mode, String name)
+            : this(mode) {
             ParameterName = name;
         }
     }
@@ -58,8 +57,7 @@ namespace DbTools
     {
         internal String OverridedName;
 
-        internal Table(String tableName)
-        {
+        internal Table(String tableName) {
             OverridedName = tableName;
         }
     }
@@ -78,8 +76,7 @@ namespace DbTools
     {
         internal String OverridedReadColumn;
 
-        public BindFrom(String sqlColumnResult)
-        {
+        public BindFrom(String sqlColumnResult) {
             OverridedReadColumn = sqlColumnResult;
         }
     }
@@ -88,8 +85,7 @@ namespace DbTools
     {
         internal String OverridedSqlColumn;
 
-        public BindTo(String sqlColumnSchema)
-        {
+        public BindTo(String sqlColumnSchema) {
             OverridedSqlColumn = sqlColumnSchema;
         }
     }
@@ -121,8 +117,7 @@ namespace DbTools
 
     internal static class StringExtensions
     {
-        public static String Frmt(this String str, params object[] args)
-        {
+        public static String Frmt(this String str, params object[] args) {
             return String.Format(str, args);
         }
     }
@@ -139,9 +134,9 @@ namespace DbTools
         #region Instance Fields
 
 
-        private          bool         Disposed;
+        private bool Disposed;
         private readonly DbConnection Connection;
-        private readonly int          CommandTimeout;
+        private readonly int CommandTimeout;
 
 
         #endregion
@@ -161,7 +156,7 @@ namespace DbTools
         // 
         // For specific type, stores the properties that must be mapped from SQL
         // (Accessed in context of multiple threads)
-        private static volatile Dictionary<Type, TypeSchema> TypesSchema = new Dictionary<Type, TypeSchema>(SchemaInitCapacity);     
+        private static volatile Dictionary<Type, TypeSchema> TypesSchema = new Dictionary<Type, TypeSchema>(SchemaInitCapacity);
 
         // Map expressionType (LINQ expression nodes to strings (e.g && -> AND, || -> OR, etc..)
         private static readonly Dictionary<ExpressionType, String> ExpressionOperator = new Dictionary<ExpressionType, string>(OperatorsInitCapacity);
@@ -178,8 +173,7 @@ namespace DbTools
         #region Type Contructor, Instance Constructor and Finalizer
 
 
-        static ObjectMapper()
-        {
+        static ObjectMapper() {
             SetExpressionOperator();
             SetClrToSqlConversions();
         }
@@ -204,7 +198,8 @@ namespace DbTools
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="commandTimeout"></param>
-        public ObjectMapper(DbConnection connection, int commandTimeout) : this(connection) {
+        public ObjectMapper(DbConnection connection, int commandTimeout)
+            : this(connection) {
             CommandTimeout = commandTimeout;
         }
 
@@ -230,18 +225,16 @@ namespace DbTools
             internal ICollection<CostumMapping> Mappings;     // For each property, we have a costum mapping
             internal ICollection<ProcMapping> Procedures;     // Stores parameters that must be used when ExecuteProc command is executed to send them to Stored Procedures
             internal String IdentityPropertyName;             // If != null, this stores the property of the type that is identity
-            
 
-            internal TypeSchema()
-            {
-                Mappings    = new LinkedList<CostumMapping>();
-                Keys        = new LinkedList<KeyMapping>();
-                Procedures  = new LinkedList<ProcMapping>();
+
+            internal TypeSchema() {
+                Mappings = new LinkedList<CostumMapping>();
+                Keys = new LinkedList<KeyMapping>();
+                Procedures = new LinkedList<ProcMapping>();
             }
 
             internal TypeSchema(String tableName)
-                : this()
-            {
+                : this() {
                 TableName = tableName;
             }
         }
@@ -252,8 +245,7 @@ namespace DbTools
             internal String ToSqlTableColumn;
             internal String FromResultSetColumn;
 
-            internal CostumMapping(String clrProperty)
-            {
+            internal CostumMapping(String clrProperty) {
                 // Initially all points to the name of the clrProperty (convention is used)
                 FromResultSetColumn = ToSqlTableColumn = ClrProperty = clrProperty;
             }
@@ -262,10 +254,9 @@ namespace DbTools
         protected sealed class KeyMapping
         {
             internal String From;
-            internal String To;            
+            internal String To;
 
-            public KeyMapping(String to, String from)
-            {
+            public KeyMapping(String to, String from) {
                 To = to;
                 From = from;
             }
@@ -274,11 +265,10 @@ namespace DbTools
         // Map CLR property type to a stored procedure parameter
         protected sealed class ProcMapping
         {
-            internal KeyMapping Map;        
+            internal KeyMapping Map;
             internal SPMode Mode;
 
-            internal ProcMapping(String clrProperty, SPMode mode)
-            {
+            internal ProcMapping(String clrProperty, SPMode mode) {
                 // Initially points to the name of the clrProperty (convention is used)
                 Map = new KeyMapping(clrProperty, clrProperty);
                 Mode = mode;
@@ -346,8 +336,7 @@ namespace DbTools
             ClrToSqlTypes.Add(typeof(Guid?), "uniqueidentifier");
         }
 
-        private static String PrepareValue(object value)
-        {
+        private static String PrepareValue(object value) {
             if ( value == null )
                 return "NULL";
 
@@ -382,8 +371,7 @@ namespace DbTools
         }
 
         // Used by ConfigureMetadataFor
-        private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
-        {
+        private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type) {
             // Copy last dictionary and add new Schema for type (local for each thread)
             var result = new Dictionary<Type, TypeSchema>(TypesSchema) { { type, new TypeSchema() } };
 
@@ -391,12 +379,10 @@ namespace DbTools
             result[type].TableName = type.Name;
 
             // Search for Table attribute on the type
-            foreach ( object o in type.GetCustomAttributes(true) )
-            {
+            foreach ( object o in type.GetCustomAttributes(true) ) {
                 Table t = o as Table;
 
-                if ( t != null )
-                {
+                if ( t != null ) {
                     result[type].TableName = t.OverridedName;       // override the default name
                     break;                                          // We are done.
                 }
@@ -404,8 +390,7 @@ namespace DbTools
 
 
             // Iterate over each property of the type
-            foreach ( PropertyInfo pi in type.GetProperties(Flags) )
-            {
+            foreach ( PropertyInfo pi in type.GetProperties(Flags) ) {
                 bool mapProperty = true;                                // Always to map, unless specified Exclude costum attribute
                 bool isKey = false;                                     // Only if attribute were found, sets this flag to true
                 bool isIdentity = false;                                // For each type, we must have only one Entity
@@ -414,50 +399,43 @@ namespace DbTools
 
 
                 // Iterate over each attribute on context property
-                foreach ( object o in pi.GetCustomAttributes(false) )
-                {
-                    if ( o is Exclude )
-                    {
+                foreach ( object o in pi.GetCustomAttributes(false) ) {
+                    if ( o is Exclude ) {
                         mapProperty = false;
                         break;                  // break immediately and don't map this property
                     }
 
                     Key k = o as Key;
 
-                    if ( k != null )
-                    {
+                    if ( k != null ) {
                         isKey = true;
                         continue;
                     }
 
                     Identity i = o as Identity;
 
-                    if ( i != null )
-                    {
+                    if ( i != null ) {
                         isIdentity = true;
                         continue;
                     }
 
                     BindFrom bf = o as BindFrom;
 
-                    if ( bf != null )
-                    {
+                    if ( bf != null ) {
                         mapVar.FromResultSetColumn = bf.OverridedReadColumn;      // override read column behavior
                         continue;
                     }
 
                     BindTo bt = o as BindTo;
 
-                    if ( bt != null )
-                    {
+                    if ( bt != null ) {
                         mapVar.ToSqlTableColumn = bt.OverridedSqlColumn;          // override CUD behavior
                         continue;
                     }
 
                     StoredProc sp = o as StoredProc;
 
-                    if ( sp != null )
-                    {
+                    if ( sp != null ) {
                         ProcMapping pm = new ProcMapping(pi.Name, sp.Mode);
 
                         if ( sp.ParameterName != null )
@@ -468,8 +446,7 @@ namespace DbTools
                     }
                 }
 
-                if ( mapProperty )
-                {
+                if ( mapProperty ) {
 
                     //
                     // We are here if Exclude wasn't present on the property
@@ -477,14 +454,12 @@ namespace DbTools
 
                     result[type].Mappings.Add(mapVar);
 
-                    if ( isKey )
-                    {
+                    if ( isKey ) {
                         // Add on keys collection
                         result[type].Keys.Add(new KeyMapping(mapVar.ToSqlTableColumn, pi.Name));
                     }
 
-                    if ( isIdentity )
-                    {
+                    if ( isIdentity ) {
                         //
                         // Only can exist one identity!
                         //
@@ -502,10 +477,8 @@ namespace DbTools
 
 
 
-        private static void ConfigureMetadataFor(Type type)
-        {
-            do
-            {
+        private static void ConfigureMetadataFor(Type type) {
+            do {
                 TypeSchema s;
 
                 if ( TypesSchema.TryGetValue(type, out s) ) // Typically, this is the most common case to occur
@@ -521,22 +494,20 @@ namespace DbTools
                 var newSchema = NewCopyWithAddedTypeSchema(type);      // Copy and add metadata for specific Type
 
 
-                #pragma warning disable 420
+#pragma warning disable 420
 
                 if ( TypesSchema == backup && Interlocked.CompareExchange(ref TypesSchema, newSchema, backup) == backup )
                     break;
 
-                #pragma warning restore 420
+#pragma warning restore 420
 
             } while ( true );
         }
 
-        private static String GetMappingForProperty(Type t, String propertyName)
-        {
+        private static String GetMappingForProperty(Type t, String propertyName) {
             TypeSchema schema = TypesSchema[t];
 
-            foreach ( CostumMapping cm in schema.Mappings )
-            {
+            foreach ( CostumMapping cm in schema.Mappings ) {
                 if ( cm.ClrProperty == propertyName )
                     return cm.ToSqlTableColumn;
             }
@@ -544,8 +515,7 @@ namespace DbTools
             throw new InvalidOperationException("shouldn't be here'");
         }
 
-        private static IList<T> MapTo<T>(DbDataReader reader) where T : class
-        {
+        private static IList<T> MapTo<T>(DbDataReader reader) where T : class {
             if ( reader == null )
                 throw new NullReferenceException("reader cannot be null");
 
@@ -568,19 +538,17 @@ namespace DbTools
 
             IList<T> set = new List<T>(47);
 
-            while ( reader.Read() )
-            {
-                T newInstance = (T)Activator.CreateInstance(type);
+            while ( reader.Read() ) {
+                T newInstance = (T) Activator.CreateInstance(type);
                 Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
 
                 // Map properties to the newInstance
-                foreach (CostumMapping map in schema.Mappings) 
-                {
+                foreach ( CostumMapping map in schema.Mappings ) {
                     object value;
                     string sqlColumn = map.FromResultSetColumn;
 
                     try { value = reader[sqlColumn]; }
-                    catch (IndexOutOfRangeException) {
+                    catch ( IndexOutOfRangeException ) {
                         throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".Frmt(sqlColumn));
                     }
 
@@ -590,8 +558,8 @@ namespace DbTools
                     // Nullable condition checker!
                     //
 
-                    if (value.GetType() == typeof(DBNull)) {
-                        if (ctxProperty.PropertyType.IsPrimitive) {
+                    if ( value.GetType() == typeof(DBNull) ) {
+                        if ( ctxProperty.PropertyType.IsPrimitive ) {
                             throw new PropertyMustBeNullable(
                                 "Property {0} must be nullable for mapping a null value".Frmt(ctxProperty.Name)
                             );
@@ -629,8 +597,7 @@ namespace DbTools
 
 
         // Recursive algorithm
-        private static String ParseFilter(Expression expr)
-        {
+        private static String ParseFilter(Expression expr) {
             //
             // This is a simple filter, we only want (and parse) simple expressions.
             // 
@@ -639,15 +606,14 @@ namespace DbTools
             MemberExpression mExpr;
             ConstantExpression cExpr;
 
-            if ( (bExpr = expr as BinaryExpression) != null )
-            {
+            if ( ( bExpr = expr as BinaryExpression ) != null ) {
                 //
                 // We have 2 expressions (left and right)
                 // We get the first left result use the operator and get the right part 
                 // (that can contain another BinaryExpression For example)
                 // 
 
-                StringBuilder innerText         = new StringBuilder();
+                StringBuilder innerText = new StringBuilder();
                 String recursiveResult;
 
                 recursiveResult = ParseFilter(bExpr.Left);                 // Go left
@@ -682,25 +648,25 @@ namespace DbTools
             ConstantExpression cInnerExpr;
             BinaryExpression bInnerExpr;
 
-            if ( (bInnerExpr = innerExpr as BinaryExpression) != null )
+            if ( ( bInnerExpr = innerExpr as BinaryExpression ) != null )
                 return ParseFilter(bInnerExpr);                                          // Go recursive    
 
-            if ( (pInnerExpr = innerExpr as ParameterExpression) != null ) {
+            if ( ( pInnerExpr = innerExpr as ParameterExpression ) != null ) {
                 return GetMappingForProperty(pInnerExpr.Type, mExpr.Member.Name);        // We must map property of the type to SQL Column
             }
 
-            if ( (cInnerExpr = innerExpr as ConstantExpression) != null ) {
+            if ( ( cInnerExpr = innerExpr as ConstantExpression ) != null ) {
                 object obj = cInnerExpr.Value;                                           // Get anonymous object (captured by the compiler)
 
                 FieldInfo value = obj.GetType().GetField(mExpr.Member.Name);             // Get the field of the anonymous object 
                 return PrepareValue(value.GetValue(obj));
             }
 
-            if( (mInnerExpr = innerExpr as MemberExpression) == null )
+            if ( ( mInnerExpr = innerExpr as MemberExpression ) == null )
                 throw new NotSupportedException("unsupported filter");
-            
+
             // innerExpr is MemberExpression!
-            if( (cInnerExpr = mInnerExpr.Expression as ConstantExpression) == null )
+            if ( ( cInnerExpr = mInnerExpr.Expression as ConstantExpression ) == null )
                 throw new NotSupportedException("unsupported filter");
 
             object objValue = cInnerExpr.Value;                                                     // Get anonymous object (captured by the compiler)
@@ -727,11 +693,11 @@ namespace DbTools
 
 
         private void SetupConnection() {
-            if (Connection == null)
+            if ( Connection == null )
                 throw new NullReferenceException("connection is null");
 
             // Try open the connection if not opened!
-            if(Connection.State !=  ConnectionState.Open)
+            if ( Connection.State != ConnectionState.Open )
                 Connection.Open();
         }
 
@@ -767,8 +733,7 @@ namespace DbTools
 
 
 
-        private static String PrepareSelectCmd<T>(Type type, Expression<Func<T, bool>> filter) where T : class
-        {
+        private static String PrepareSelectCmd<T>(Type type, Expression<Func<T, bool>> filter) where T : class {
             StringBuilder cmdTxt = new StringBuilder();
 
             //
@@ -782,16 +747,14 @@ namespace DbTools
             cmdTxt.Append("select ");
 
             // Select all columns that are mapped
-            foreach ( CostumMapping cm in schema.Mappings )
-            {
+            foreach ( CostumMapping cm in schema.Mappings ) {
                 cmdTxt.Append("[{0}], ".Frmt(cm.FromResultSetColumn));
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             cmdTxt.Append(" from [{0}] ".Frmt(schema.TableName));
 
-            if ( filter != null )
-            {
+            if ( filter != null ) {
                 //
                 // Apply filter
                 //
@@ -805,8 +768,7 @@ namespace DbTools
             return cmdTxt.ToString();
         }
 
-        private static String PrepareInsertCmd<T>(Type type, T obj, Type objRepresentor, string scopeIdentity) where T : class
-        {
+        private static String PrepareInsertCmd<T>(Type type, T obj, Type objRepresentor, string scopeIdentity) where T : class {
 
             //
             // Obtain local copy because another thread can change the reference of _typesSchema
@@ -820,8 +782,7 @@ namespace DbTools
 
 
             // Build header (exclude identities)
-            foreach ( CostumMapping cm in schema.Mappings )
-            {
+            foreach ( CostumMapping cm in schema.Mappings ) {
                 if ( cm.ClrProperty == schema.IdentityPropertyName )                    // Identity Column never's updated!
                     continue;
 
@@ -833,8 +794,7 @@ namespace DbTools
 
             // Build body (exclude identities)
             int paramIndex = 0;
-            foreach ( CostumMapping cm in schema.Mappings )
-            {
+            foreach ( CostumMapping cm in schema.Mappings ) {
                 if ( cm.ClrProperty == schema.IdentityPropertyName )                    // Identity Column never's updated!
                     continue;
 
@@ -883,8 +843,7 @@ namespace DbTools
             return cmdTxt.ToString();
         }
 
-        private static String PrepareUpdateCmd<T>(Type type, T obj) where T : class
-        {
+        private static String PrepareUpdateCmd<T>(Type type, T obj) where T : class {
             Type objRepresentor = obj.GetType();
 
             //
@@ -906,8 +865,7 @@ namespace DbTools
 
             // Build Set clause
             int paramIndex = 0;
-            foreach ( CostumMapping cm in schema.Mappings )
-            {
+            foreach ( CostumMapping cm in schema.Mappings ) {
                 if ( cm.ClrProperty == schema.IdentityPropertyName )                            // Identity Column never's updated!
                     continue;
 
@@ -916,14 +874,13 @@ namespace DbTools
 
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
-                
+
 
             // Build Where clause
             cmdTxt.Append(" where ");
 
             int count = 0;
-            foreach ( KeyMapping map in schema.Keys )
-            {
+            foreach ( KeyMapping map in schema.Keys ) {
                 cmdTxt.Append("[{0}] = @{1} ".Frmt(map.To, paramIndex++));
 
                 if ( ( count + 1 ) < schema.Keys.Count )
@@ -983,14 +940,13 @@ namespace DbTools
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }
-            
-            
+
+
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             return cmdTxt.ToString();
         }
 
-        private static String PrepareDeleteCmd<T>(Type type, T obj) where T : class
-        {
+        private static String PrepareDeleteCmd<T>(Type type, T obj) where T : class {
             Type objRepresentor = obj.GetType();
 
             //
@@ -1014,8 +970,7 @@ namespace DbTools
             cmdTxt.Append(" where ");
 
             int count = 0, paramIndex = 0;
-            foreach ( KeyMapping map in schema.Keys )
-            {
+            foreach ( KeyMapping map in schema.Keys ) {
                 cmdTxt.Append("[{0}] = @{1}".Frmt(map.To, paramIndex++));
 
                 if ( ( count + 1 ) < schema.Keys.Count )
@@ -1033,8 +988,7 @@ namespace DbTools
             //
 
             paramIndex = 0;
-            foreach ( KeyMapping map in schema.Keys ) 
-            {
+            foreach ( KeyMapping map in schema.Keys ) {
                 Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
 
                 cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ClrToSqlTypes[propertyType]));
@@ -1050,8 +1004,7 @@ namespace DbTools
             //
 
             paramIndex = 0;
-            foreach ( KeyMapping map in schema.Keys ) 
-            {
+            foreach ( KeyMapping map in schema.Keys ) {
                 PropertyInfo pi = objRepresentor.GetProperty(map.From);
                 String valueTxt = PrepareValue(pi.GetValue(obj, null));         // Can contain quotes, based on property type
 
@@ -1085,8 +1038,7 @@ namespace DbTools
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
         /// <param name="parameters">The parameters that command use. (optional)</param>
         /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
-        public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) where T : class
-        {
+        public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) where T : class {
             Type type = typeof(T);
 
             // Lock-Free
@@ -1098,14 +1050,14 @@ namespace DbTools
             // 
 
             // Command Setup parameters
-            DbCommand comm = CmdForConnection(commandType, commandText);            
+            DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
-            if ( parameters != null )
+            if ( parameters != null && parameters.Length > 0 )
                 comm.Parameters.AddRange(parameters);
 
             // Open connection if not opened
-            SetupConnection();  
+            SetupConnection();
             return MapTo<T>(comm.ExecuteReader());
         }
 
@@ -1116,8 +1068,7 @@ namespace DbTools
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to get</typeparam>
         /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
-        public IList<T> Select<T>() where T : class
-        {
+        public IList<T> Select<T>() where T : class {
             return Select<T>(null);
         }
 
@@ -1128,8 +1079,7 @@ namespace DbTools
         /// <typeparam name="T">The type of the object that you want to get</typeparam>
         /// <param name="filter">The filter that you must use to filter a sub part of the result</param>
         /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns> 
-        public IList<T> Select<T>(Expression<Func<T, bool>> filter) where T : class
-        {
+        public IList<T> Select<T>(Expression<Func<T, bool>> filter) where T : class {
             Type type = typeof(T);
 
             // Lock-Free
@@ -1147,7 +1097,7 @@ namespace DbTools
             DbCommand cmd = CmdForConnection(CommandType.Text, selectCmd);
 
             // Open connection if not opened
-            SetupConnection();  
+            SetupConnection();
             return MapTo<T>(cmd.ExecuteReader());
         }
 
@@ -1162,15 +1112,14 @@ namespace DbTools
         /// <typeparam name="T">The type of the object that you want to insert</typeparam>
         /// <param name="obj">The object that you want to insert</param>
         /// <returns>The number of affected rows in database</returns>
-        public int Insert<T>(T obj) where T : class
-        {
+        public int Insert<T>(T obj) where T : class {
             Type type = typeof(T);
             Type objRepresentor = obj.GetType();
 
             string scopy_id_name = "Scope_Identity";
 
             // Lock-Free
-            ConfigureMetadataFor(type); 
+            ConfigureMetadataFor(type);
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1186,12 +1135,12 @@ namespace DbTools
             DbCommand cmd = CmdForConnection(CommandType.Text, insertCmd);
 
             // Open connection if not opened
-            SetupConnection();  
+            SetupConnection();
 
             // Execute query and if identity defined execute scalar sql command
-            if(schema.IdentityPropertyName == null)
+            if ( schema.IdentityPropertyName == null )
                 return cmd.ExecuteNonQuery();
-                        
+
             //
             // The type have identity column and we must set the identity to instance of the object
             //
@@ -1199,9 +1148,9 @@ namespace DbTools
             // Execute scalar query
             object scope_identity;
 
-            if( (scope_identity = cmd.ExecuteScalar()) == null )
+            if ( ( scope_identity = cmd.ExecuteScalar() ) == null )
                 return 0;
-            
+
             // Set scope_identity to object property identity
             PropertyInfo pi = objRepresentor.GetProperty(schema.IdentityPropertyName);
 
@@ -1222,12 +1171,11 @@ namespace DbTools
         /// <typeparam name="T">The type of the object that you want to update. Note: This type must be annotated with [Key]</typeparam>
         /// <param name="obj">The object that you want to update</param>
         /// <returns>The number of affected rows in database</returns>
-        public int Update<T>(T obj) where T : class
-        {
+        public int Update<T>(T obj) where T : class {
             Type type = typeof(T);
 
             // Lock-Free
-            ConfigureMetadataFor(type); 
+            ConfigureMetadataFor(type);
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1241,7 +1189,7 @@ namespace DbTools
             DbCommand cmd = CmdForConnection(CommandType.Text, updateCmd);
 
             // Open connection if not opened
-            SetupConnection();  
+            SetupConnection();
             return cmd.ExecuteNonQuery();
         }
 
@@ -1254,8 +1202,7 @@ namespace DbTools
         /// <typeparam name="T">The type of the object that you want to delete. Note: This type must be annotated with [Key]</typeparam>
         /// <param name="obj">The object that you want to delete</param>
         /// <returns>The number of affected rows in database</returns>
-        public int Delete<T>(T obj) where T : class
-        {
+        public int Delete<T>(T obj) where T : class {
             Type type = typeof(T);
 
             // Lock-Free
@@ -1273,7 +1220,7 @@ namespace DbTools
             DbCommand cmd = CmdForConnection(CommandType.Text, deleteCmd);
 
             // Open connection if not opened
-            SetupConnection();  
+            SetupConnection();
             return cmd.ExecuteNonQuery();
         }
 
@@ -1299,8 +1246,7 @@ namespace DbTools
         /// <param name="mode">The mode of the procedure</param>
         /// <param name="procedureName">The name of the procedure</param>
         /// <returns>The number of affected rows in database</returns>
-        public int ExecuteProc<T>(T obj, SPMode mode, string procedureName) where T : class
-        {
+        public int ExecuteProc<T>(T obj, SPMode mode, string procedureName) where T : class {
             Type type = typeof(T);
 
             // Lock-Free
@@ -1322,8 +1268,7 @@ namespace DbTools
             Type objRepresentor = obj.GetType();
             TypeSchema schema = TypesSchema[type];
 
-            foreach ( ProcMapping pm in schema.Procedures )
-            {
+            foreach ( ProcMapping pm in schema.Procedures ) {
                 if ( ( pm.Mode & mode ) == mode )      // Mode match!
                 {
                     object value = objRepresentor.GetProperty(pm.Map.From, Flags).GetValue(obj, null);
@@ -1334,7 +1279,7 @@ namespace DbTools
             }
 
             // Open connection if not opened
-            SetupConnection();  
+            SetupConnection();
             return cmd.ExecuteNonQuery();
         }
 
@@ -1346,17 +1291,16 @@ namespace DbTools
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
         /// <param name="parameters">The parameters that command use. (optional)</param>
         /// <returns>The number of affected rows in database</returns>
-        public int Execute(CommandType commandType, string commandText, params DbParameter[] parameters) 
-        {
+        public int Execute(CommandType commandType, string commandText, params DbParameter[] parameters) {
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
-            if (parameters != null)
+            if ( parameters != null && parameters.Length > 0 )
                 comm.Parameters.AddRange(parameters);
 
             // Open connection if not opened
-            SetupConnection();  
+            SetupConnection();
             return comm.ExecuteNonQuery();
         }
 
@@ -1368,13 +1312,12 @@ namespace DbTools
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
         /// <param name="parameters">The parameters that command use. (optional)</param>
         /// <returns>the first column of the first row in the resultset returned by the query</returns>
-        public object ExecuteScalar(CommandType commandType, string commandText, params DbParameter[] parameters) 
-        {
+        public object ExecuteScalar(CommandType commandType, string commandText, params DbParameter[] parameters) {
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
-            if ( parameters != null )
+            if ( parameters != null && parameters.Length > 0 )
                 comm.Parameters.AddRange(parameters);
 
             // Open connection if not opened
@@ -1388,8 +1331,7 @@ namespace DbTools
         /// <summary>
         ///   Free the DbConnection associated with the ObjectMapper  
         /// </summary>
-        public void Dispose()
-        {
+        public void Dispose() {
             InternalDispose();
 
             // Prevent finalization code for this object from executing a second time
@@ -1404,6 +1346,6 @@ namespace DbTools
 
 
 
-        
+
     }
 }
