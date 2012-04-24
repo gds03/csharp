@@ -1,83 +1,80 @@
-
-using System.Collections.Concurrent;
-using System.Threading;
-using System;
-using System.Windows.Forms;
-using System.Diagnostics;
-
-namespace UiTools
-{
-    public class AutoCallbackServiceAgent
+public class AutoCallbackServiceAgent
     {
-        private readonly ConcurrentDictionary<String, bool> _ProcessingManager;
-        private readonly object _callbackTarget;
+        private readonly ConcurrentDictionary<int, bool>  _processingManager;
+        private readonly Control                          _callbackTarget;
 
-        public AutoCallbackServiceAgent(object callbackTarget) {
+
+
+
+
+
+
+        public AutoCallbackServiceAgent(Control callbackTarget) {
+
+            if ( callbackTarget == null )
+                throw new ArgumentNullException("callbackTarget cannot be null");
 
             // Store reference to the callback target object.
             _callbackTarget = callbackTarget;
 
             // Initialize dictionary that controls the creation of threads peer method
-            _ProcessingManager = new ConcurrentDictionary<string, bool>();
+            _processingManager = new ConcurrentDictionary<int, bool>();
         }
 
 
 
 
-        private void InvokeAutoCallback(Delegate del, params object[] parameters) {
-
-            // If the target is a control, make sure we invoke it on the correct thread.
-            Control targetCtrl = _callbackTarget as Control;
-
-            if ( targetCtrl != null && targetCtrl.InvokeRequired ) {
+        void InvokeAutoCallback(Delegate method, params object[] methodParameters) 
+        {
+            if ( _callbackTarget.InvokeRequired ) {
 
                 //
                 // Thread that called this method is not the UI Thread.
                 // Schedule a new work item to dispatch UI message queue.
 
-                targetCtrl.Invoke(del, parameters);
+                _callbackTarget.Invoke(method, methodParameters);
             }
 
             else {
 
                 // Thread that called this method is the UI Thread.
                 // Execute immediatelly
-                del.DynamicInvoke(parameters);
+                method.DynamicInvoke(methodParameters);
             }
         }
 
 
 
-        protected void ExecuteParallel(Action<string> funcPtr) {
+        protected void ExecuteParallel(Action<int> parallelFunction) 
+        {
             bool isProcessing;
-            string methodName = new StackTrace().GetFrame(1).GetMethod().Name;
+            int syncToken = new StackTrace().GetFrame(1).GetMethod().Name.GetHashCode();
 
             // If key don't exist, add a new one and jump to the end
-            if ( _ProcessingManager.TryAdd(methodName, true) )
+            if ( _processingManager.TryAdd(syncToken, true) )
                 goto procede;
 
             // If we are here, means that key exists. 
             // We want procede only if the value is false (not proceding), and we set true (procede). Otherwise (another thread is processing) we stop.
-            if ( !_ProcessingManager.TryUpdate(methodName, true, false) )
+            if ( !_processingManager.TryUpdate(syncToken, true, false) )
                 return;
 
         procede:
 
             // Enqueue to TP
-            ThreadPool.QueueUserWorkItem(x => funcPtr(methodName));
+            ThreadPool.QueueUserWorkItem(x => parallelFunction(syncToken));
         }
 
 
 
 
 
-        protected void FinishAsyncProcess(Delegate del, string methodName, params object[] parameters) {
+        protected void FinishAsyncProcess(int synchronizationToken, Delegate method, params object[] methodParameters)
+        {
             // Indicate that finished processing for that method
-            _ProcessingManager.AddOrUpdate(methodName, false, (a, b) => false);
+            _processingManager.AddOrUpdate(synchronizationToken, false, (a, b) => false);
 
             // Invoke callback
-            InvokeAutoCallback(del, parameters);
+            InvokeAutoCallback(method, methodParameters);
         }
     }
-
-}
