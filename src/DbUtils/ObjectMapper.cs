@@ -4,7 +4,7 @@
 // Author: Gonçalo Dias
 //
 //
-// Last updated date: 29 March 2012
+// Last updated date: 24 April 2012
 //
 
 
@@ -515,7 +515,8 @@ namespace DbTools
             throw new InvalidOperationException("shouldn't be here'");
         }
 
-        private static IList<T> MapTo<T>(DbDataReader reader) where T : class {
+        private static IList<T> MapTo<T>(DbDataReader reader) where T : class 
+        {
             if ( reader == null )
                 throw new NullReferenceException("reader cannot be null");
 
@@ -536,9 +537,10 @@ namespace DbTools
 
             // Map cursor lines from database to CLR objects based on T
 
-            IList<T> set = new List<T>(47);
+            LinkedList<T> objectsQueue = new LinkedList<T>();
 
-            while ( reader.Read() ) {
+            while ( reader.Read() ) 
+            {
                 T newInstance = (T) Activator.CreateInstance(type);
                 Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
 
@@ -579,14 +581,17 @@ namespace DbTools
                 }
 
                 // Add element to the collection
-                set.Add(newInstance);
+                objectsQueue.AddLast(newInstance);
             }
 
             // Free Connection Resources
             reader.Close();
             reader.Dispose();
 
-            return set;
+            T[] arrayData = new T[objectsQueue.Count];
+            objectsQueue.CopyTo(arrayData, 0);
+
+            return arrayData;
         }
 
 
