@@ -1,4 +1,8 @@
-public class AutoCallbackServiceAgent
+ /// <summary>
+    ///     This class provides the ability to execute some background work and after the work has been
+    ///     finished, execute a function in the context of the UI Thread.
+    /// </summary>
+    public class AutoCallbackServiceAgent
     {
         private readonly ConcurrentDictionary<int, bool>  _processingManager;
         private readonly Control                          _callbackTarget;
