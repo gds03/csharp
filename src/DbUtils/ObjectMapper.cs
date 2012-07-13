@@ -134,9 +134,9 @@ namespace DbTools
         #region Instance Fields
 
 
-        private bool Disposed;
-        private readonly DbConnection Connection;
-        private readonly int CommandTimeout;
+        bool m_disposed;
+        readonly DbConnection m_connection;
+        readonly int m_commandTimeout;
 
 
         #endregion
@@ -146,10 +146,10 @@ namespace DbTools
 
         #region Static Fields
 
-        private static readonly BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance;
-        private const int SchemaInitCapacity = 53;
-        private const int OperatorsInitCapacity = 23;
-        private const int ClrTypesMappingCapacity = 47;
+        static readonly BindingFlags s_bindingflags = BindingFlags.Public | BindingFlags.Instance;
+        const int SchemaInitCapacity = 53;
+        const int OperatorsInitCapacity = 23;
+        const int ClrTypesMappingCapacity = 47;
 
 
 
@@ -187,9 +187,9 @@ namespace DbTools
             if ( connection == null )
                 throw new ArgumentNullException("connection");
 
-            Connection = connection;
-            Disposed = false;
-            CommandTimeout = 30;
+            m_connection = connection;
+            m_disposed = false;
+            m_commandTimeout = 30;
         }
 
 
@@ -200,7 +200,7 @@ namespace DbTools
         /// <param name="commandTimeout"></param>
         public ObjectMapper(DbConnection connection, int commandTimeout)
             : this(connection) {
-            CommandTimeout = commandTimeout;
+            m_commandTimeout = commandTimeout;
         }
 
 
@@ -390,7 +390,7 @@ namespace DbTools
 
 
             // Iterate over each property of the type
-            foreach ( PropertyInfo pi in type.GetProperties(Flags) ) {
+            foreach ( PropertyInfo pi in type.GetProperties(s_bindingflags) ) {
                 bool mapProperty = true;                                // Always to map, unless specified Exclude costum attribute
                 bool isKey = false;                                     // Only if attribute were found, sets this flag to true
                 bool isIdentity = false;                                // For each type, we must have only one Entity
@@ -698,32 +698,32 @@ namespace DbTools
 
 
         private void SetupConnection() {
-            if ( Connection == null )
+            if ( m_connection == null )
                 throw new NullReferenceException("connection is null");
 
             // Try open the connection if not opened!
-            if ( Connection.State != ConnectionState.Open )
-                Connection.Open();
+            if ( m_connection.State != ConnectionState.Open )
+                m_connection.Open();
         }
 
         private void InternalDispose() {
-            if ( Disposed )
+            if ( m_disposed )
                 return;
 
-            if ( Connection != null ) {
-                Connection.Close();
-                Connection.Dispose();
+            if ( m_connection != null ) {
+                m_connection.Close();
+                m_connection.Dispose();
             }
 
-            Disposed = true;
+            m_disposed = true;
         }
 
         private DbCommand CmdForConnection(CommandType type, String text) {
-            DbCommand comm = Connection.CreateCommand();
+            DbCommand comm = m_connection.CreateCommand();
 
             comm.CommandType = type;
             comm.CommandText = text;
-            comm.CommandTimeout = CommandTimeout;
+            comm.CommandTimeout = m_commandTimeout;
 
             return comm;
         }
@@ -1038,11 +1038,11 @@ namespace DbTools
         /// <summary>
         ///     Maps the result set to a list of T by convention, and leave the possibility to pass the commandType, commandText and DbParameters.
         /// </summary>
-        /// <typeparam name="T">The type of the object that you want to get</typeparam>
+        /// <typeparam name="T">The type of the object that you want to Map</typeparam>
         /// <param name="commandType">The type of the command</param>
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
         /// <param name="parameters">The parameters that command use. (optional)</param>
-        /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
+        /// <returns>A list of objects with their properties filled that aren't annotated with [Exclude] attribute</returns>
         public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) where T : class {
             Type type = typeof(T);
 
@@ -1071,19 +1071,19 @@ namespace DbTools
         /// <summary>
         ///     Maps the table from database to a list of T by convention.
         /// </summary>
-        /// <typeparam name="T">The type of the object that you want to get</typeparam>
-        /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns>
+        /// <typeparam name="T">The type of the object that you want to Map</typeparam>
+        /// <returns>A list of objects with their properties filled that aren't annotated with [Exclude] attribute</returns>
         public IList<T> Select<T>() where T : class {
             return Select<T>(null);
         }
 
 
         /// <summary>
-        ///     Maps the table tuples from database to a list of T by convention that satisfy the filter.
+        ///     Maps the table from database to a list of T by convention that satisfy the filter.
         /// </summary>
-        /// <typeparam name="T">The type of the object that you want to get</typeparam>
+        /// <typeparam name="T">The type of the object that you want to Map</typeparam>
         /// <param name="filter">The filter that you must use to filter a sub part of the result</param>
-        /// <returns>A linked list of T objects with their properties filled that aren't annotated with [Exclude]</returns> 
+        /// <returns>A list of objects with their properties filled that aren't annotated with [Exclude] attribute</returns>
         public IList<T> Select<T>(Expression<Func<T, bool>> filter) where T : class {
             Type type = typeof(T);
 
@@ -1116,8 +1116,7 @@ namespace DbTools
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to insert</typeparam>
         /// <param name="obj">The object that you want to insert</param>
-        /// <returns>The number of affected rows in database</returns>
-        public int Insert<T>(T obj) where T : class {
+        public void Insert<T>(T obj) where T : class {
             Type type = typeof(T);
             Type objRepresentor = obj.GetType();
 
@@ -1142,9 +1141,12 @@ namespace DbTools
             // Open connection if not opened
             SetupConnection();
 
-            // Execute query and if identity defined execute scalar sql command
+            // If Identity is not setted, execute the query and ignore the rest
             if ( schema.IdentityPropertyName == null )
-                return cmd.ExecuteNonQuery();
+            {
+                cmd.ExecuteNonQuery();
+                return; // Stop execution
+            }
 
             //
             // The type have identity column and we must set the identity to instance of the object
@@ -1154,7 +1156,7 @@ namespace DbTools
             object scope_identity;
 
             if ( ( scope_identity = cmd.ExecuteScalar() ) == null )
-                return 0;
+                throw new InvalidOperationException("{0}:{1} is not an identify column in database".Frmt(typeof(T).Name, schema.IdentityPropertyName));
 
             // Set scope_identity to object property identity
             PropertyInfo pi = objRepresentor.GetProperty(schema.IdentityPropertyName);
@@ -1164,8 +1166,6 @@ namespace DbTools
 
             // Set property identity
             pi.SetValue(obj, converted_identity, null);
-
-            return 1;
         }
 
 
@@ -1276,7 +1276,7 @@ namespace DbTools
             foreach ( ProcMapping pm in schema.Procedures ) {
                 if ( ( pm.Mode & mode ) == mode )      // Mode match!
                 {
-                    object value = objRepresentor.GetProperty(pm.Map.From, Flags).GetValue(obj, null);
+                    object value = objRepresentor.GetProperty(pm.Map.From, s_bindingflags).GetValue(obj, null);
                     object value2 = value == null ? DBNull.Value : value;
 
                     cmd.Parameters.Add(new SqlParameter(pm.Map.To, value2));
@@ -1290,7 +1290,7 @@ namespace DbTools
 
 
         /// <summary>
-        ///     Execute the query against database.
+        ///     Execute the query on the database.
         /// </summary>
         /// <param name="commandType">The type of the command</param>
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
@@ -1311,12 +1311,12 @@ namespace DbTools
 
 
         /// <summary>
-        ///     Execute the query against database.
+        ///     Execute the query on the database.
         /// </summary>
         /// <param name="commandType">The type of the command</param>
         /// <param name="commandText">If using stored procedure, must be the stored procedure name, otherwise the dynamic sql</param>
         /// <param name="parameters">The parameters that command use. (optional)</param>
-        /// <returns>the first column of the first row in the resultset returned by the query</returns>
+        /// <returns>The first column of the first row in the ResultSet returned by the query</returns>
         public object ExecuteScalar(CommandType commandType, string commandText, params DbParameter[] parameters) {
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
@@ -1341,6 +1341,16 @@ namespace DbTools
 
             // Prevent finalization code for this object from executing a second time
             GC.SuppressFinalize(this);
+        }
+
+
+
+        /// <summary>
+        ///     Returns the connection that ObjectMapper is associated
+        /// </summary>
+        public DbConnection Connection
+        {
+            get { return m_connection; }
         }
 
 
