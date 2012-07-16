@@ -134,9 +134,16 @@ namespace DbTools
         #region Instance Fields
 
 
-        bool m_disposed;
+
+
+
+        bool                  m_disposed;
         readonly DbConnection m_connection;
-        readonly int m_commandTimeout;
+        readonly int          m_commandTimeout          = 30;
+
+
+
+
 
 
         #endregion
@@ -173,9 +180,24 @@ namespace DbTools
         #region Type Contructor, Instance Constructor and Finalizer
 
 
-        static ObjectMapper() {
+        static ObjectMapper() 
+        {
             SetExpressionOperator();
             SetClrToSqlConversions();
+        }
+
+
+
+        /// <summary>
+        ///     Initialize ObjectMapper with specified connectionString and with a default command timeout of 30 seconds
+        /// </summary>
+        /// <param name="connectionString"></param>
+        public ObjectMapper(string connectionString)
+        {
+            if ( string.IsNullOrEmpty(connectionString) )
+                throw new ArgumentNullException("connectionString");
+
+            m_connection = new SqlConnection(connectionString);            
         }
 
 
@@ -188,8 +210,6 @@ namespace DbTools
                 throw new ArgumentNullException("connection");
 
             m_connection = connection;
-            m_disposed = false;
-            m_commandTimeout = 30;
         }
 
 
@@ -198,10 +218,13 @@ namespace DbTools
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="commandTimeout"></param>
-        public ObjectMapper(DbConnection connection, int commandTimeout)
-            : this(connection) {
+        public ObjectMapper(DbConnection connection, int commandTimeout) : this(connection) {
             m_commandTimeout = commandTimeout;
         }
+
+
+
+
 
 
         ~ObjectMapper() {
