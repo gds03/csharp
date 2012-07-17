@@ -177,7 +177,7 @@ namespace DbTools
 
 
 
-        #region Type Contructor, Instance Constructor and Finalizer
+        #region Type Contructor, Instance Constructor
 
 
         static ObjectMapper() 
@@ -222,16 +222,7 @@ namespace DbTools
             m_commandTimeout = commandTimeout;
         }
 
-
-
-
-
-
-        ~ObjectMapper() {
-            InternalDispose();
-        }
-
-
+        
 
         #endregion
 
@@ -729,17 +720,6 @@ namespace DbTools
                 m_connection.Open();
         }
 
-        private void InternalDispose() {
-            if ( m_disposed )
-                return;
-
-            if ( m_connection != null ) {
-                m_connection.Close();
-                m_connection.Dispose();
-            }
-
-            m_disposed = true;
-        }
 
         private DbCommand CmdForConnection(CommandType type, String text) {
             DbCommand comm = m_connection.CreateCommand();
@@ -1360,10 +1340,16 @@ namespace DbTools
         ///   Free the DbConnection associated with the ObjectMapper  
         /// </summary>
         public void Dispose() {
-            InternalDispose();
+            if ( m_disposed )
+                return;
 
-            // Prevent finalization code for this object from executing a second time
-            GC.SuppressFinalize(this);
+            if ( m_connection != null )
+            {
+                m_connection.Close();
+                m_connection.Dispose();
+            }
+
+            m_disposed = true;
         }
 
 
