@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{DFC31836-CC5E-4FB4-940D-C4B54F34F5D5}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>EnhancedLibrary</RootNamespace>
+    <AssemblyName>EnhancedLibrary</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <SccProjectName>SAK</SccProjectName>
+    <SccLocalPath>SAK</SccLocalPath>
+    <SccAuxPath>SAK</SccAuxPath>
+    <SccProvider>SAK</SccProvider>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\..\UtilitariosPMC\UtilitariosPMC\bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\..\UtilitariosPMC\UtilitariosPMC\bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="ExtensionMethods\Business\ExcelExtensions.cs" />
+    <Compile Include="ExtensionMethods\Business\ExceptionExtensions.cs" />
+    <Compile Include="ExtensionMethods\Business\ICloneableExtensions.cs" />
+    <Compile Include="ExtensionMethods\Business\IDictionaryExtensions.cs" />
+    <Compile Include="ExtensionMethods\Business\IEnumerableExtensions.cs" />
+    <Compile Include="ExtensionMethods\Business\IntPtrExtensions.cs" />
+    <Compile Include="ExtensionMethods\Business\IQueryableExtensions.cs" />
+    <Compile Include="ExtensionMethods\Business\StringExtensions.cs" />
+    <Compile Include="ExtensionMethods\DataAccess\DbParameterExtensions.cs" />
+    <Compile Include="ExtensionMethods\DataAccess\EntityTransactionExtensions.cs" />
+    <Compile Include="ExtensionMethods\DataAccess\IDbConnectionExtensions.cs" />
+    <Compile Include="ExtensionMethods\DataAccess\SqlDataReaderExtensions.cs" />
+    <Compile Include="ExtensionMethods\Graphics\ControlExtensions.cs" />
+    <Compile Include="ExtensionMethods\Graphics\UltraComboEditorExtensions.cs" />
+    <Compile Include="ExtensionMethods\Graphics\UltraGridExtensions.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Types\DropDownListItem.cs" />
+    <Compile Include="Types\DynamicData\DynamicList.cs" />
+    <Compile Include="Types\DynamicData\DynamicObject.cs" />
+    <Compile Include="Types\DynamicData\DynamicObjectPropertyDescriptor.cs" />
+    <Compile Include="Types\DynamicData\IDynamicObject.cs" />
+    <Compile Include="Types\ObjectContextAutoHistory\HistoryColumns\IUserUpdate.cs" />
+    <Compile Include="Types\ObjectContextAutoHistory\HistoryColumns\IUserUpdateNotNullable.cs" />
+    <Compile Include="Types\ObjectContextAutoHistory\HistoryColumns\IUserCreate.cs" />
+    <Compile Include="Types\ObjectContextAutoHistory\HistoryColumns\IUserDelete.cs" />
+    <Compile Include="Types\ObjectContextAutoHistory\IRepositoryPattern.cs" />
+    <Compile Include="Types\ObjectContextAutoHistory\ObjectContextAutoHistory.cs" />
+    <Compile Include="Types\ObjectContextAutoHistory\RepositoryPattern.cs" />
+    <Compile Include="Utilities\Business\EnumUtils.cs" />
+    <Compile Include="Utilities\Business\ExcelFileFilters.cs" />
+    <Compile Include="Utilities\Business\ImportXls2SQL.cs" />
+    <Compile Include="Utilities\Business\MicrosoftWordUtils.cs" />
+    <Compile Include="Utilities\Business\NullableUtils.cs" />
+    <Compile Include="Utilities\Business\TimeUtils.cs" />
+    <Compile Include="Utilities\Business\TwoTypesUtilitiesClass.cs" />
+    <Compile Include="Utilities\Business\UnitUtils.cs" />
+    <Compile Include="Utilities\DataAccess\ConnectionStringHelper.cs" />
+    <Compile Include="Utilities\DataAccess\Repository\Interfaces\ISQLRepositoryCommands.cs" />
+    <Compile Include="Utilities\DataAccess\Repository\SQLRepository.cs" />
+    <Compile Include="Utilities\DataAccess\Repository\Interfaces\ISQLRepository.cs" />
+    <Compile Include="Utilities\DataAccess\ObjectMapper.cs" />
+    <Compile Include="Utilities\DataAccess\Repository\SQLRepositoryCommands.cs" />
+    <Compile Include="Utilities\Graphics\AutoCallbackServiceAgent.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ExtensionMethods\Web\" />
+    <Folder Include="Utilities\Web\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Infragistics4.Shared.v11.2, Version=11.2.20112.1010, Culture=neutral, PublicKeyToken=7dd5c3163f2cd0cb, processorArchitecture=MSIL" />
+    <Reference Include="Infragistics4.Win.UltraWinEditors.v11.2, Version=11.2.20112.1010, Culture=neutral, PublicKeyToken=7dd5c3163f2cd0cb, processorArchitecture=MSIL" />
+    <Reference Include="Infragistics4.Win.UltraWinGrid.v11.2, Version=11.2.20112.1010, Culture=neutral, PublicKeyToken=7dd5c3163f2cd0cb, processorArchitecture=MSIL" />
+    <Reference Include="Infragistics4.Win.v11.2, Version=11.2.20112.1010, Culture=neutral, PublicKeyToken=7dd5c3163f2cd0cb, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.Office.Interop.Excel, Version=11.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="Microsoft.Office.Interop.Word, Version=11.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c">
+      <EmbedInteropTypes>False</EmbedInteropTypes>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.Entity" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

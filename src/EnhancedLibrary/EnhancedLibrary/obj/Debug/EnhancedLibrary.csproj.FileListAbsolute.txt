@@ -1,0 +1,5 @@
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\EnhancedLibrary\obj\Debug\ResolveAssemblyReference.cache
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\EnhancedLibrary\bin\Debug\EnhancedLibrary.dll
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\EnhancedLibrary\bin\Debug\EnhancedLibrary.pdb
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\EnhancedLibrary\obj\Debug\EnhancedLibrary.dll
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\EnhancedLibrary\obj\Debug\EnhancedLibrary.pdb
