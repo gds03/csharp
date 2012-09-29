@@ -15,8 +15,8 @@ namespace EnhancedLibrary.ExtensionMethods.Business
         ///     callback function and set the key from the result of that function.
         /// </summary>
         /// <returns>The value on the specific key</returns>
-        public static TOut ReadKey<TIn, TOut>(this IDictionary<TIn, TOut> dictionary,
-            TIn key, Func<TOut> callback) 
+        public static TValue ReadKey<TKey, TValue>(this IDictionary<TKey, TValue> dictionary,
+            TKey key, Func<TValue> callback) 
         {
             if ( !dictionary.ContainsKey(key) ) {
                 dictionary.Add(key, callback());

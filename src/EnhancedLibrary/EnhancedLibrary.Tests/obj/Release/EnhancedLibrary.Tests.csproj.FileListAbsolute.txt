@@ -1,7 +1,8 @@
 D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Tests\bin\Release\EnhancedLibrary.Tests.dll
 D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Tests\bin\Release\EnhancedLibrary.Tests.pdb
 D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Tests\bin\Release\EnhancedLibrary.dll
-D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Tests\bin\Release\EnhancedLibrary.pdb
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Tests\bin\Release\EnhancedLibrary.xml
 D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Tests\obj\Release\ResolveAssemblyReference.cache
 D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Tests\obj\Release\EnhancedLibrary.Tests.dll
 D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Tests\obj\Release\EnhancedLibrary.Tests.pdb
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Tests\bin\Release\EnhancedLibrary.pdb

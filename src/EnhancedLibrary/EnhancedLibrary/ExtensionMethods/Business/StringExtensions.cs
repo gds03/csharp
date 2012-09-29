@@ -117,5 +117,17 @@ namespace EnhancedLibrary.ExtensionMethods.Business
 
             return value.Substring(0, idx);
         }
+
+
+        /// <summary>
+        ///     Allow you to check if a substring is within the source string with a specific StringComparison rule
+        /// </summary>
+        public static bool Contains(this string source, string substring, StringComparison comp)
+        {
+            return source.IndexOf(substring, comp) >= 0;
+        }
+
+
+
     }
 }

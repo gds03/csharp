@@ -1,5 +1,7 @@
+D:\Locarent\Projectos\UtilitariosPMC\UtilitariosPMC\bin\Release\EnhancedLibrary.XML
 D:\Locarent\Projectos\UtilitariosPMC\UtilitariosPMC\bin\Release\EnhancedLibrary.dll
 D:\Locarent\Projectos\UtilitariosPMC\UtilitariosPMC\bin\Release\EnhancedLibrary.pdb
 D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Release\ResolveAssemblyReference.cache
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Release\EnhancedLibrary.dll.licenses
 D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Release\EnhancedLibrary.dll
 D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Release\EnhancedLibrary.pdb

@@ -18,7 +18,6 @@ namespace EnhancedLibrary.ExtensionMethods.Business
         /// <summary>
         ///     Include related entities, based on the lambda expression and materialize to objects.
         /// </summary>
-        /// <returns></returns>
         public static IQueryable<T> Include<T>(this IQueryable<T> query, Expression<Func<T, object>> selector) 
         {
             ObjectQuery<T> q = query as ObjectQuery<T>;
@@ -26,8 +25,23 @@ namespace EnhancedLibrary.ExtensionMethods.Business
             if ( q == null )
                 throw new InvalidOperationException("IQueryable Source must be of ObjectQuery type");
 
-            return Include(q, selector);
+            return InternalInclude(q, selector);
         }
+
+
+
+        /// <summary>
+        ///     Include related entities, based on the lambda expression and materialize to objects.
+        /// </summary>
+        public static IQueryable<T> Include<T>(this ObjectQuery<T> query, Expression<Func<T, object>> selector)
+        {
+            if ( query == null )
+                throw new ArgumentNullException("ObjectQuery cannot be null");
+
+            return InternalInclude(query, selector);
+        }
+
+        
 
 
 
@@ -38,7 +52,7 @@ namespace EnhancedLibrary.ExtensionMethods.Business
 
 
 
-        static ObjectQuery<T> Include<T>(this ObjectQuery<T> query, Expression<Func<T, object>> selector) 
+        static ObjectQuery<T> InternalInclude<T>(this ObjectQuery<T> query, Expression<Func<T, object>> selector) 
         {
             // Obtain path to pass to Include(string) method
             string path = new PropertyPathVisitor().GetPropertyPath(selector);
@@ -66,7 +80,11 @@ namespace EnhancedLibrary.ExtensionMethods.Business
                 // Initialize a new Stack
                 m_stack_propertyfullName = new Stack<string>();
 
-                // Visit current expression
+                //
+                // Visit current expression.
+                // After this method call, the stack contains the path for we pass to include, and for each one,
+                // we need to build the path
+
                 Visit(expression);
 
                 // Iterate in the stack and build the property fullPath 
@@ -82,7 +100,8 @@ namespace EnhancedLibrary.ExtensionMethods.Business
             #region Overrided Methods that are called when the node is of these Types
 
             // Members
-            protected override Expression VisitMember(MemberExpression expression) {
+            protected override Expression VisitMember(MemberExpression expression) 
+            {
                 if ( m_stack_propertyfullName != null )
                     m_stack_propertyfullName.Push(expression.Member.Name);
 
@@ -90,7 +109,8 @@ namespace EnhancedLibrary.ExtensionMethods.Business
             }
 
             // Methods
-            protected override Expression VisitMethodCall(MethodCallExpression expression) {
+            protected override Expression VisitMethodCall(MethodCallExpression expression) 
+            {
                 if ( IsLinqOperator(expression.Method) ) {
                     for ( int i = 1; i < expression.Arguments.Count; i++ ) {
                         Visit(expression.Arguments[i]);
@@ -111,20 +131,16 @@ namespace EnhancedLibrary.ExtensionMethods.Business
 
 
 
-            static bool IsLinqOperator(MethodInfo method) {
+            static bool IsLinqOperator(MethodInfo method) 
+            {
                 if ( method.DeclaringType != typeof(Queryable) && method.DeclaringType != typeof(Enumerable) )
                     return false;
 
                 //
-                // Must be enumerable, queryable and a ExtensionMethod too
+                // Must be enumerable, queryable and a ExtensionMethod
 
                 return Attribute.GetCustomAttribute(method, typeof(ExtensionAttribute)) != null;
             }
-
-
-
-
-
         }
 
         #endregion
