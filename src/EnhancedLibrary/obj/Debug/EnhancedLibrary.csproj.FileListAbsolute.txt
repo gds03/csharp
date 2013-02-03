@@ -1,0 +1,10 @@
+D:\Locarent\Projectos\UtilitariosPMC\UtilitariosPMC\bin\EnhancedLibrary.dll
+D:\Locarent\Projectos\UtilitariosPMC\UtilitariosPMC\bin\EnhancedLibrary.pdb
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Debug\ResolveAssemblyReference.cache
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Debug\EnhancedLibrary.UIControls.NoCloseButtonForm.resources
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Debug\EnhancedLibrary.UIControls.WaitForm.resources
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Debug\GenerateResource.read.1.tlog
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Debug\GenerateResource.write.1.tlog
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Debug\EnhancedLibrary.dll.licenses
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Debug\EnhancedLibrary.dll
+D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary\obj\Debug\EnhancedLibrary.pdb

@@ -1,8 +1,0 @@
-D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Console\bin\Release\EnhancedLibrary.Console.exe
-D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Console\bin\Release\EnhancedLibrary.Console.pdb
-D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Console\bin\Release\EnhancedLibrary.dll
-D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Console\bin\Release\EnhancedLibrary.xml
-D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Console\obj\x86\Release\ResolveAssemblyReference.cache
-D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Console\obj\x86\Release\EnhancedLibrary.Console.exe
-D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Console\obj\x86\Release\EnhancedLibrary.Console.pdb
-D:\Locarent\Projectos\EnhancedLibrary\EnhancedLibrary.Console\bin\Release\EnhancedLibrary.pdb
