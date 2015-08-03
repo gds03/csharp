@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3B0E8DD4-7E92-4004-9E6E-E3A23E421E3F}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>CodeToUMLNotation</RootNamespace>
+    <AssemblyName>CodeToUMLNotation</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>icon16x16.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="CSharpParser">
+      <HintPath>ThirdParty\CSharpParser.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.NRefactory">
+      <HintPath>packages\ICSharpCode.NRefactory.5.2.0\lib\Net40\ICSharpCode.NRefactory.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.NRefactory.CSharp">
+      <HintPath>packages\ICSharpCode.NRefactory.5.2.0\lib\Net40\ICSharpCode.NRefactory.CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Controls\FindDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Controls\FindDialog.Designer.cs">
+      <DependentUpon>FindDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\RicherTextbox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ModelV2\Abstract\ClassesAndStructs.cs" />
+    <Compile Include="ModelV2\Abstract\Declaration.cs" />
+    <Compile Include="ModelV2\Abstract\ClassesAndStructsAndInterfaces.cs" />
+    <Compile Include="ModelV2\Abstract\RunnableRoutines.cs" />
+    <Compile Include="ModelV2\Code\Class.cs" />
+    <Compile Include="ModelV2\Code\Enum.cs" />
+    <Compile Include="ModelV2\Code\Interface.cs" />
+    <Compile Include="ModelV2\Code\Struct.cs" />
+    <Compile Include="ModelV2\Constant.cs" />
+    <Compile Include="ModelV2\Enums\VisibilityMode.cs" />
+    <Compile Include="ModelV2\Field.cs" />
+    <Compile Include="ModelV2\Interfaces\ITypeDeclaration.cs" />
+    <Compile Include="ModelV2\Interfaces\IUmlDesign.cs" />
+    <Compile Include="ModelV2\Method.cs" />
+    <Compile Include="ModelV2\Property.cs" />
+    <Compile Include="ModelV2\Visibility.cs" />
+    <Compile Include="Model\Abstract\Const.cs" />
+    <Compile Include="Model\Const\ConstField.cs" />
+    <Compile Include="IRichStringbuilder.cs" />
+    <Compile Include="Model\Struct.cs" />
+    <Compile Include="NRefactoryHelper\DeclarationConverters\ClassDeclaration.cs" />
+    <Compile Include="NRefactoryHelper\DeclarationConverters\EnumDeclaration.cs" />
+    <Compile Include="NRefactoryHelper\DeclarationConverters\InterfaceDeclaration.cs" />
+    <Compile Include="NRefactoryHelper\DeclarationConverters\StructDeclaration.cs" />
+    <Compile Include="NRefactoryHelper\Mappers.cs" />
+    <Compile Include="NRefactoryHelper\NRefactoryCom2.cs" />
+    <Compile Include="NRefactoryHelper\NRefactoryCom.cs" />
+    <Compile Include="NRefactoryHelper\NRefactoryVisitorV2.cs" />
+    <Compile Include="NRefactoryHelper\NRefactoryVisitor.cs" />
+    <Compile Include="NRefactoryHelper\Interfaces\NRefactoryVisitorV2Helper.cs" />
+    <Compile Include="NRefactoryHelper\PARSE_TYPE.cs" />
+    <Compile Include="ParserForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ParserForm.Designer.cs">
+      <DependentUpon>ParserForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Model\Enums\CLRAvailableTypeMode.cs" />
+    <Compile Include="Model\Abstract\Declaration.cs" />
+    <Compile Include="Model\Abstract\DeclarationWithReturnValue.cs" />
+    <Compile Include="Model\Enums\VisibilityMode.cs" />
+    <Compile Include="Model\Field.cs" />
+    <Compile Include="Model\Interfaces\IUmlDesignation.cs" />
+    <Compile Include="Model\Method.cs" />
+    <Compile Include="Model\Namespace.cs" />
+    <Compile Include="Model\Property.cs" />
+    <Compile Include="Model\CLRType.cs" />
+    <Compile Include="Model\Visibility.cs" />
+    <Compile Include="ParameterValidator.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RicherTextboxBuilder.cs" />
+    <EmbeddedResource Include="Controls\FindDialog.resx">
+      <DependentUpon>FindDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ParserForm.resx">
+      <DependentUpon>ParserForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="icon16x16.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ModelV2\Extensions\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
