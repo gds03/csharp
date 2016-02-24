@@ -1,0 +1,10 @@
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\bin\Debug\CustomComponents.ConsoleApplication.exe.config
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\bin\Debug\CustomComponents.ConsoleApplication.exe
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\bin\Debug\CustomComponents.ConsoleApplication.pdb
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\bin\Debug\CustomComponents.Algorithms.dll
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\bin\Debug\CustomComponents.Core.dll
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\bin\Debug\CustomComponents.Algorithms.pdb
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\bin\Debug\CustomComponents.Core.pdb
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\obj\Debug\CustomComponents.ConsoleApplication.csprojResolveAssemblyReference.cache
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\obj\Debug\CustomComponents.ConsoleApplication.exe
+C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\CustomComponents.ConsoleApplication\obj\Debug\CustomComponents.ConsoleApplication.pdb

@@ -1,0 +1,7 @@
+D:\Cloud\Dropbox\___NewLibrary\CustomComponents.Database\bin\Debug\CustomComponents.Database.dll
+D:\Cloud\Dropbox\___NewLibrary\CustomComponents.Database\bin\Debug\CustomComponents.Database.pdb
+D:\Cloud\Dropbox\___NewLibrary\CustomComponents.Database\obj\Debug\CustomComponents.Database.dll
+D:\Cloud\Dropbox\___NewLibrary\CustomComponents.Database\obj\Debug\CustomComponents.Database.pdb
+D:\Cloud\Dropbox\___NewLibrary\CustomComponents.Database\bin\Debug\CustomComponents.Core.dll
+D:\Cloud\Dropbox\___NewLibrary\CustomComponents.Database\bin\Debug\CustomComponents.Core.pdb
+D:\Cloud\Dropbox\___NewLibrary\CustomComponents.Database\obj\Debug\CustomComponents.Database.csprojResolveAssemblyReference.cache

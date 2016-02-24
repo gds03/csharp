@@ -1,0 +1,14 @@
+E:\___NewLibrary\CustomComponents.Repository\bin\Debug\CustomComponents.Repository.dll
+E:\___NewLibrary\CustomComponents.Repository\bin\Debug\CustomComponents.Repository.pdb
+E:\___NewLibrary\CustomComponents.Repository\bin\Debug\CustomComponents.Core.dll
+E:\___NewLibrary\CustomComponents.Repository\bin\Debug\CustomComponents.Core.pdb
+E:\___NewLibrary\CustomComponents.Repository\obj\Debug\CustomComponents.Repository.csprojResolveAssemblyReference.cache
+E:\___NewLibrary\CustomComponents.Repository\obj\Debug\CustomComponents.Repository.dll
+E:\___NewLibrary\CustomComponents.Repository\obj\Debug\CustomComponents.Repository.pdb
+G:\___NewLibrary\CustomComponents.Repository\bin\Debug\CustomComponents.Repository.dll
+G:\___NewLibrary\CustomComponents.Repository\bin\Debug\CustomComponents.Repository.pdb
+G:\___NewLibrary\CustomComponents.Repository\bin\Debug\CustomComponents.Core.dll
+G:\___NewLibrary\CustomComponents.Repository\bin\Debug\CustomComponents.Core.pdb
+G:\___NewLibrary\CustomComponents.Repository\obj\Debug\CustomComponents.Repository.csprojResolveAssemblyReference.cache
+G:\___NewLibrary\CustomComponents.Repository\obj\Debug\CustomComponents.Repository.dll
+G:\___NewLibrary\CustomComponents.Repository\obj\Debug\CustomComponents.Repository.pdb

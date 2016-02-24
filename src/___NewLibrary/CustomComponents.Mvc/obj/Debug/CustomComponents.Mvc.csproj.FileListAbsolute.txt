@@ -1,0 +1,5 @@
+G:\___NewLibrary\CustomComponents.Mvc\bin\Debug\CustomComponents.Mvc.dll
+G:\___NewLibrary\CustomComponents.Mvc\bin\Debug\CustomComponents.Mvc.pdb
+G:\___NewLibrary\CustomComponents.Mvc\obj\Debug\CustomComponents.Mvc.csprojResolveAssemblyReference.cache
+G:\___NewLibrary\CustomComponents.Mvc\obj\Debug\CustomComponents.Mvc.dll
+G:\___NewLibrary\CustomComponents.Mvc\obj\Debug\CustomComponents.Mvc.pdb

@@ -1,0 +1,207 @@
+﻿@model CustomComponents.Mvc.UserControls.Models.GridView.GridContext
+@using lr = CustomComponents.Mvc.UserControls.Resources.Translations
+@using CustomComponents.Mvc.UserControls.Models.GridView;
+@using System.Reflection;
+@using System.Collections;
+@using CustomComponents.Mvc.UserControls.Extensions;
+
+
+@{
+
+    if (Model == null) { throw new ArgumentNullException("GridContext cannot be null"); }
+    if (Model.ColumnMappings == null) { throw new InvalidOperationException("You must configure columns for the grid be able to render"); }
+
+    Dictionary<string, object> htmlAttr = (Dictionary<string, object>)ViewData["htmlAttributes"];
+    if (htmlAttr != null) { Model.FormID = htmlAttr["formId"].ToString(); }
+
+    //
+    // check if data exists
+
+    bool hasData = false;
+    IEnumerator enumerator;
+
+    if (Model.Data != null && (enumerator = Model.Data.Items.GetEnumerator()).MoveNext())
+    {
+        hasData = true;
+        enumerator.Reset();
+    }
+
+    string identityKey = null;
+
+    const string identityMetadata = "data-identity=\"1\"";
+    const string tupleIdMetadata = "data-id=\"{0}\"";
+    const string visibleMetadata = "style=\"display:none;\"";
+
+    string gridGuid = Guid.NewGuid().ToString().Substring(0, 8);        // container guid with 8 bytes
+
+    string controllerName, actionName;
+
+    if (string.IsNullOrEmpty(Model.CallbackUrl))
+    {                      // if not passed, assume the current handler
+        Model.CallbackUrl = ViewContext.GetCurrentUrl(out controllerName, out actionName);
+    }
+
+    var qs = ViewContext.HttpContext.Request.QueryString;
+
+    object qsValue;
+    string sortBy = qs["sortBy"], sortAscending = qs["sortAscending"], ___contextid = null;
+    if ((qsValue = qs["___contextid"]) != null && (___contextid = qsValue.ToString()) == "") { throw new InvalidOperationException(); }
+
+    bool IsFreshRequest = (___contextid == null);
+    var pg = Model.Pager;
+}
+
+
+<div data-controlname="basicgrid" id="@(( IsFreshRequest ? gridGuid : ___contextid))">
+    @*Generate a internal guid for updates within this container , because multiple grids on the same page can be applied.*@
+
+    @if (Model.IsToShowResultsCount)                    // Header to display the number of the results
+    {
+
+        <div>
+
+            @if (!hasData)
+            { @lr.No_Results; return;
+            }
+            else
+            {
+                if (Model.Data.Total == 1)
+                { @lr.Single_Result;
+                }
+                else
+                {
+                    string s = string.Format(lr.Multiple_Results, Model.Data.Total);
+                    @s
+                }
+            }
+        </div>
+    }
+
+    @* Generate GRID *@
+
+    <table data-callbackurl="@Model.CallbackUrl" data-formid="@Model.FormID">
+        <thead>
+            <tr data-current-sortby="@sortBy"
+                data-current-sortascending="@sortAscending">
+
+                @foreach (var kvp in Model.ColumnMappings)
+                {
+                    string key = kvp.Key;
+                    Column column = kvp.Value;
+
+                    bool currentOrdered = (key == sortBy);
+
+                    string htmlAttributes = string.Empty;
+
+                    if (column.IsIdentity)
+                    {
+                        if (identityKey != null) { throw new InvalidOperationException("You can only define one key in column options. TERMINATING.."); }
+
+                        identityKey = kvp.Key;
+                        htmlAttributes += " " + identityMetadata;
+                    }
+
+                    if (!column.IsVisible) { htmlAttributes += " " + visibleMetadata; }
+
+                    <th data-columnname="@key"
+                        data-ascending="@sortAscending"
+                        class="@( (Model.IsSortable) ? "hand" : "") @( currentOrdered ? "orderColumn" : "" ) @((currentOrdered && sortAscending == "1") ? "orderUp" : "orderDown")"
+                        @Html.Raw(htmlAttributes)>
+
+                        @column.Header
+
+                    </th>
+                }
+            </tr>
+        </thead>
+
+        <tbody>
+
+            @foreach (var item in Model.Data.Items)
+            {
+
+                string id = @item.GetType().GetProperty(identityKey).GetValue(item).ToString();
+
+                <tr @Html.Raw(string.Format(tupleIdMetadata, id)) class="@(( Model.IsClickable) ? "IsClickable" : "")">
+
+                    @foreach (var kvp in Model.ColumnMappings)
+                    {
+                        string key = kvp.Key;
+                        Column column = kvp.Value;
+
+                        string htmlAttributes = string.Empty;
+
+                        if (column.IsIdentity && !column.IsVisible)
+                        {
+
+                            // In the header section we identified which column is the identity.
+                            // in tbody the identity is set on tr level, so we do not generate any td for this case.
+
+                            continue;
+                        }
+
+                        if (!column.IsVisible) { htmlAttributes += " " + visibleMetadata; }
+
+                        // Write property value for each cell
+                        PropertyInfo property = item.GetType().GetProperty(key);
+
+                        <td @Html.Raw(htmlAttributes)>
+                            @property.GetValue(item).ToString()
+                        </td>
+                    }
+
+                </tr>
+            }
+
+        </tbody>
+
+        @if (pg != null)
+        {
+
+            <tfoot>
+                <tr>
+                    <td colspan="@Model.ColumnMappings.Count">
+
+                        @if (pg.hasPrevious)
+                        {
+                            if (pg.showFirst && (pg.CurrentPage > 2))
+                            {
+                                <span class="pager_first hand" data-value="1">
+                                    <img alt="first" src="@Url.ImagesUrl("Grid/left_first.png")" />
+                                </span>
+
+                                <span class="pager_first_space"></span>
+                            }
+
+                            <span class="pager_prev hand" data-value="@(pg.CurrentPage - 1)">
+                                <img alt="previous" src="@Url.ImagesUrl("Grid/left.png")" />
+                            </span>
+                        }
+
+                        <span class="pager_current" data-value="@pg.CurrentPage">
+                            @pg.CurrentPage
+                        </span>
+
+
+                        @if (pg.hasNext)
+                        {
+                            <span class="pager_next hand" data-value="@(pg.CurrentPage + 1)">
+                                <img alt="next" src="@Url.ImagesUrl("Grid/right.png")" />
+                            </span>
+
+                            if (pg.showLast && (pg.CurrentPage < (pg.LastPage - 1)))
+                            {
+                                <span class="pager_last_space"></span>
+
+                                <span class="pager_last hand" data-value="@pg.LastPage">
+                                    <img alt="last" src="@Url.ImagesUrl("Grid/right_last.png")" />
+                                </span>
+                            }
+                        }
+                    </td>
+                </tr>
+            </tfoot>
+        }
+
+    </table>
+</div>
