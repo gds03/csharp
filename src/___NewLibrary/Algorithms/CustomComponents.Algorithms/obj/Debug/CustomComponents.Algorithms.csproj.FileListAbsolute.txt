@@ -5,3 +5,10 @@ C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\Algorithms\Cu
 C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\Algorithms\CustomComponents.Algorithms\obj\Debug\CustomComponents.Algorithms.csprojResolveAssemblyReference.cache
 C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\Algorithms\CustomComponents.Algorithms\obj\Debug\CustomComponents.Algorithms.dll
 C:\Users\OZONE\Documents\Visual Studio 2013\Projects\___NewLibrary\Algorithms\CustomComponents.Algorithms\obj\Debug\CustomComponents.Algorithms.pdb
+C:\Repositories\csharp\src\___NewLibrary\Algorithms\CustomComponents.Algorithms\bin\Debug\CustomComponents.Algorithms.dll
+C:\Repositories\csharp\src\___NewLibrary\Algorithms\CustomComponents.Algorithms\bin\Debug\CustomComponents.Algorithms.pdb
+C:\Repositories\csharp\src\___NewLibrary\Algorithms\CustomComponents.Algorithms\bin\Debug\CustomComponents.Core.dll
+C:\Repositories\csharp\src\___NewLibrary\Algorithms\CustomComponents.Algorithms\bin\Debug\CustomComponents.Core.pdb
+C:\Repositories\csharp\src\___NewLibrary\Algorithms\CustomComponents.Algorithms\obj\Debug\CustomComponents.Algorithms.csprojResolveAssemblyReference.cache
+C:\Repositories\csharp\src\___NewLibrary\Algorithms\CustomComponents.Algorithms\obj\Debug\CustomComponents.Algorithms.dll
+C:\Repositories\csharp\src\___NewLibrary\Algorithms\CustomComponents.Algorithms\obj\Debug\CustomComponents.Algorithms.pdb
