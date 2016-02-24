@@ -59,6 +59,7 @@
     <Compile Include="Threading\SpinMutex.cs" />
     <Compile Include="Threading\SynchronousChannel.cs" />
     <Compile Include="Threading\SyncUtils.cs" />
+    <Compile Include="Yield\FibonacciGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CustomComponents.Core\CustomComponents.Core.csproj">

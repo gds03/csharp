@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArrayProgram.cs" />
+    <Compile Include="FibonacciProgram.cs" />
     <Compile Include="LinkedListProgram.cs" />
     <Compile Include="CircularListProgram.cs" />
     <Compile Include="EightQueenProgram.cs" />
