@@ -46,7 +46,7 @@ namespace CustomComponents.Algorithms.Threading
 
 
         // Ctor
-        public SimpleThreadPool() : this(Environment.ProcessorCount)
+        public SimpleThreadPool() : this(Environment.ProcessorCount * 2)
         {
 
         }
