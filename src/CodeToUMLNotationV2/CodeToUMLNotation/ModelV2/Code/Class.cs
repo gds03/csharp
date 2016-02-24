@@ -25,6 +25,12 @@ namespace CodeToUMLNotation.ModelV2.Code
             Abstract = @abstract;
         }
 
+
+        protected override bool IsStatic
+        {
+            get { return Static; }
+        }
+
         protected override int DesignHeaderConcrete(IRichStringbuilder richSb)
         {
             int charsWritten = 0;

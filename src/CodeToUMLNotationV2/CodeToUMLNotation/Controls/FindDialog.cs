@@ -63,6 +63,10 @@ namespace CodeToUMLNotation.Controls
             }
         }
 
+
+
+        public TextBox inputTextbox { get { return txtFindWhat; } }
+
         public FindDialog()
         {
             InitializeComponent();

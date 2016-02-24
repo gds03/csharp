@@ -25,7 +25,9 @@ namespace CodeToUMLNotation.ModelV2
         {
             // Visibility PropertyName: ReturnType {get;set}
             Visibility.Design(richSb);
-            richSb.WriteRegular(" " + Name + ": ");
+            richSb.WriteRegular(" ");
+            WriteNameHelper(richSb);
+            richSb.WriteRegular(": ");
             richSb.WriteBold(ReturnType);
             bool OpenCloseBracket = Getter || Setter;
             if (OpenCloseBracket)
@@ -35,9 +37,6 @@ namespace CodeToUMLNotation.ModelV2
                 if (Setter) richSb.WriteRegular("set;");
                 richSb.WriteRegular("}");
             }
-
-            if (@Static)
-                richSb.WriteRegular(" [STATIC]");
 
             if (Abstract)
                 richSb.WriteItalic(" ** abstract **");
@@ -51,6 +50,12 @@ namespace CodeToUMLNotation.ModelV2
             if (Overrided)
                 richSb.WriteBold(" !overrided");
             return richSb;
+        }
+
+
+        protected override bool IsStatic
+        {
+            get { return Static; }
         }
     }
 }

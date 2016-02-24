@@ -17,6 +17,11 @@ namespace CodeToUMLNotation.ModelV2.Code
 
         }
 
+        protected override bool IsStatic
+        {
+            get { return false; }
+        }
+
         protected override int DesignHeaderConcrete(IRichStringbuilder richSb)
         {
             richSb.WriteRegular(" ");

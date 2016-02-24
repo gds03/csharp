@@ -19,8 +19,8 @@ namespace CodeToUMLNotation.NRefactoryHelper.DeclarationConverters
         public override ModelV2.Abstract.Declaration Create(ICSharpCode.NRefactory.CSharp.TypeDeclaration td)
         {
             Interface i = new Interface(
-                new Visibility(VisibilityMapper.Map(td.Modifiers)),
-                td.Name
+                 AdjustVisibilityForClassesInterfacesAndStructs(td),
+                GetNameForGenericTypeDeclaration(td)
             );
 
             SetBaseTypesForTypeDeclaration(i, td);

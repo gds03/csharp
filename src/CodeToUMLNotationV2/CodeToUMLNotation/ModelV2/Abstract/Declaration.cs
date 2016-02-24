@@ -20,8 +20,17 @@ namespace CodeToUMLNotation.ModelV2.Abstract
             Visibility = visibility;
         }
 
+        protected abstract bool IsStatic { get; }
+
 
         #region Protected Helpers
+
+
+        protected void WriteNameHelper(IRichStringbuilder richSb)
+        {
+            if (IsStatic) { richSb.WriteUnderline(Name); }
+            else { richSb.WriteRegular(Name); }
+        }
 
         protected static void DrawLine(IRichStringbuilder builder, int size, bool useIntercalatedSpace, char c, bool appendLineAtTheEnd = true, bool writingHeader = false)
         {

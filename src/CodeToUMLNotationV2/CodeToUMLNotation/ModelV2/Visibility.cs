@@ -1,5 +1,4 @@
-﻿using CodeToUMLNotation.Model.Enums;
-using CodeToUMLNotation.Model.Interfaces;
+﻿using CodeToUMLNotation.ModelV2.Enums;
 using CodeToUMLNotation.ModelV2.Interfaces;
 using System;
 using System.Collections.Generic;

@@ -19,13 +19,19 @@ namespace CodeToUMLNotation.ModelV2.Abstract
 
 
 
-        public ClassesAndStructsAndInterfaces(Visibility visibility, string name)
+        public ClassesAndStructsAndInterfaces(Visibility visibility, string name, string[] baseTypes = null)
             : base(visibility, name)
         {
             BaseTypes = new LinkedList<String>();
             Properties = new LinkedList<Property>();
             Methods = new LinkedList<Method>();
             ReferencedTypes = new LinkedList<String>();
+
+            if (baseTypes != null && baseTypes.Length > 0)
+            {
+                // add each type
+                baseTypes.ToList().ForEach(bt => BaseTypes.Add(bt));
+            }
         }
 
 
@@ -44,7 +50,7 @@ namespace CodeToUMLNotation.ModelV2.Abstract
             if (BaseTypes.Any())
             {
                 richSb.WriteRegular(" : ");
-                WriteBaseTypesUML(richSb);
+                charsWritten += (int) Math.Round((double)WriteBaseTypesUML(richSb) * 1.7d);
             }
 
             richSb.WriteLine();
@@ -54,12 +60,12 @@ namespace CodeToUMLNotation.ModelV2.Abstract
         protected abstract int DesignHeaderConcrete(IRichStringbuilder richSb);
 
 
-        protected bool WriteBaseTypesUML(IRichStringbuilder richSb)
+        protected int WriteBaseTypesUML(IRichStringbuilder richSb)
         {
             var sbuilder = BaseTypes.Aggregate(new StringBuilder(), (sb, s) => sb.Append(s + ", "));
             string baseTypes = sbuilder.Remove(sbuilder.Length - 2, 2).ToString();
             richSb.WriteBold(baseTypes);
-            return BaseTypes.Count > 0;
+            return sbuilder.Length;
         }
 
 
@@ -71,12 +77,12 @@ namespace CodeToUMLNotation.ModelV2.Abstract
                 
         protected bool WritePropertiesUML(IRichStringbuilder richSb)
         {
-            Properties.ToList().ForEach(p => p.Design(richSb).WriteLine());
+            Properties.OrderBy(x => x.Static).ToList().ForEach(p => p.Design(richSb).WriteLine());
             return Properties.Count > 0;
         }
         protected bool WriteMethodsUML(IRichStringbuilder richSb)
         {
-            Methods.ToList().ForEach(m => m.Design(richSb).WriteLine());
+            Methods.OrderBy(x => x.Static).ToList().ForEach(m => m.Design(richSb).WriteLine());
             return Methods.Count > 0;
         }
 

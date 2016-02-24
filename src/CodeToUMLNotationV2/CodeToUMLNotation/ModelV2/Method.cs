@@ -24,7 +24,6 @@ namespace CodeToUMLNotation.ModelV2
         }
 
 
-
         public IRichStringbuilder Design(IRichStringbuilder richSb)
         {
             // Visibility MethodName(arg: Type, ...)
@@ -49,15 +48,18 @@ namespace CodeToUMLNotation.ModelV2
                 innerSb.WriteRegular(")");
             };
 
+
             Visibility.Design(richSb);
             richSb.WriteRegular(" ");
-            if (Ctor) richSb.WriteRegular("(ctor)");
-            richSb.WriteRegular(Name);
+            if (Ctor)
+            {
+                if (Static) { richSb.WriteRegular("(cctor)"); }
+                else { richSb.WriteRegular("(ctor)"); }
+            }
+            WriteNameHelper(richSb);
             WriteArgumentsIfExist(richSb);
             richSb.WriteRegular(": ");
             richSb.WriteBold(Ctor ? Name : ReturnType);
-            if (@Static)
-                richSb.WriteRegular(" [STATIC]");
 
             if (Abstract)
                 richSb.WriteItalic(" ** abstract **");

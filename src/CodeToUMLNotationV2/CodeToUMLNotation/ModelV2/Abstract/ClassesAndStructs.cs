@@ -13,8 +13,8 @@ namespace CodeToUMLNotation.ModelV2.Abstract
         public ICollection<Field> Fields { get; private set; }
 
 
-        public ClassesAndStructs(Visibility visibility, string name)
-            : base(visibility, name)
+        public ClassesAndStructs(Visibility visibility, string name, string[] baseTypes = null)
+            : base(visibility, name, baseTypes)
         {
             ConstantFields = new LinkedList<Constant>();
             Fields = new LinkedList<Field>();
@@ -31,7 +31,7 @@ namespace CodeToUMLNotation.ModelV2.Abstract
 
         protected bool WriteFieldsUML(IRichStringbuilder richSb)
         {
-            Fields.ToList().ForEach(f => f.Design(richSb).WriteLine());
+            Fields.OrderBy(x => x.Static).ToList().ForEach(f => f.Design(richSb).WriteLine());
             return Fields.Count > 0;
         }
     }

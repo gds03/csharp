@@ -29,16 +29,20 @@ namespace CodeToUMLNotation.ModelV2
         {
             // Visibility Name: ReturnType readonly
             Visibility.Design(richSb);
-            richSb.WriteRegular(" " + Name + ": ");
+            richSb.WriteRegular(" ");
+            WriteNameHelper(richSb);
+            richSb.WriteRegular(": ");
             richSb.WriteBold(ReturnType);
 
             if (@Readonly)
                 richSb.WriteItalic(" readonly");
 
-            if (@Static)
-                richSb.WriteRegular(" [STATIC]");
-
             return richSb;
+        }
+
+        protected override bool IsStatic
+        {
+            get { return Static; }
         }
     }
 }

@@ -65,6 +65,7 @@
     <Compile Include="Controls\RicherTextbox.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="Extensions\IEnumerableExtensions.cs" />
     <Compile Include="ModelV2\Abstract\ClassesAndStructs.cs" />
     <Compile Include="ModelV2\Abstract\Declaration.cs" />
     <Compile Include="ModelV2\Abstract\ClassesAndStructsAndInterfaces.cs" />
@@ -81,19 +82,14 @@
     <Compile Include="ModelV2\Method.cs" />
     <Compile Include="ModelV2\Property.cs" />
     <Compile Include="ModelV2\Visibility.cs" />
-    <Compile Include="Model\Abstract\Const.cs" />
-    <Compile Include="Model\Const\ConstField.cs" />
     <Compile Include="IRichStringbuilder.cs" />
-    <Compile Include="Model\Struct.cs" />
     <Compile Include="NRefactoryHelper\DeclarationConverters\ClassDeclaration.cs" />
     <Compile Include="NRefactoryHelper\DeclarationConverters\EnumDeclaration.cs" />
     <Compile Include="NRefactoryHelper\DeclarationConverters\InterfaceDeclaration.cs" />
     <Compile Include="NRefactoryHelper\DeclarationConverters\StructDeclaration.cs" />
     <Compile Include="NRefactoryHelper\Mappers.cs" />
     <Compile Include="NRefactoryHelper\NRefactoryCom2.cs" />
-    <Compile Include="NRefactoryHelper\NRefactoryCom.cs" />
     <Compile Include="NRefactoryHelper\NRefactoryVisitorV2.cs" />
-    <Compile Include="NRefactoryHelper\NRefactoryVisitor.cs" />
     <Compile Include="NRefactoryHelper\Interfaces\NRefactoryVisitorV2Helper.cs" />
     <Compile Include="NRefactoryHelper\PARSE_TYPE.cs" />
     <Compile Include="ParserForm.cs">
@@ -102,17 +98,6 @@
     <Compile Include="ParserForm.Designer.cs">
       <DependentUpon>ParserForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Model\Enums\CLRAvailableTypeMode.cs" />
-    <Compile Include="Model\Abstract\Declaration.cs" />
-    <Compile Include="Model\Abstract\DeclarationWithReturnValue.cs" />
-    <Compile Include="Model\Enums\VisibilityMode.cs" />
-    <Compile Include="Model\Field.cs" />
-    <Compile Include="Model\Interfaces\IUmlDesignation.cs" />
-    <Compile Include="Model\Method.cs" />
-    <Compile Include="Model\Namespace.cs" />
-    <Compile Include="Model\Property.cs" />
-    <Compile Include="Model\CLRType.cs" />
-    <Compile Include="Model\Visibility.cs" />
     <Compile Include="ParameterValidator.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

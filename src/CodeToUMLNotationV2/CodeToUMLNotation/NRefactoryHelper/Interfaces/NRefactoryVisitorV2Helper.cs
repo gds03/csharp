@@ -7,6 +7,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using dec = CodeToUMLNotation.NRefactoryHelper.DeclarationConverters;
+using CodeToUMLNotation.Extensions;
+using CodeToUMLNotation.ModelV2.Enums;
 
 namespace CodeToUMLNotation.NRefactoryHelper.Interfaces
 {
@@ -31,6 +33,15 @@ namespace CodeToUMLNotation.NRefactoryHelper.Interfaces
         }
 
 
+
+        protected static ModelV2.Visibility AdjustVisibilityForClassesInterfacesAndStructs(EntityDeclaration ed)
+        {
+            VisibilityMode mode = VisibilityMapper.Map(ed.Modifiers);
+            mode = mode == VisibilityMode.@private ? VisibilityMode.@internal : VisibilityMode.@public;
+
+            return new ModelV2.Visibility(mode);
+        }
+
         protected static void SetBaseTypesForTypeDeclaration(ClassesAndStructsAndInterfaces csi, ICSharpCode.NRefactory.CSharp.TypeDeclaration td)
         {
             ParameterValidator.ThrowIfArgumentNull(td, "td");
@@ -40,9 +51,31 @@ namespace CodeToUMLNotation.NRefactoryHelper.Interfaces
                 SimpleType st = i as SimpleType;
                 if (st != null)
                 {
-                    csi.ReferencedTypes.Add(st.IdentifierToken.Name);
+                    string generics = null;
+                    if (st.TypeArguments != null && st.TypeArguments.Count > 0)
+                    {
+                         generics = st.TypeArguments.SeparateBy(", ").ToString();
+                    }
+                    csi.BaseTypes.Add(st.IdentifierToken.Name + ((generics != null) ? ( "<" + generics + ">") : ""));
                 }
             }
+        }
+
+        public static string GetNameForGenericTypeDeclaration(ICSharpCode.NRefactory.CSharp.TypeDeclaration td)
+        {
+            ParameterValidator.ThrowIfArgumentNull(td, "td");
+
+            string generics = null;
+            if (td.TypeParameters != null && td.TypeParameters.Count > 0)
+            {
+                generics = td.TypeParameters.Select(x => x.Name).SeparateBy(", ").ToString();
+            }
+            else
+            {
+                return td.Name;
+            }
+
+            return td.Name + ("<" + generics + ">");
         }
     }
 }

@@ -1,5 +1,4 @@
-﻿using CodeToUMLNotation.Model.Interfaces;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -44,6 +43,11 @@ namespace CodeToUMLNotation.Controls
                     findDialog = new FindDialog();
 
                 this.HideSelection = false;
+
+                // set the text selected when open
+                findDialog.inputTextbox.Select(0, findDialog.inputTextbox.Text.Length);
+
+                // show
                 findDialog.ShowDialog();
             }
         }

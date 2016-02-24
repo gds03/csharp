@@ -28,5 +28,10 @@ namespace CodeToUMLNotation.ModelV2.Abstract
             Overrided = overrided;
             ReturnType = returnType;
         }
+
+        protected override bool IsStatic
+        {
+            get { return Static; }
+        }
     }
 }

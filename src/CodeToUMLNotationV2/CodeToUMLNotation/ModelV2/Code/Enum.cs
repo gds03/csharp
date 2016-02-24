@@ -18,6 +18,12 @@ namespace CodeToUMLNotation.ModelV2.Code
             Values = new LinkedList<KeyValuePair<string, string>>();
         }
 
+
+        protected override bool IsStatic
+        {
+            get { return false; }
+        }
+
         private IRichStringbuilder DesignHeader(IRichStringbuilder richSb)
         {
             int LINE_CHARS_NUM = Name.Length + 5;

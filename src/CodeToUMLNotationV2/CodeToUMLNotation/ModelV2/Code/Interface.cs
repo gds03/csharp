@@ -13,8 +13,13 @@ namespace CodeToUMLNotation.ModelV2.Code
         const String INTERFACE_WORD = "« interface »";
         public Interface(Visibility visibility, String name) : base(visibility, name)
         {
-            if (visibility.Mode == Model.Enums.VisibilityMode.@private || visibility.Mode == Model.Enums.VisibilityMode.@protected)
+            if (visibility.Mode == ModelV2.Enums.VisibilityMode.@private || visibility.Mode == ModelV2.Enums.VisibilityMode.@protected)
                 throw new InvalidOperationException("Interface can only be public or internal");
+        }
+
+        protected override bool IsStatic
+        {
+            get { return false; }
         }
 
         protected override int DesignHeaderConcrete(IRichStringbuilder richSb)

@@ -1,5 +1,6 @@
 ﻿using CodeToUMLNotation.ModelV2;
 using CodeToUMLNotation.ModelV2.Abstract;
+using CodeToUMLNotation.ModelV2.Code;
 using CodeToUMLNotation.NRefactoryHelper.Interfaces;
 using ICSharpCode.NRefactory.CSharp;
 using ICSharpCode.NRefactory.CSharp.Resolver;
@@ -25,7 +26,7 @@ namespace CodeToUMLNotation.NRefactoryHelper
         // Fields there is only on Classes or Structs
         public override void VisitFieldDeclaration(FieldDeclaration fd)
         {
-            ClassesAndStructs cs = GetLastTwithinTheList<ClassesAndStructs>();
+            ClassesAndStructs cs = (ClassesAndStructs)GetDeclarationFor(fd);
             
             string name = fd.Variables.Single().Name;
             string returnType = fd.ReturnType.ToString();
@@ -56,11 +57,11 @@ namespace CodeToUMLNotation.NRefactoryHelper
         // Properties there is only on Classes or Structs or Interfaces
         public override void VisitPropertyDeclaration(PropertyDeclaration pd)
         {
-            ClassesAndStructsAndInterfaces csi = GetLastTwithinTheList<ClassesAndStructsAndInterfaces>();
+            ClassesAndStructsAndInterfaces csi = (ClassesAndStructsAndInterfaces)GetDeclarationFor(pd);
             string returnType = pd.ReturnType.ToString();
 
             Property p = new Property(
-                new Visibility(VisibilityMapper.Map(pd.Modifiers)),
+                GetVisibility(pd),
                 pd.Name,
                 al.CheckFlag(pd.Modifiers, Modifiers.Static),
                 al.CheckFlag(pd.Modifiers, Modifiers.Virtual),
@@ -91,7 +92,7 @@ namespace CodeToUMLNotation.NRefactoryHelper
         // Methods there is only on Classes or Structs or Interfaces
         public override void VisitMethodDeclaration(MethodDeclaration md)
         {
-            ClassesAndStructsAndInterfaces csi = GetLastTwithinTheList<ClassesAndStructsAndInterfaces>();
+            ClassesAndStructsAndInterfaces csi = (ClassesAndStructsAndInterfaces)GetDeclarationFor(md);
             AddMethod(false, md, md.Parameters);
             string returnType = md.ReturnType.ToString();
             AddToNotDefaultReferencedTypes(csi, returnType);
@@ -102,7 +103,7 @@ namespace CodeToUMLNotation.NRefactoryHelper
 
         public override void VisitEnumMemberDeclaration(EnumMemberDeclaration ed)
         {
-            ModelV2.Code.Enum e = GetLastTwithinTheList<ModelV2.Code.Enum>();
+            ModelV2.Code.Enum e = (ModelV2.Code.Enum) GetDeclarationFor(ed);
 
             string[] keyValue = ed.GetText().Split('=');
             e.Values.Add(new KeyValuePair<string,string>(keyValue[0], (keyValue.Length == 2) ? keyValue[1] : ""));
@@ -125,12 +126,39 @@ namespace CodeToUMLNotation.NRefactoryHelper
         #region Helpers
 
 
-        private T GetLastTwithinTheList<T>() where T : Declaration
+        private Visibility GetVisibility(EntityDeclaration ed)
+        {
+            if (m_declarations.Value.Count == 0)
+                throw new InvalidOperationException();
+
+            Interface i = m_declarations.Value.Last.Value as Interface;
+
+            if (i == null)
+            {
+                // use normal
+                return new Visibility(VisibilityMapper.Map(ed.Modifiers));
+            }
+            else
+            {
+                // adjust
+                if ((ed.Modifiers & Modifiers.Internal) == Modifiers.Internal)
+                    return new Visibility(ModelV2.Enums.VisibilityMode.@internal);
+                else
+                    return new Visibility(ModelV2.Enums.VisibilityMode.@public);
+            }
+        }
+
+
+        private Declaration GetDeclarationFor(EntityDeclaration entity)
         {
             if (m_declarations.IsValueCreated == false)
                 return null;
+            // GetNameForGenericTypeDeclaration
+            TypeDeclaration td = entity.Parent as TypeDeclaration;
+            if (td == null)
+                throw new InvalidOperationException("Parent is not a declaration");
 
-            return m_declarations.Value.OfType<T>().Last();            
+            return m_declarations.Value.Last(x => x.Name == NRefactoryVisitorV2DeclarationHelper.GetNameForGenericTypeDeclaration(td));
         }
 
 
@@ -143,7 +171,7 @@ namespace CodeToUMLNotation.NRefactoryHelper
 
             typeLower = AdjustTypeMismatch(typeLower);
 
-            if (!csi.ReferencedTypes.Contains(type) && !systemTypes.Contains(typeLower))
+            if (!csi.ReferencedTypes.Contains(type) && !systemTypes.Contains(typeLower) && !type.StartsWith("ICSharpCode"))
             {
                 csi.ReferencedTypes.Add(type);
                 return true;
@@ -173,16 +201,20 @@ namespace CodeToUMLNotation.NRefactoryHelper
 
         private void AddMethod(bool ctor, EntityDeclaration md, AstNodeCollection<ParameterDeclaration> ps)
         {
-            ClassesAndStructsAndInterfaces csi = (ClassesAndStructsAndInterfaces) m_declarations.Value.Last.Value;
+            ClassesAndStructsAndInterfaces csi = (ClassesAndStructsAndInterfaces)GetDeclarationFor(md);
 
             List<KeyValuePair<string, string>> args = ps.Select(p =>
                                                         new KeyValuePair<string, string>(p.Name, p.Type.ToString())
                                                       )
                                                       .ToList();
 
+            if( args.Count > 0 ){
+                args.ForEach(kvp => AddToNotDefaultReferencedTypes(csi, kvp.Value));
+            }
+
 
             Method m = new Method(
-                new Visibility(VisibilityMapper.Map(md.Modifiers)),
+                GetVisibility(md),
                 md.Name,
                 al.CheckFlag(md.Modifiers, Modifiers.Static),
                 al.CheckFlag(md.Modifiers, Modifiers.Virtual),
@@ -193,6 +225,7 @@ namespace CodeToUMLNotation.NRefactoryHelper
                 args
             );
 
+            AddToNotDefaultReferencedTypes(csi, m.ReturnType);
             csi.Methods.Add(m);
         }
 
