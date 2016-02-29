@@ -24,12 +24,12 @@ namespace CustomComponents.UnitTesting.AutoGen
 
                                                     };
 
-        const string BusinessLayerAssemblyName = "PortalDoencaCronica.Business";
+        const string BusinessLayerAssemblyName = "BusinessDLLname";
         const string serviceSearchPattern = "*Service.cs";
 
-        const string inputBusinessDLLFilePath = @"C:\Projectos-PT\Code\Ptsi.PortalDoencaCronica\Main\Source\PortalDoencaCronica\PortalDoencaCronica.Tests\bin\Debug\PortalDoencaCronica.Business.dll";
-        const string inputServicesDiretory = @"C:\Projectos-PT\Code\Ptsi.PortalDoencaCronica\Main\Source\PortalDoencaCronica\PortalDoencaCronica.Business\Services\Core\";
-        const string outputTestsDiretory = @"C:\Projectos-PT\Code\Ptsi.PortalDoencaCronica\Main\Source\PortalDoencaCronica\PortalDoencaCronica.Tests\AutoGen\Generated\";
+        const string inputBusinessDLLFilePath = @"BusinessDLLPath";
+        const string inputServicesDiretory = @"ServicesFolderPath";
+        const string outputTestsDiretory = @"GeneratedFolderPath";
 
 
         public static void Run()
@@ -135,12 +135,8 @@ namespace CustomComponents.UnitTesting.AutoGen
 using System;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using PortalDoencaCronica.Business.Services.Core;
-using PortalDoencaCronica.POCO.Core;
-using PortalDoencaCronica.Business;
 using System.Data.Entity;            
 using System.Reflection;
-using PortalDoencaCronica.RepositoryCore.Types;
 ";
 
             // WriteToFile(fs, text);
@@ -149,7 +145,7 @@ using PortalDoencaCronica.RepositoryCore.Types;
 
         static void WriteNameSpace(StringBuilder sb)
         {
-            string text = @"namespace PortalDoencaCronica.Tests
+            string text = @"namespace YOURNAMESPACE
 ";
 
             // WriteToFile(fs, text);
@@ -194,7 +190,7 @@ using PortalDoencaCronica.RepositoryCore.Types;
         static void WriteMembers(string serviceName, StringBuilder sb)
         {
             string text = string.Format(@"
-        readonly {0} Service = new {0}( () => new DoencasCronicasCoreRepository() );
+        readonly {0} Service = new {0}( () => new YOURREPOSITORY() );
         readonly Configs Config = new Configs();
 
         int dummyInsertedID;

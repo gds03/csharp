@@ -1,7 +1,6 @@
 ﻿using CustomComponents.Algorithms.Collections;
 using CustomComponents.Algorithms.Collections.Generic;
 using System;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -69,6 +68,11 @@ namespace CustomComponents.ConsoleApplication
             Console.WriteLine("+++++++ collection reverted");
             data.Reverse();
 
+            printData();
+
+            LinkedNode<int> first = data[20];
+            data.Remove(first);
+            Console.WriteLine("first node should not have any list associated: {0}", first.List);
             printData();
 
 

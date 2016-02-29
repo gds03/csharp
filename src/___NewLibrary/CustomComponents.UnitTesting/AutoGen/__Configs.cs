@@ -142,9 +142,9 @@
 //            }
 //        }
 
-//        public static PortalDoencaCronicaDB NewContext()
+//        public static YOURCONTEXT NewContext()
 //        {
-//            var context = new PortalDoencaCronicaDB();
+//            var context = new YOURCONTEXT();
 
 //            return context;
 //        }
@@ -159,7 +159,7 @@
 //            Thread.CurrentPrincipal = new CustomPrincipal(new CustomIdentity(i));
 //        }
 
-//        public static int CountElements<T>(PortalDoencaCronicaDB context) where T : class
+//        public static int CountElements<T>(YOURCONTEXT context) where T : class
 //        {
 //            return
 //                ((DbSet<T>)

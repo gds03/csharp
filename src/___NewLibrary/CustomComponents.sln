@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.Core", "CustomComponents.Core\CustomComponents.Core.csproj", "{48584AC1-403E-43FB-8C62-748F5CC6154D}"
 EndProject
@@ -36,6 +36,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.Mvc.UserControls", "CustomComponents.Mvc.UserControls\CustomComponents.Mvc.UserControls.csproj", "{BB094F7C-D918-4E2A-BBD4-DC26E37CF681}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.ConsoleApplication", "CustomComponents.ConsoleApplication\CustomComponents.ConsoleApplication.csproj", "{946B7A4E-5669-49ED-9A6C-757C8F56FFB7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.Tests", "CustomComponents.Tests\CustomComponents.Tests.csproj", "{F81F1978-A99E-4F47-991F-F68336424B0D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -99,6 +101,10 @@ Global
 		{946B7A4E-5669-49ED-9A6C-757C8F56FFB7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{946B7A4E-5669-49ED-9A6C-757C8F56FFB7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{946B7A4E-5669-49ED-9A6C-757C8F56FFB7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F81F1978-A99E-4F47-991F-F68336424B0D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F81F1978-A99E-4F47-991F-F68336424B0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F81F1978-A99E-4F47-991F-F68336424B0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F81F1978-A99E-4F47-991F-F68336424B0D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
