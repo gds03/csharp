@@ -1,0 +1,8 @@
+C:\Repositories\csharp\src\___NewLibrary\Extensions\EntityFramework.Extensions\bin\Debug\EntityFramework.Extensions.dll
+C:\Repositories\csharp\src\___NewLibrary\Extensions\EntityFramework.Extensions\bin\Debug\EntityFramework.Extensions.pdb
+C:\Repositories\csharp\src\___NewLibrary\Extensions\EntityFramework.Extensions\bin\Debug\EntityFramework.dll
+C:\Repositories\csharp\src\___NewLibrary\Extensions\EntityFramework.Extensions\bin\Debug\EntityFramework.SqlServer.dll
+C:\Repositories\csharp\src\___NewLibrary\Extensions\EntityFramework.Extensions\bin\Debug\EntityFramework.xml
+C:\Repositories\csharp\src\___NewLibrary\Extensions\EntityFramework.Extensions\bin\Debug\EntityFramework.SqlServer.xml
+C:\Repositories\csharp\src\___NewLibrary\Extensions\EntityFramework.Extensions\obj\Debug\EntityFramework.Extensions.dll
+C:\Repositories\csharp\src\___NewLibrary\Extensions\EntityFramework.Extensions\obj\Debug\EntityFramework.Extensions.pdb

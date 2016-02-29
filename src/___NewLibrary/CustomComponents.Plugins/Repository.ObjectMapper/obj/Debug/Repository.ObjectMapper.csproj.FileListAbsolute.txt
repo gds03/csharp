@@ -1,0 +1,9 @@
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.ObjectMapper\bin\Debug\Repository.ObjectMapper.dll
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.ObjectMapper\bin\Debug\Repository.ObjectMapper.pdb
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.ObjectMapper\bin\Debug\CustomComponents.Repository.dll
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.ObjectMapper\bin\Debug\CustomComponents.Core.dll
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.ObjectMapper\bin\Debug\CustomComponents.Repository.pdb
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.ObjectMapper\bin\Debug\CustomComponents.Core.pdb
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.ObjectMapper\obj\Debug\Repository.ObjectMapper.csprojResolveAssemblyReference.cache
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.ObjectMapper\obj\Debug\Repository.ObjectMapper.dll
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.ObjectMapper\obj\Debug\Repository.ObjectMapper.pdb

@@ -24,3 +24,10 @@ G:\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\bin\Debug\log4net.xml
 G:\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\obj\Debug\Logging.Log4net.csprojResolveAssemblyReference.cache
 G:\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\obj\Debug\Logging.Log4net.dll
 G:\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\obj\Debug\Logging.Log4net.pdb
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\bin\Debug\Logging.Log4net.dll
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\bin\Debug\Logging.Log4net.pdb
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\bin\Debug\CustomComponents.Core.dll
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\bin\Debug\CustomComponents.Core.pdb
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\obj\Debug\Logging.Log4net.csprojResolveAssemblyReference.cache
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\obj\Debug\Logging.Log4net.dll
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Logging.Log4net\obj\Debug\Logging.Log4net.pdb

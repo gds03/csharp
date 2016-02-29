@@ -42,7 +42,7 @@
     <Compile Include="Collections\Generic\CircularList.cs" />
     <Compile Include="Collections\Generic\Concurrent\ConcurrentQueue.cs" />
     <Compile Include="Collections\Generic\Concurrent\ConcurrentStack.cs" />
-    <Compile Include="Collections\LinkedList.cs" />
+    <Compile Include="Collections\Generic\LinkedList.cs" />
     <Compile Include="Recursion\ArrayRecursive.cs" />
     <Compile Include="Recursion\Games\EightQueen\EightQueenV2.cs" />
     <Compile Include="Recursion\Games\EightQueen\EightQueen.cs" />
