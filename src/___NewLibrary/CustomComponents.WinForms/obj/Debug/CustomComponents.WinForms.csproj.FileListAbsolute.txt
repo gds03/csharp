@@ -1,4 +1,0 @@
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.WinForms\bin\Debug\CustomComponents.WinForms.dll
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.WinForms\bin\Debug\CustomComponents.WinForms.pdb
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.WinForms\obj\Debug\CustomComponents.WinForms.dll
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.WinForms\obj\Debug\CustomComponents.WinForms.pdb

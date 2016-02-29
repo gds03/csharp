@@ -1,7 +1,0 @@
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.UnitTesting\bin\Debug\CustomComponents.UnitTesting.dll
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.UnitTesting\bin\Debug\CustomComponents.UnitTesting.pdb
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.UnitTesting\bin\Debug\CustomComponents.Core.dll
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.UnitTesting\bin\Debug\CustomComponents.Core.pdb
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.UnitTesting\obj\Debug\CustomComponents.UnitTesting.csprojResolveAssemblyReference.cache
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.UnitTesting\obj\Debug\CustomComponents.UnitTesting.dll
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.UnitTesting\obj\Debug\CustomComponents.UnitTesting.pdb

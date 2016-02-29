@@ -1,4 +1,0 @@
-C:\Repositories\csharp\src\___NewLibrary\Extensions\SqlExtensions.Extensions\bin\Debug\SqlExtensions.Extensions.dll
-C:\Repositories\csharp\src\___NewLibrary\Extensions\SqlExtensions.Extensions\bin\Debug\SqlExtensions.Extensions.pdb
-C:\Repositories\csharp\src\___NewLibrary\Extensions\SqlExtensions.Extensions\obj\Debug\SqlExtensions.Extensions.dll
-C:\Repositories\csharp\src\___NewLibrary\Extensions\SqlExtensions.Extensions\obj\Debug\SqlExtensions.Extensions.pdb

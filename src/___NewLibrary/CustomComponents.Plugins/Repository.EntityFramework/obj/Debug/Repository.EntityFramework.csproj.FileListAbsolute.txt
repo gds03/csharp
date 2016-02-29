@@ -38,13 +38,3 @@ G:\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\bin\Debug\E
 G:\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\obj\Debug\Repository.EntityFramework.csprojResolveAssemblyReference.cache
 G:\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\obj\Debug\Repository.EntityFramework.dll
 G:\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\obj\Debug\Repository.EntityFramework.pdb
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\bin\Debug\Repository.EntityFramework.dll.config
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\bin\Debug\Repository.EntityFramework.dll
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\bin\Debug\Repository.EntityFramework.pdb
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\bin\Debug\CustomComponents.Core.dll
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\bin\Debug\CustomComponents.Repository.dll
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\bin\Debug\CustomComponents.Core.pdb
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\bin\Debug\CustomComponents.Repository.pdb
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\obj\Debug\Repository.EntityFramework.csprojResolveAssemblyReference.cache
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\obj\Debug\Repository.EntityFramework.dll
-C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Plugins\Repository.EntityFramework\obj\Debug\Repository.EntityFramework.pdb
