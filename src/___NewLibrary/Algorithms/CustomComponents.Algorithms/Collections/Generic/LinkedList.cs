@@ -343,8 +343,25 @@ namespace CustomComponents.Algorithms.Collections.Generic
             if (IsEmpty())
                 return null;
 
-            LinkedNode<TValue> iter = m_head_sentinel.Next;
-            for (int i = 0; i < index; iter = iter.Next, i++) ;
+            LinkedNode<TValue> iter = null;
+
+            // decide if we start from start to end or end to start.
+            int l = m_count - index;
+            if (l < index)
+            {
+                iter = m_head_sentinel.Previous;
+                // iterate backwards
+                for (int i = 0; i < l; iter = iter.Previous, i++) ;
+            }
+            else
+            {
+                // iterate frontwards
+                iter  = m_head_sentinel.Next;
+                for (int i = 0; i < index; iter = iter.Next, i++) ;
+            }
+
+            
+            
 
             iter.List = null;
             m_count--;
