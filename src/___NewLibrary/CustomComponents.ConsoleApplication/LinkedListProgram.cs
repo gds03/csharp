@@ -70,10 +70,14 @@ namespace CustomComponents.ConsoleApplication
 
             printData();
 
-            LinkedNode<int> first = data[20];
+            LinkedNode<int> first = data[20];           
+            Console.WriteLine("first node list: {0}", first.List);
             data.Remove(first);
             Console.WriteLine("first node should not have any list associated: {0}", first.List);
             printData();
+
+            // data.AddAfter(first, 4);
+            
 
 
 

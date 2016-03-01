@@ -202,34 +202,16 @@ namespace CustomComponents.Algorithms.Collections.Generic
             return node;
         }
 
+
         /// <summary>
         ///     Add the nodeToAdd after node.
         /// </summary>
-        public void AddAfter(LinkedNode<TValue> node, LinkedNode<TValue> nodeToAdd)
+        public LinkedNode<TValue> AddAfter(LinkedNode<TValue> node, LinkedNode<TValue> nodeToAdd)
         {
-            if (node == null)
-                throw new ArgumentNullException("node");
-
-            if (node.List != this)
-                throw new InvalidOperationException("node does not belong in this list");
-
-            if (nodeToAdd == null)
-                throw new ArgumentNullException("nodeToAdd");
-
-            if (nodeToAdd.List == this)
-                throw new InvalidOperationException("nodeToAdd already belongs to this list");
-
-            m_count++;
-
-            // connect - node
-            nodeToAdd.Next = node.Next;
-            nodeToAdd.Previous = node;
-
-            // connect - outsiders.
-            node.Next.Previous = nodeToAdd;            
-            node.Next = nodeToAdd;
-            nodeToAdd.List = this;
+            return this.AddAfterInternal(node, nodeToAdd, false);
         }
+        
+        
 
         /// <summary>
         ///     Add the item after node.
@@ -237,41 +219,18 @@ namespace CustomComponents.Algorithms.Collections.Generic
         public LinkedNode<TValue> AddAfter(LinkedNode<TValue> node, TValue item)
         {
             LinkedNode<TValue> newNode = new LinkedNode<TValue>(this, item);
-            AddAfter(node, newNode);
-            return newNode;
+            return this.AddAfterInternal(node, newNode, true);
         }
 
 
+        
         /// <summary>
         ///     Add the nodeToAdd before node.
         /// </summary>
-        public void AddBefore(LinkedNode<TValue> node, LinkedNode<TValue> nodeToAdd)
+        public LinkedNode<TValue> AddBefore(LinkedNode<TValue> node, LinkedNode<TValue> nodeToAdd)
         {
-            if (node == null)
-                throw new ArgumentNullException("node");
-
-            if (node.List != this)
-                throw new InvalidOperationException("node does not belong in this list");
-
-            if (nodeToAdd == null)
-                throw new ArgumentNullException("nodeToAdd");
-
-            if (nodeToAdd.List == this)
-                throw new InvalidOperationException("nodeToAdd already belongs to this list");
-
-            m_count++;
-
-            // connect - node
-            nodeToAdd.Previous = node.Previous;
-            nodeToAdd.Next = node;
-
-            // connect - outsiders
-            node.Previous.Next = nodeToAdd;
-            node.Previous = nodeToAdd;
-
-            nodeToAdd.List = this;
+            return this.AddBeforeInternally(node, nodeToAdd, false);
         }
-
 
         /// <summary>
         ///     Add the item before node.
@@ -279,8 +238,7 @@ namespace CustomComponents.Algorithms.Collections.Generic
         public LinkedNode<TValue> AddBefore(LinkedNode<TValue> node, TValue item)
         {
             LinkedNode<TValue> newNode = new LinkedNode<TValue>(this, item);
-            AddBefore(node, newNode);
-            return newNode;
+            return this.AddBeforeInternally(node, newNode, true);
         }
 
         
@@ -481,6 +439,9 @@ namespace CustomComponents.Algorithms.Collections.Generic
             int idx = 0;
             foreach(var item in this)
             {
+                if (idx >= array.Length)
+                    return;
+
                 array[arrayIndex++] = item;
                 idx++;
             }
@@ -539,6 +500,9 @@ namespace CustomComponents.Algorithms.Collections.Generic
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
+            if (info == null)
+                throw new ArgumentNullException("info");
+
             TValue[] data = new TValue[m_count];
             CopyTo(data, 0);
             info.AddValue(ITEMS_SERIALIZATION_KEY, data, typeof(TValue[]));
@@ -581,6 +545,65 @@ namespace CustomComponents.Algorithms.Collections.Generic
         }
 
 
+        private LinkedNode<TValue> AddAfterInternal(LinkedNode<TValue> node, LinkedNode<TValue> nodeToAdd, bool internallyCreated)
+        {
+            if (node == null)
+                throw new ArgumentNullException("node");
+
+            if (node.List != this)
+                throw new InvalidOperationException("node does not belong in this list");
+
+            if (nodeToAdd == null)
+                throw new ArgumentNullException("nodeToAdd");
+
+            if (!internallyCreated && nodeToAdd.List == this)
+                throw new InvalidOperationException("nodeToAdd already belongs to this list");
+
+            m_count++;
+
+            // connect - node
+            nodeToAdd.Next = node.Next;
+            nodeToAdd.Previous = node;
+
+            // connect - outsiders.
+            node.Next.Previous = nodeToAdd;
+            node.Next = nodeToAdd;
+            nodeToAdd.List = this;
+
+            return nodeToAdd;
+        }
+
+
+        private LinkedNode<TValue> AddBeforeInternally(LinkedNode<TValue> node, LinkedNode<TValue> nodeToAdd, bool internallyCreated)
+        {
+            if (node == null)
+                throw new ArgumentNullException("node");
+
+            if (node.List != this)
+                throw new InvalidOperationException("node does not belong in this list");
+
+            if (nodeToAdd == null)
+                throw new ArgumentNullException("nodeToAdd");
+
+            if (!internallyCreated && nodeToAdd.List == this)
+                throw new InvalidOperationException("nodeToAdd already belongs to this list");
+
+            m_count++;
+
+            // connect - node
+            nodeToAdd.Previous = node.Previous;
+            nodeToAdd.Next = node;
+
+            // connect - outsiders
+            node.Previous.Next = nodeToAdd;
+            node.Previous = nodeToAdd;
+
+            nodeToAdd.List = this;
+            return nodeToAdd;
+        }
+
+
+
         private void ResetItems()
         {
             m_head_sentinel.Next = m_head_sentinel.Previous = m_head_sentinel;
@@ -598,6 +621,17 @@ namespace CustomComponents.Algorithms.Collections.Generic
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+
+
+        public override string ToString()
+        {
+            StringBuilder sbuilder = this.Aggregate(new StringBuilder("{"), (sb, item) => sb.Append(item + ", "));
+            if (sbuilder.Length > 0)
+                return sbuilder.Remove(sbuilder.Length - 2, 2).Append("}").ToString();
+
+            return string.Empty;
         }
     }
 }
