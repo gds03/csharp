@@ -6,18 +6,19 @@ using System.Threading.Tasks;
 
 namespace CustomComponents.Algorithms.Collections.Generic
 {
-    public class AVL
+    public class AVL<T>
+        where T : IComparable<T>
     {
         private enum State { LH, EH, RH }
 
-        class Node
+        class Node<T>
         {
-            public int val { get; internal protected set; }
-            public Node left { get; internal protected set; }
-            public Node right { get; internal protected set; }
+            public T val { get; internal protected set; }
+            public Node<T> left { get; internal protected set; }
+            public Node<T> right { get; internal protected set; }
             public State state { get; internal protected set; }
 
-            public Node(int v)
+            public Node(T v)
             {
                 val = v;
                 left = right = null;
@@ -26,14 +27,14 @@ namespace CustomComponents.Algorithms.Collections.Generic
         }
 
 
-        private Node root;
+        private Node<T> root;
 
 
 
         //
         // private methods
 
-        private Node rotateRight(Node root)
+        private Node<T> rotateRight(Node<T> root)
         {
             //actualizar estados
             if (root.state == State.LH) root.state = State.EH;
@@ -42,7 +43,7 @@ namespace CustomComponents.Algorithms.Collections.Generic
             else if (root.left.state == State.LH) root.left.state = State.EH;
 
 
-            Node aux = root.left;
+            Node<T> aux = root.left;
             if (aux == null) return root;
             root.left = aux.right;
             aux.right = root;
@@ -50,14 +51,14 @@ namespace CustomComponents.Algorithms.Collections.Generic
             return aux;
         }
 
-        private Node rotateLeft(Node root)
+        private Node<T> rotateLeft(Node<T> root)
         {
             if (root.state == State.RH) root.state = State.EH;
 
             if (root.right.state == State.EH) root.right.state = State.LH;
             else if (root.right.state == State.RH) root.right.state = State.EH;
 
-            Node aux = root.right;
+            Node<T> aux = root.right;
             if (aux == null) return root;
             root.right = aux.left;
             aux.left = root;
@@ -67,20 +68,20 @@ namespace CustomComponents.Algorithms.Collections.Generic
 
 
 
-        private Node doubleRotateRight(Node root)
+        private Node<T> doubleRotateRight(Node<T> root)
         {
             root.left = rotateLeft(root.left);
-            Node aux = rotateRight(root);
+            Node<T> aux = rotateRight(root);
             aux.state = State.EH;
             aux.left.state = State.EH;
             aux.right.state = State.EH;
             return aux;
         }
 
-        private Node doubleRotateLeft(Node root)
+        private Node<T> doubleRotateLeft(Node<T> root)
         {
             root.right = rotateRight(root.right);
-            Node aux = rotateLeft(root);
+            Node<T> aux = rotateLeft(root);
             aux.state = State.EH;
             aux.left.state = State.EH;
             aux.right.state = State.EH;
@@ -92,9 +93,9 @@ namespace CustomComponents.Algorithms.Collections.Generic
 
 
 
-        private Node insertBalancedR(Node root, Node n)
+        private Node<T> insertBalancedR(Node<T> root, Node<T> n)
         {
-            if (n.val > root.val)
+            if (n.val.CompareTo(root.val) > 0)
             {
                 if (root.right == null)
                 {
@@ -149,22 +150,22 @@ namespace CustomComponents.Algorithms.Collections.Generic
         }
 
 
-        public void insertBalanced(int i)
+        public void insertBalanced(T value)
         {
-            Node n = new Node(i);
+            Node<T> n = new Node<T>(value);
             root = (root != null) ? insertBalancedR(root, n) : n;
         }
 
 
 
-        void printNode(int level, int val)
+        void printNode(int level, T val)
         {
             for (int i = 0; i < level; ++i)
                 Console.Write("\t");
             Console.WriteLine(val);
         }
 
-        void print(Node h, int level)
+        void print(Node<T> h, int level)
         {
             if (h == null) return;
             print(h.right, level + 1);
