@@ -21,6 +21,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -42,11 +43,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArrayProgram.cs" />
+    <Compile Include="BTreeProgram.cs" />
     <Compile Include="FibonacciProgram.cs" />
     <Compile Include="LinkedListProgram.cs" />
     <Compile Include="CircularListProgram.cs" />
     <Compile Include="EightQueenProgram.cs" />
     <Compile Include="MazeProgram.cs" />
+    <Compile Include="SortingAlgorithmsProgram.cs" />
     <Compile Include="ThreadPoolProgram.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -39,6 +39,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Collections\Generic\AVL.cs" />
+    <Compile Include="Collections\Generic\BTree.cs" />
     <Compile Include="Collections\Generic\CircularList.cs" />
     <Compile Include="Collections\Generic\Concurrent\ConcurrentQueue.cs" />
     <Compile Include="Collections\Generic\Concurrent\ConcurrentStack.cs" />
@@ -51,7 +53,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Recursion\LinkedListRecursive.cs" />
     <Compile Include="Sorting\Concurrent\MergeSort.cs" />
-    <Compile Include="Sorting\TestSortAlgorithms.cs" />
+    <Compile Include="Sorting\MergeSortIterative.cs" />
     <Compile Include="Threading\CountdownEvent.cs" />
     <Compile Include="Threading\RefCountHolder.cs" />
     <Compile Include="Threading\RendezvousPort.cs" />

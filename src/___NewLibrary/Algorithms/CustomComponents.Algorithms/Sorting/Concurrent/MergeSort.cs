@@ -82,34 +82,27 @@ namespace CustomComponents.Algorithms.Sorting
             }
         }
 
-        private static void MergeOperation<T>(T[] src, int low, int middle, int high) where T : IComparable<T>
+
+        private static void MergeOperation<T>(T[] v, int l, int m, int r)
+            where T : IComparable<T>
         {
-            // copy current portion to backup portion size array
-            T[] bck = new T[high - low + 1];
-            for (int idx = low, bckIdx; (bckIdx = (idx - low)) < bck.Length; idx++)
+            int size2 = r - m;
+            T[] v2 = new T[size2];
+            System.Array.Copy(v, m + 1, v2, 0, size2);      // copy the right array.
+            int put = r;
+            int i1 = m, i2 = size2 - 1;
+
+            while (i1 >= l && i2 >= 0)
             {
-                bck[bckIdx] = src[idx];
+                if (v2[i2].CompareTo(v[i1]) >= 0)
+                    v[put] = v2[i2--];
+                else
+                    v[put] = v[i1--];
+                --put;
             }
-
-            int i1, i1Stop, i2, i2Stop, iSrc;
-
-            i1 = 0;         // starts to compare always on the start
-            i1Stop = (bck.Length - 1) / 2;
-
-            i2 = i1Stop + 1;
-            i2Stop = bck.Length - 1;
-            iSrc = low;
-
-            while (i1 <= i1Stop && i2 <= i2Stop)
+            while (i2 >= 0)
             {
-                src[iSrc++] = (bck[i1].CompareTo(bck[i2]) <= 0) ? bck[i1++]
-                                                                : bck[i2++];
-            }
-
-            // we are in this situation if right idx arrived at end (and so, left part must be copied is the greatest part in terms of values)
-            while (i1 <= i1Stop)
-            {
-                src[iSrc++] = bck[i1++];
+                v[put--] = v2[i2--];
             }
         }
     }
