@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,14 +8,13 @@ using System.Threading.Tasks;
 namespace CustomComponents.Algorithms.Collections.Generic
 {
     public class HashTable<T> : IEnumerable<T>, ICollection<T>
-        where T : class, IComparable<T>
+        where T : IComparable<T>
         
     {
-        class Node<T>
-            where T : IComparable<T>
+        class Node
         {
             public T val { get; internal protected set; }
-            public Node<T> next { get; internal protected set; }
+            public Node next { get; internal protected set; }
             public int hash { get; internal protected set; } 
 
             public Node(T item)
@@ -37,7 +37,7 @@ namespace CustomComponents.Algorithms.Collections.Generic
         class HashTableIterator : IEnumerator<T>
         {
             private readonly HashTable<T> m_hashTable;
-            private Node<T> m_prev, m_current;
+            private Node m_prev, m_current;
             private int m_currentIdx;
 
             public HashTableIterator(HashTable<T> hashTable)
@@ -81,7 +81,7 @@ namespace CustomComponents.Algorithms.Collections.Generic
             {
                 get {
                     if (m_current == null)
-                        return null;
+                        throw new NotSupportedException();
 
                     return m_current.val;
                 }
@@ -109,8 +109,9 @@ namespace CustomComponents.Algorithms.Collections.Generic
 
         const int DEFAULT_SIZE = 11;
         
-        Node<T>[] m_hashArray;
-	    int m_bucketSize, m_elems;
+        Node[] m_hashArray;
+	    int m_bucketSize, m_elems, m_growthTimes;
+        uint m_growthLostTime_Miliseconds;
 
         
 
@@ -121,18 +122,17 @@ namespace CustomComponents.Algorithms.Collections.Generic
 
         public HashTable()
         {
-            m_hashArray = new Node<T>[DEFAULT_SIZE];
-            m_bucketSize = DEFAULT_SIZE;
-            m_elems = 0;
+            m_hashArray = new Node[DEFAULT_SIZE];
+            m_bucketSize = DEFAULT_SIZE;            
         }
 	
-	    public HashTable( int dim )
+	    public HashTable(int initialCapacity)
         {
-            if (dim <= 0)
-                throw new ArgumentException("dim <= 0");
+            if (initialCapacity <= 0)
+                throw new ArgumentException("initialCapacity <= 0");
 
-		    m_hashArray = new Node<T>[dim];
-		    m_bucketSize=dim; m_elems=0;
+		    m_hashArray = new Node[initialCapacity];
+		    m_bucketSize = initialCapacity;
 	    }
 
 
@@ -150,27 +150,46 @@ namespace CustomComponents.Algorithms.Collections.Generic
             }
         }
 
-        public T Search(T e)
+
+        public int GrowthTimes
+        {
+            get
+            {
+                return m_growthTimes;
+            }
+        }
+
+        public uint GrowthOperationMiliseconds
+        {
+            get
+            {
+                return m_growthLostTime_Miliseconds;
+            }
+        }
+
+        
+
+        public bool Search(T item)
         {
             if (m_elems == 0)
-                return null;
+                return false;
 
-            Node<T> corr = m_hashArray[Index(e)];
+            Node corr = m_hashArray[Index(item)];
             while (corr != null)
             {
-                if (corr.val.CompareTo(e) == 0)
-                    return corr.val;
+                if (corr.val.CompareTo(item) == 0)
+                    return true;
 
                 else corr = corr.next;
             }
-            return null;
+            return false;
         }
 
 
         public void Add(T item)
         {
-            Node<T> n = new Node<T>(item, item.GetHashCode());
-            if (m_elems + 1 > m_bucketSize) 
+            Node n = new Node(item, item.GetHashCode());
+            if (m_elems == (m_bucketSize / 3)) 
                 Grow();
 
             int bucket = ReadAndMask(n, m_bucketSize);
@@ -187,8 +206,8 @@ namespace CustomComponents.Algorithms.Collections.Generic
 
             int i = Index(item);
 
-            Node<T> prev = null;
-            Node<T> corr = m_hashArray[i];
+            Node prev = null;
+            Node corr = m_hashArray[i];
             
             while (corr != null)
             {
@@ -216,12 +235,14 @@ namespace CustomComponents.Algorithms.Collections.Generic
 
         public void Clear()
         {
-            m_hashArray = new Node<T>[m_hashArray.Length];
+            m_hashArray = new Node[m_bucketSize = m_hashArray.Length];
+            m_elems = m_growthTimes = 0;
+            m_growthLostTime_Miliseconds =0;
         }
 
         public bool Contains(T item)
         {
-            return Search(item) != null;
+            return Search(item);
         }
 
         public void CopyTo(T[] array, int arrayIndex)
@@ -251,19 +272,21 @@ namespace CustomComponents.Algorithms.Collections.Generic
 
         private int Index(T value) { return (value.GetHashCode() & 0x7FFFFFFF) % m_bucketSize; }
 
-        private int ReadAndMask(Node<T> n, int size) { return (n.hash & 0x7FFFFFFF) % size; }
+        private int ReadAndMask(Node n, int size) { return (n.hash & 0x7FFFFFFF) % size; }
 
         private void Grow()
         {
+            Stopwatch clock = new Stopwatch();
+            clock.Restart();
             int new_size = 2 * m_bucketSize + 1;
-            Node<T>[] newArray = new Node<T>[new_size];
+            Node[] newArray = new Node[new_size];
             for (int i = 0; i < m_bucketSize; i++)
             {
-                Node<T> iter = m_hashArray[i];
+                Node iter = m_hashArray[i];
                 while (iter != null)
                 {
                     int idx = ReadAndMask(iter, new_size);      // recalculate idx
-                    Node<T> aux = iter.next;
+                    Node aux = iter.next;
                     iter.next = newArray[idx];                  // invert the order
                     newArray[idx] = iter;
                     iter = aux;
@@ -271,6 +294,9 @@ namespace CustomComponents.Algorithms.Collections.Generic
             }
             m_bucketSize = new_size;
             m_hashArray = newArray;
+            m_growthTimes++;
+            clock.Stop();
+            m_growthLostTime_Miliseconds += (uint)clock.ElapsedMilliseconds;
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
