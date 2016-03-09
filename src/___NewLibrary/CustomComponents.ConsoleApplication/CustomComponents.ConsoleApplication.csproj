@@ -45,7 +45,7 @@
     <Compile Include="ArrayProgram.cs" />
     <Compile Include="BTreeProgram.cs" />
     <Compile Include="FibonacciProgram.cs" />
-    <Compile Include="HashTableProgram.cs" />
+    <Compile Include="DictionaryProgram.cs" />
     <Compile Include="LinkedListProgram.cs" />
     <Compile Include="CircularListProgram.cs" />
     <Compile Include="EightQueenProgram.cs" />
