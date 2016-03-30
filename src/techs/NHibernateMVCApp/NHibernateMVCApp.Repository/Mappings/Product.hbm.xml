@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<hibernate-mapping assembly="NHibernateMVCApp.Repository" namespace="NHibernateMVCApp.Repository.Mappings" xmlns="urn:nhibernate-mapping-2.2">
+  <class name="Product" table="Product" lazy="true" schema="Production" >
+    <id name="Productid" column="ProductID">
+      <generator class="identity" />
+    </id>
+    <property name="Name">
+      <column name="Name" sql-type="nvarchar" not-null="true" />
+    </property>
+    <property name="Productnumber">
+      <column name="ProductNumber" sql-type="nvarchar" not-null="true" />
+    </property>
+    <property name="Makeflag">
+      <column name="MakeFlag" sql-type="bit" not-null="true" />
+    </property>
+    <property name="Finishedgoodsflag">
+      <column name="FinishedGoodsFlag" sql-type="bit" not-null="true" />
+    </property>
+    <property name="Color">
+      <column name="Color" sql-type="nvarchar" not-null="false" />
+    </property>
+    <property name="Safetystocklevel">
+      <column name="SafetyStockLevel" sql-type="smallint" not-null="true" />
+    </property>
+    <property name="Reorderpoint">
+      <column name="ReorderPoint" sql-type="smallint" not-null="true" />
+    </property>
+    <property name="Standardcost">
+      <column name="StandardCost" sql-type="money" not-null="true" />
+    </property>
+    <property name="Listprice">
+      <column name="ListPrice" sql-type="money" not-null="true" />
+    </property>
+    <property name="Size">
+      <column name="Size" sql-type="nvarchar" not-null="false" />
+    </property>
+    <property name="Weight">
+      <column name="Weight" sql-type="decimal" not-null="false" />
+    </property>
+    <property name="Daystomanufacture">
+      <column name="DaysToManufacture" sql-type="int" not-null="true" />
+    </property>
+    <property name="Productline">
+      <column name="ProductLine" sql-type="nchar" not-null="false" />
+    </property>
+    <property name="Class">
+      <column name="Class" sql-type="nchar" not-null="false" />
+    </property>
+    <property name="Style">
+      <column name="Style" sql-type="nchar" not-null="false" />
+    </property>
+    <property name="Sellstartdate">
+      <column name="SellStartDate" sql-type="datetime" not-null="true" />
+    </property>
+    <property name="Sellenddate">
+      <column name="SellEndDate" sql-type="datetime" not-null="false" />
+    </property>
+    <property name="Discontinueddate">
+      <column name="DiscontinuedDate" sql-type="datetime" not-null="false" />
+    </property>
+    <property name="Rowguid">
+      <column name="rowguid" sql-type="uniqueidentifier" not-null="true" />
+    </property>
+    <property name="Modifieddate">
+      <column name="ModifiedDate" sql-type="datetime" not-null="true" />
+    </property>
+  </class>
+</hibernate-mapping>

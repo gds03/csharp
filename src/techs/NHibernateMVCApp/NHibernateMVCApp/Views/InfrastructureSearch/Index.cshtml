@@ -1,0 +1,40 @@
+﻿@model IList<NHibernateMVCApp.Repository.Mappings.Product>
+
+
+
+<h2>This is Infrastructure search page</h2>
+
+
+<h3>Count no. @Model.Count</h3>
+
+<table>
+     @foreach (var p in Model)
+     {
+        <tr>
+            <td>
+                @p.Class
+            </td>
+
+            <td>
+                @p.Color
+            </td>
+
+            <td>
+                @p.Daystomanufacture
+            </td>
+
+            <td>
+                @p.Discontinueddate
+            </td>
+            <td>
+                @p.Finishedgoodsflag
+            </td>
+
+            <td>
+                @p.Listprice
+            </td>
+        </tr>
+     }
+    
+</table>
+

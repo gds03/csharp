@@ -56,3 +56,6 @@ D:\Cloud\Dropbox\_____Vizor\Applications\CodeToUMLNotation\CodeToUMLNotationV2\C
 D:\Cloud\Dropbox\_____Vizor\Applications\CodeToUMLNotation\CodeToUMLNotationV2\CodeToUMLNotation\obj\Release\CodeToUMLNotation.csproj.GenerateResource.Cache
 D:\Cloud\Dropbox\_____Vizor\Applications\CodeToUMLNotation\CodeToUMLNotationV2\CodeToUMLNotation\obj\Release\CodeToUMLNotation.exe
 D:\Cloud\Dropbox\_____Vizor\Applications\CodeToUMLNotation\CodeToUMLNotationV2\CodeToUMLNotation\obj\Release\CodeToUMLNotation.pdb
+C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\bin\Release\CodeToUMLNotation.exe.config
+C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\obj\Release\CodeToUMLNotation.exe
+C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\obj\Release\CodeToUMLNotation.pdb

@@ -498,7 +498,7 @@ namespace Repository.ObjectMapper
 
             // Map cursor lines from database to CLR objects based on T
 
-            LinkedList<T> objectsQueue = new LinkedList<T>();
+            List<T> objectsQueue = new List<T>();
 
             while (reader.Read())
             {
@@ -546,7 +546,7 @@ namespace Repository.ObjectMapper
                 }
 
                 // Add element to the collection
-                objectsQueue.AddLast(newInstance);
+                objectsQueue.Add(newInstance);
             }
 
             if (CloseDbReader)

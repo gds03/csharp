@@ -22,7 +22,7 @@
 //            {
 //                Console.WriteLine("solutions for line {0}", lineXsolutions.Count());
 //                int c = 0;
-//                foreach(var solution in lineXsolutions)
+//                foreach (var solution in lineXsolutions)
 //                {
 //                    for (int i = 0; i < solution.Length; i++)
 //                    {
@@ -37,8 +37,8 @@
 //                Console.ReadLine();
 //            }
 
-            
-                
+
+
 
 //            Console.WriteLine("Total solutions found: {0}", total);
 

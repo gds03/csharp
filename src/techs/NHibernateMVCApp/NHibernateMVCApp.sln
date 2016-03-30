@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NHibernateMVCApp", "NHibernateMVCApp\NHibernateMVCApp.csproj", "{833A86B8-FDB8-4417-9A38-7846E342D51D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NHibernateMVCApp.Repository", "NHibernateMVCApp.Repository\NHibernateMVCApp.Repository.csproj", "{0C893C85-02A8-48F6-832A-AF8474EFDD9B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{833A86B8-FDB8-4417-9A38-7846E342D51D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{833A86B8-FDB8-4417-9A38-7846E342D51D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{833A86B8-FDB8-4417-9A38-7846E342D51D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{833A86B8-FDB8-4417-9A38-7846E342D51D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C893C85-02A8-48F6-832A-AF8474EFDD9B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C893C85-02A8-48F6-832A-AF8474EFDD9B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C893C85-02A8-48F6-832A-AF8474EFDD9B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C893C85-02A8-48F6-832A-AF8474EFDD9B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
