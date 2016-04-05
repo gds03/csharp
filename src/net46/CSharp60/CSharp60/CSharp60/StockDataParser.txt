@@ -1,0 +1,59 @@
+﻿using CSharp60.Types;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+namespace CSharp60
+{
+    public class StockDataParser
+    {
+        public List<StockInfo> GetStockInfoByStockSymbol(string symbol)
+        {
+
+
+            List<StockInfo> stockSymbols = new List<StockInfo>();
+            string stockSymbolFileName = "Txt\\" + symbol + ".txt";
+
+            string stockSymbol = File.ReadAllText(stockSymbolFileName);
+
+            if (!string.IsNullOrEmpty(stockSymbol))
+            {
+                var stockRecords = stockSymbol.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+
+                if (stockRecords.Length > 0)
+                {
+                    foreach (var stockRecord in stockRecords)
+                    {
+                        //10/09/2015	101.27	101.8	99.45	100.65	8,620,028
+
+                        var lineRecord = stockRecord.Split("\t".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+                        var date = lineRecord[0];
+                        var openAt = lineRecord[1];
+                        var dayHigh = lineRecord[2];
+                        var dayLow = lineRecord[3];
+                        var close = lineRecord[4];
+                        var volume = lineRecord[5];
+
+
+                        stockSymbols.Add(new StockInfo
+                        {
+
+                            Close = close,
+                            Date = date,
+                            OpenAt = openAt,
+                            DayHigh = dayHigh,
+                            DayLow = dayLow,
+                            Volume = volume
+                        });
+
+                    }
+                }
+
+            }
+
+            return stockSymbols;
+        }
+
+    }
+}
