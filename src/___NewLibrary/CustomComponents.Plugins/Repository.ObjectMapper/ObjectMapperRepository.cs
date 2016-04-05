@@ -1,13 +1,11 @@
 ﻿using CustomComponents.Database.Types.Generic;
 using CustomComponents.Repository.Interfaces;
+using CustomComponents.Repository.Types.Generic;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Repository.ObjectMapper
 {
@@ -67,7 +65,7 @@ namespace Repository.ObjectMapper
             throw new NotImplementedException();
         }
 
-        public void ExecuteBlock(Action<IRepository> externMethod, Action<Exception> exceptionMethod = null)
+        public void ExecuteBlock(Callback externMethod, ExceptionCallback exceptionMethod = null)
         {
             using (IRepository repository = this)
             {
@@ -98,7 +96,7 @@ namespace Repository.ObjectMapper
             }
         }
 
-        public TResult ExecuteUsing<TResult>(Func<IRepository, TResult> externMethod)
+        public TResult ExecuteUsing<TResult>(CallbackResult<TResult> externMethod)
         {
             using (IRepository callerInstance = this)
             {
@@ -106,6 +104,6 @@ namespace Repository.ObjectMapper
             }
         }
 
-        public event Action<IRepository> ExaclyBeforeSaveCalled;
+        public event Callback ExaclyBeforeSaveCalled;
     }
 }

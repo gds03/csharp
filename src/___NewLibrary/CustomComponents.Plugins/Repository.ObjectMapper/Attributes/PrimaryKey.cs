@@ -3,9 +3,9 @@
 namespace Repository.ObjectMapper.Attributes
 {
 
-
-    public sealed class Identity : Attribute
+    public sealed class PrimaryKey : Attribute
     {
 
     }
+
 }

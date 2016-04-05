@@ -1,10 +1,7 @@
 ﻿using CustomComponents.Database.Types.Generic;
+using CustomComponents.Repository.Types.Generic;
 using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CustomComponents.Repository.Interfaces
 {
@@ -43,14 +40,14 @@ namespace CustomComponents.Repository.Interfaces
         ///     Execute user extern method within a transaction of a repository
         /// </summary>
         /// <param name="externMethod"></param>
-        void ExecuteBlock(Action<IRepository> externMethod, Action<Exception> exceptionMethod = null);
+        void ExecuteBlock(Callback externMethod, ExceptionCallback exceptionMethod = null);
 
 
         /// <summary>
         ///     Free the developer to use Using statement
         /// </summary>
         /// <param name="externMethod"></param>
-        TResult ExecuteUsing<TResult>(Func<IRepository, TResult> externMethod);
+        TResult ExecuteUsing<TResult>(CallbackResult<TResult> externMethod);
 
 
 
@@ -65,6 +62,6 @@ namespace CustomComponents.Repository.Interfaces
         /// <summary>
         ///     Give the chance to execute some code before save is called.
         /// </summary>
-        event Action<IRepository> ExaclyBeforeSaveCalled;
+        event Callback ExaclyBeforeSaveCalled;
     }
 }

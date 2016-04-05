@@ -17,11 +17,11 @@ using System.Reflection;
 using System.Threading;
 using System.Text;
 using System.Data;
-using System.Linq.Expressions;
-using Repository.ObjectMapper;
 using Repository.ObjectMapper.Attributes;
 using Repository.ObjectMapper.Exceptions;
-
+using Repository.ObjectMapper.Types;
+using System.Linq.Expressions;
+using System.Diagnostics;
 
 namespace Repository.ObjectMapper
 {
@@ -52,7 +52,7 @@ namespace Repository.ObjectMapper
 
         #region Static Fields
 
-        private static readonly BindingFlags s_bindingflags = BindingFlags.Public | BindingFlags.Instance;
+        internal static readonly BindingFlags s_bindingflags = BindingFlags.Public | BindingFlags.Instance;
 
         const int SchemaInitCapacity = 53;
         const int OperatorsInitCapacity = 23;
@@ -78,7 +78,7 @@ namespace Repository.ObjectMapper
 
 
 
-        #region Type Contructor, Instance Constructor
+        #region Constructors
 
 
         static ObjectMapper()
@@ -128,6 +128,12 @@ namespace Repository.ObjectMapper
         }
 
 
+        ~ObjectMapper()
+        {
+            Dispose(false);
+        }
+
+
 
         #endregion
 
@@ -135,84 +141,7 @@ namespace Repository.ObjectMapper
 
 
 
-        #region Mapper Protected Classes
-
-
-        /// <summary>
-        ///     Contains the necessary information about the table, the keys, the columns, and the identity column.
-        /// </summary>
-        protected sealed class TypeSchema
-        {
-            internal String TableName;                        // If != null overrides the type name (used for CUD operations)
-            internal ICollection<KeyMapping> Keys;            // Stores the keys of the type (to uniquelly identify the one entity)
-            internal ICollection<CustomMapping> Mappings;     // For each property, we have a costum mapping
-            internal ICollection<ProcMapping> Procedures;     // Stores parameters that must be used when ExecuteProc command is executed to send them to Stored Procedures
-            internal String IdentityPropertyName;             // If != null, this stores the property of the type that is identity
-
-
-            internal TypeSchema()
-            {
-                Mappings = new LinkedList<CustomMapping>();
-                Keys = new LinkedList<KeyMapping>();
-                Procedures = new LinkedList<ProcMapping>();
-            }
-
-            internal TypeSchema(String tableName)
-                : this()
-            {
-                TableName = tableName;
-            }
-        }
-
-
-        /// <summary>
-        ///     Map CLR properties to SQL columns, and contains the column to get data from a ResultSet
-        /// </summary>
-        protected sealed class CustomMapping
-        {
-            internal String ClrProperty;
-            internal String ToSqlTableColumn;
-            internal String FromResultSetColumn;
-
-            internal CustomMapping(String clrProperty)
-            {
-                // Initially all points to the name of the clrProperty (convention is used)
-                FromResultSetColumn = ToSqlTableColumn = ClrProperty = clrProperty;
-            }
-        }
-
-
-        /// <summary>
-        ///     Typically used to map the identity column of a type
-        /// </summary>
-        protected sealed class KeyMapping
-        {
-            internal String From;
-            internal String To;
-
-            public KeyMapping(String to, String from)
-            {
-                To = to;
-                From = from;
-            }
-        }
-
-        // Map CLR property type to a stored procedure parameter
-        protected sealed class ProcMapping
-        {
-            internal KeyMapping Map;
-            internal SPMode Mode;
-
-            internal ProcMapping(String clrProperty, SPMode mode)
-            {
-                // Initially points to the name of the clrProperty (convention is used)
-                Map = new KeyMapping(clrProperty, clrProperty);
-                Mode = mode;
-            }
-        }
-
-
-        #endregion
+     
 
 
 
@@ -274,6 +203,9 @@ namespace Repository.ObjectMapper
             s_ClrTypeToSqlTypeMapper.Add(typeof(Guid?), "uniqueidentifier");
         }
 
+        /// <summary>
+        ///  Converts value into string correctly formatted.
+        /// </summary>
         private static String PrepareValue(object value)
         {
             if (value == null)
@@ -313,15 +245,13 @@ namespace Repository.ObjectMapper
             return value.ToString();
         }
 
-        // Used by ConfigureMetadataFor
-        private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
+        /// <summary>
+        ///     Create TypeSchema object representing the type to not use reflection all the time.
+        /// </summary>
+        private static TypeSchema CreateSchema(Type type)
         {
-            // Copy last dictionary and add new Schema for type (local for each thread)
-            var result = new Dictionary<Type, TypeSchema>(s_TypesToMetadataMapper) { { type, new TypeSchema() } };
-
-            // Set table name (By convention have the same name that the type)
-            result[type].TableName = type.Name;
-
+            TypeSchema newSchema = new TypeSchema(type);
+            
             // Search for Table attribute on the type
             foreach (object o in type.GetCustomAttributes(true))
             {
@@ -329,20 +259,19 @@ namespace Repository.ObjectMapper
 
                 if (t != null)
                 {
-                    result[type].TableName = t.OverridedName;       // override the default name
+                    newSchema.TableName = t.OverridedName;       // override the default name
                     break;                                          // We are done.
                 }
             }
 
-
             // Iterate over each property of the type
             foreach (PropertyInfo pi in type.GetProperties(s_bindingflags))
             {
-                bool mapProperty = true;                                // Always to map, unless specified Exclude costum attribute
-                bool isKey = false;                                     // Only if attribute were found, sets this flag to true
-                bool isIdentity = false;                                // For each type, we must have only one Entity
+                bool mapProperty = true;                                    // Always to map, unless specified Exclude costum attribute
+                bool isPrimaryKey = false;                                  // Only if attribute were found, sets this flag to true
+                bool isIdentity = false;                                    // For each type, we must have only one Entity
 
-                CustomMapping mapVar = new CustomMapping(pi.Name);      // By convention all mappings match the propertyName
+                ColumnMapping columnMapping = new ColumnMapping(pi.Name);      // By convention all mappings match the propertyName
 
 
                 // Iterate over each attribute on context property
@@ -351,14 +280,14 @@ namespace Repository.ObjectMapper
                     if (o is Exclude)
                     {
                         mapProperty = false;
-                        break;                  // break immediately and don't map this property
+                        break;                                              // break immediately the inner loop - and don't map this property
                     }
 
-                    Key k = o as Key;
+                    PrimaryKey k = o as PrimaryKey;
 
                     if (k != null)
                     {
-                        isKey = true;
+                        isPrimaryKey = true;
                         continue;
                     }
 
@@ -374,7 +303,7 @@ namespace Repository.ObjectMapper
 
                     if (bf != null)
                     {
-                        mapVar.FromResultSetColumn = bf.OverridedReadColumn;      // override read column behavior
+                        columnMapping.FromResultSetColumn = bf.OverridedReadColumn;      // override read column behavior
                         continue;
                     }
 
@@ -382,7 +311,7 @@ namespace Repository.ObjectMapper
 
                     if (bt != null)
                     {
-                        mapVar.ToSqlTableColumn = bt.OverridedSqlColumn;          // override CUD behavior
+                        columnMapping.ToSqlTableColumn = bt.OverridedSqlColumn;          // override CUD behavior
                         continue;
                     }
 
@@ -393,9 +322,9 @@ namespace Repository.ObjectMapper
                         ProcMapping pm = new ProcMapping(pi.Name, sp.Mode);
 
                         if (sp.ParameterName != null)
-                            pm.Map.To = sp.ParameterName;                        // override sp parameter
+                            pm.Map.To = sp.ParameterName;                            // override sp parameter
 
-                        result[type].Procedures.Add(pm);
+                        newSchema.Procedures.Add(pi.Name, pm);
                         continue;
                     }
                 }
@@ -407,12 +336,12 @@ namespace Repository.ObjectMapper
                     // We are here if Exclude wasn't present on the property
                     // 
 
-                    result[type].Mappings.Add(mapVar);
+                    newSchema.Columns.Add(pi.Name, columnMapping);
 
-                    if (isKey)
+                    if (isPrimaryKey)
                     {
                         // Add on keys collection
-                        result[type].Keys.Add(new KeyMapping(mapVar.ToSqlTableColumn, pi.Name));
+                        newSchema.Keys.Add(pi.Name, new KeyMapping(columnMapping.ToSqlTableColumn, pi.Name));
                     }
 
                     if (isIdentity)
@@ -421,21 +350,38 @@ namespace Repository.ObjectMapper
                         // Only can exist one identity!
                         //
 
-                        if (result[type].IdentityPropertyName != null)
+                        if (newSchema.IdentityPropertyName != null)
                             throw new InvalidOperationException("Type {0} cannot have multiple identity columns".Frmt(type.Name));
 
-                        result[type].IdentityPropertyName = pi.Name;
+                        newSchema.IdentityPropertyName = pi.Name;
                     }
                 }
             }
 
-            return result;
+            return newSchema;            
         }
 
 
 
-        private static void ConfigureMetadataFor(Type type)
+        // Used by ConfigureMetadataFor
+        private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
         {
+
+            TypeSchema schema = ObjectMapper.CreateSchema(type);
+            return new Dictionary<Type, TypeSchema>(s_TypesToMetadataMapper) { { type, schema } };
+        }
+
+
+
+        /// <summary>
+        ///     Loads or adds metadata (Schema) to the static dictionary that holds all the information related to all types handled by this type.
+        /// </summary>
+        /// <param name="type">The type that will cause metadata to be loaded or added.</param>
+        private static Type ConfigureMetadataFor<T>()
+        {
+            Type type = typeof(T);
+            Debug.Assert(type != null);
+
             do
             {
                 TypeSchema s;
@@ -449,8 +395,8 @@ namespace Repository.ObjectMapper
                 // or then 2 or more threads are setting the same type metadata
                 // 
 
-                Dictionary<Type, TypeSchema> backup = s_TypesToMetadataMapper;     // Get a local copy for each thread.
-                var newSchema = NewCopyWithAddedTypeSchema(type);      // Copy and add metadata for specific Type
+                Dictionary<Type, TypeSchema> backup = s_TypesToMetadataMapper;                   // Get a local copy for each thread.
+                var newSchema = ObjectMapper.NewCopyWithAddedTypeSchema(type);                   // Copy and add metadata for specific Type
 
 
 #pragma warning disable 420
@@ -460,20 +406,24 @@ namespace Repository.ObjectMapper
 
 #pragma warning restore 420
 
-            } while (true);
+            }
+            while (true);
+            return type;
         }
 
+
+        /// <summary>
+        ///     Get SQL column mapping to the respective propertyName.
+        /// </summary>
         private static String GetMappingForProperty(Type t, String propertyName)
         {
             TypeSchema schema = s_TypesToMetadataMapper[t];
+            Debug.Assert(schema != null);
 
-            foreach (CustomMapping cm in schema.Mappings)
-            {
-                if (cm.ClrProperty == propertyName)
-                    return cm.ToSqlTableColumn;
-            }
+            ColumnMapping cm = schema.Columns[propertyName];
+            Debug.Assert(cm != null);
 
-            throw new InvalidOperationException("shouldn't be here'");
+            return cm.ToSqlTableColumn;
         }
 
         private static IList<T> MapTo<T>(DbDataReader reader, bool CloseDbReader = true) where T : class
@@ -506,7 +456,7 @@ namespace Repository.ObjectMapper
                 Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
 
                 // Map properties to the newInstance
-                foreach (CustomMapping map in schema.Mappings)
+                foreach (ColumnMapping map in schema.Columns.Values)
                 {
                     object value;
                     string sqlColumn = map.FromResultSetColumn;
@@ -591,7 +541,7 @@ namespace Repository.ObjectMapper
                 StringBuilder innerText = new StringBuilder();
                 String recursiveResult;
 
-                recursiveResult = ParseFilter(bExpr.Left);                 // Go left
+                recursiveResult = ObjectMapper.ParseFilter(bExpr.Left);                 // Go left
 
                 innerText.Append("( ");
                 innerText.Append(recursiveResult);
@@ -600,7 +550,7 @@ namespace Repository.ObjectMapper
                 innerText.Append(s_ExpressionMapper[bExpr.NodeType]);      // Map node types to SQL operators
                 innerText.Append(" ");
 
-                recursiveResult = ParseFilter(bExpr.Right);               // Go right
+                recursiveResult = ObjectMapper.ParseFilter(bExpr.Right);               // Go right
 
                 innerText.Append(recursiveResult);
                 innerText.Append(" )");
@@ -610,7 +560,7 @@ namespace Repository.ObjectMapper
 
             if ((cExpr = expr as ConstantExpression) != null)
             {
-                return PrepareValue(cExpr.Value);
+                return ObjectMapper.PrepareValue(cExpr.Value);
             }
 
             if ((mExpr = expr as MemberExpression) == null)
@@ -625,11 +575,11 @@ namespace Repository.ObjectMapper
             BinaryExpression bInnerExpr;
 
             if ((bInnerExpr = innerExpr as BinaryExpression) != null)
-                return ParseFilter(bInnerExpr);                                          // Go recursive    
+                return ObjectMapper.ParseFilter(bInnerExpr);                                          // Go recursive    
 
             if ((pInnerExpr = innerExpr as ParameterExpression) != null)
             {
-                return GetMappingForProperty(pInnerExpr.Type, mExpr.Member.Name);        // We must map property of the type to SQL Column
+                return ObjectMapper.GetMappingForProperty(pInnerExpr.Type, mExpr.Member.Name);        // We must map property of the type to SQL Column
             }
 
             if ((cInnerExpr = innerExpr as ConstantExpression) != null)
@@ -637,7 +587,7 @@ namespace Repository.ObjectMapper
                 object obj = cInnerExpr.Value;                                           // Get anonymous object (captured by the compiler)
 
                 FieldInfo value = obj.GetType().GetField(mExpr.Member.Name);             // Get the field of the anonymous object 
-                return PrepareValue(value.GetValue(obj));
+                return ObjectMapper.PrepareValue(value.GetValue(obj));
             }
 
             if ((mInnerExpr = innerExpr as MemberExpression) == null)
@@ -652,7 +602,7 @@ namespace Repository.ObjectMapper
             FieldInfo fieldValue = objValue.GetType().GetField(mInnerExpr.Member.Name);             // Get the field of the anonymous object 
             object obj2 = fieldValue.GetValue(objValue);                                            // Get the object in the field
 
-            return PrepareValue(obj2.GetType().GetProperty(mExpr.Member.Name).GetValue(obj2, null));       // Based on the object, finally get the value in the property 
+            return ObjectMapper.PrepareValue(obj2.GetType().GetProperty(mExpr.Member.Name).GetValue(obj2, null));       // Based on the object, finally get the value in the property 
         }
 
 
@@ -718,7 +668,7 @@ namespace Repository.ObjectMapper
             cmdTxt.Append("select ");
 
             // Select all columns that are mapped
-            foreach (CustomMapping cm in schema.Mappings)
+            foreach (ColumnMapping cm in schema.Columns.Values)
             {
                 cmdTxt.Append("[{0}], ".Frmt(cm.FromResultSetColumn));
             }
@@ -733,7 +683,7 @@ namespace Repository.ObjectMapper
                 //
 
                 cmdTxt.Append("where ");
-                String filtered = ParseFilter(filter.Body);
+                String filtered = ObjectMapper.ParseFilter(filter.Body);
 
                 cmdTxt.Append(filtered);
             }
@@ -756,7 +706,7 @@ namespace Repository.ObjectMapper
 
 
             // Build header (exclude identities)
-            foreach (CustomMapping cm in schema.Mappings)
+            foreach (ColumnMapping cm in schema.Columns.Values)
             {
                 if (cm.ClrProperty == schema.IdentityPropertyName)                    // Identity Column never's updated!
                     continue;
@@ -769,7 +719,7 @@ namespace Repository.ObjectMapper
 
             // Build body (exclude identities)
             int paramIndex = 0;
-            foreach (CustomMapping cm in schema.Mappings)
+            foreach (ColumnMapping cm in schema.Columns.Values)
             {
                 if (cm.ClrProperty == schema.IdentityPropertyName)                    // Identity Column never's updated!
                     continue;
@@ -787,7 +737,7 @@ namespace Repository.ObjectMapper
             //
 
             paramIndex = 0;
-            foreach (CustomMapping cm in schema.Mappings)
+            foreach (ColumnMapping cm in schema.Columns.Values)
             {
                 if (cm.ClrProperty == schema.IdentityPropertyName)                            // Identity Column never's updated!
                     continue;
@@ -806,13 +756,13 @@ namespace Repository.ObjectMapper
             //
 
             paramIndex = 0;
-            foreach (CustomMapping cm in schema.Mappings)
+            foreach (ColumnMapping cm in schema.Columns.Values)
             {
                 if (cm.ClrProperty == schema.IdentityPropertyName)                            // Identity Column never's updated!
                     continue;
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
+                String valueTxt = ObjectMapper.PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }
@@ -844,7 +794,7 @@ namespace Repository.ObjectMapper
 
             // Build Set clause
             int paramIndex = 0;
-            foreach (CustomMapping cm in schema.Mappings)
+            foreach (ColumnMapping cm in schema.Columns.Values)
             {
                 if (cm.ClrProperty == schema.IdentityPropertyName)                            // Identity Column never's updated!
                     continue;
@@ -860,7 +810,7 @@ namespace Repository.ObjectMapper
             cmdTxt.Append(" where ");
 
             int count = 0;
-            foreach (KeyMapping map in schema.Keys)
+            foreach (KeyMapping map in schema.Keys.Values)
             {
                 cmdTxt.Append("[{0}] = @{1} ".Frmt(map.To, paramIndex++));
 
@@ -877,9 +827,9 @@ namespace Repository.ObjectMapper
             //
 
             paramIndex = 0;
-            foreach (CustomMapping cm in schema.Mappings)
+            foreach (ColumnMapping cm in schema.Columns.Values)
             {
-                if (cm.ClrProperty == schema.IdentityPropertyName)                            // Identity Column never's updated!
+                if (cm.ClrProperty == schema.IdentityPropertyName)                                          // Identity Column never's updated!
                     continue;
 
                 // set sql type based on property type of the object
@@ -888,7 +838,7 @@ namespace Repository.ObjectMapper
             }
 
             // Set the types of parameters for where region
-            foreach (KeyMapping map in schema.Keys)
+            foreach (KeyMapping map in schema.Keys.Values)
             {
 
                 // set sql type based on property type of the object
@@ -905,23 +855,23 @@ namespace Repository.ObjectMapper
             //
 
             paramIndex = 0;
-            foreach (CustomMapping cm in schema.Mappings)
+            foreach (ColumnMapping cm in schema.Columns.Values)
             {
                 if (cm.ClrProperty == schema.IdentityPropertyName)                            // Identity Column never's updated!
                     continue;
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
+                String valueTxt = ObjectMapper.PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }
 
             // Set data of parameters in where region
-            foreach (KeyMapping map in schema.Keys)
+            foreach (KeyMapping map in schema.Keys.Values)
             {
 
                 PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = PrepareValue(pi.GetValue(obj, null));                          // Can contain quotes, based on property type
+                String valueTxt = ObjectMapper.PrepareValue(pi.GetValue(obj, null));                          // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }
@@ -956,7 +906,7 @@ namespace Repository.ObjectMapper
             cmdTxt.Append(" where ");
 
             int count = 0, paramIndex = 0;
-            foreach (KeyMapping map in schema.Keys)
+            foreach (KeyMapping map in schema.Keys.Values)
             {
                 cmdTxt.Append("[{0}] = @{1}".Frmt(map.To, paramIndex++));
 
@@ -975,7 +925,7 @@ namespace Repository.ObjectMapper
             //
 
             paramIndex = 0;
-            foreach (KeyMapping map in schema.Keys)
+            foreach (KeyMapping map in schema.Keys.Values)
             {
                 Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
 
@@ -992,7 +942,7 @@ namespace Repository.ObjectMapper
             //
 
             paramIndex = 0;
-            foreach (KeyMapping map in schema.Keys)
+            foreach (KeyMapping map in schema.Keys.Values)
             {
                 PropertyInfo pi = objRepresentor.GetProperty(map.From);
                 String valueTxt = PrepareValue(pi.GetValue(obj, null));         // Can contain quotes, based on property type
@@ -1029,10 +979,8 @@ namespace Repository.ObjectMapper
         /// <returns>A list of objects with their properties filled that aren't annotated with [Exclude] attribute</returns>
         public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) where T : class
         {
-            Type type = typeof(T);
-
             // Lock-Free
-            ConfigureMetadataFor(type);
+            ConfigureMetadataFor<T>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1048,7 +996,7 @@ namespace Repository.ObjectMapper
 
             // Open connection if not opened
             SetupConnection();
-            return MapTo<T>(comm.ExecuteReader());
+            return ObjectMapper.MapTo<T>(comm.ExecuteReader());
         }
 
 
@@ -1066,8 +1014,8 @@ namespace Repository.ObjectMapper
             where T2 : class
         {
             // Lock-Free
-            ConfigureMetadataFor(typeof(T1));
-            ConfigureMetadataFor(typeof(T2));
+            ConfigureMetadataFor<T1>();
+            ConfigureMetadataFor<T2>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1088,9 +1036,9 @@ namespace Repository.ObjectMapper
             object[] result = new object[2];
             DbDataReader reader;
 
-            result[0] = MapTo<T1>(reader = comm.ExecuteReader(), false);
+            result[0] = ObjectMapper.MapTo<T1>(reader = comm.ExecuteReader(), false);
             reader.NextResult();
-            result[1] = MapTo<T2>(reader);
+            result[1] = ObjectMapper.MapTo<T2>(reader);
 
             // return reference
             return result;
@@ -1115,9 +1063,9 @@ namespace Repository.ObjectMapper
             where T3 : class
         {
             // Lock-Free
-            ConfigureMetadataFor(typeof(T1));
-            ConfigureMetadataFor(typeof(T2));
-            ConfigureMetadataFor(typeof(T3));
+            ConfigureMetadataFor<T1>();
+            ConfigureMetadataFor<T2>();
+            ConfigureMetadataFor<T3>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1138,11 +1086,11 @@ namespace Repository.ObjectMapper
             object[] result = new object[3];
             DbDataReader reader;
 
-            result[0] = MapTo<T1>(reader = comm.ExecuteReader(), false);
+            result[0] = ObjectMapper.MapTo<T1>(reader = comm.ExecuteReader(), false);
             reader.NextResult();
-            result[1] = MapTo<T2>(reader, false);
+            result[1] = ObjectMapper.MapTo<T2>(reader, false);
             reader.NextResult();
-            result[2] = MapTo<T3>(reader);
+            result[2] = ObjectMapper.MapTo<T3>(reader);
 
             // return reference
             return result;
@@ -1173,10 +1121,8 @@ namespace Repository.ObjectMapper
         /// <returns>A list of objects with their properties filled that aren't annotated with [Exclude] attribute</returns>
         public IList<T> Select<T>(Expression<Func<T, bool>> filter) where T : class
         {
-            Type type = typeof(T);
-
             // Lock-Free
-            ConfigureMetadataFor(type);
+            Type type = ConfigureMetadataFor<T>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1191,7 +1137,7 @@ namespace Repository.ObjectMapper
 
             // Open connection if not opened
             SetupConnection();
-            return MapTo<T>(cmd.ExecuteReader());
+            return ObjectMapper.MapTo<T>(cmd.ExecuteReader());
         }
 
 
@@ -1206,13 +1152,12 @@ namespace Repository.ObjectMapper
         /// <param name="obj">The object that you want to insert</param>
         public void Insert<T>(T obj) where T : class
         {
-            Type type = typeof(T);
             Type objRepresentor = obj.GetType();
 
             string scopy_id_name = "Scope_Identity";
 
             // Lock-Free
-            ConfigureMetadataFor(type);
+            Type type = ConfigureMetadataFor<T>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1267,10 +1212,8 @@ namespace Repository.ObjectMapper
         /// <returns>The number of affected rows in database</returns>
         public int Update<T>(T obj) where T : class
         {
-            Type type = typeof(T);
-
             // Lock-Free
-            ConfigureMetadataFor(type);
+            Type type = ConfigureMetadataFor<T>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1299,10 +1242,7 @@ namespace Repository.ObjectMapper
         /// <returns>The number of affected rows in database</returns>
         public int Delete<T>(T obj) where T : class
         {
-            Type type = typeof(T);
-
-            // Lock-Free
-            ConfigureMetadataFor(type);
+            Type type = ConfigureMetadataFor<T>();
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1344,11 +1284,7 @@ namespace Repository.ObjectMapper
         /// <returns>The number of affected rows in database</returns>
         public int ExecuteProc<T>(T obj, SPMode mode, string procedureName) where T : class
         {
-            Type type = typeof(T);
-
-            // Lock-Free
-            ConfigureMetadataFor(type);
-
+            Type type = ConfigureMetadataFor<T>();
 
 
             //
@@ -1365,7 +1301,7 @@ namespace Repository.ObjectMapper
             Type objRepresentor = obj.GetType();
             TypeSchema schema = s_TypesToMetadataMapper[type];
 
-            foreach (ProcMapping pm in schema.Procedures)
+            foreach (ProcMapping pm in schema.Procedures.Values)
             {
                 if ((pm.Mode & mode) == mode)      // Mode match!
                 {
@@ -1427,22 +1363,43 @@ namespace Repository.ObjectMapper
 
 
 
-
         /// <summary>
         ///   Free the DbConnection associated with the ObjectMapper  
         /// </summary>
         public void Dispose()
         {
-            if (m_disposed)
-                return;
+            GC.SuppressFinalize(this);
+            Dispose(true);
+        }
 
-            if (m_connection != null)
+
+        /// <summary>
+        ///   Free the DbConnection associated with the ObjectMapper  
+        /// </summary>
+        private void Dispose(bool explicitlyCalled)
+        {
+            if (m_disposed)
+                throw new ObjectDisposedException(typeof(ObjectMapper).Name);
+
+            if (explicitlyCalled)
             {
-                m_connection.Close();
-                m_connection.Dispose();
+                // get rid of managed resources
+                if (m_connection != null)
+                {
+                    if( m_connection.State != ConnectionState.Closed)
+                        m_connection.Close();
+
+                    m_connection.Dispose();
+                }
+
+                m_disposed = true;
             }
 
-            m_disposed = true;
+            // get rid of unmanaged resources            
+
+            //
+            // When an object is executing its finalization code, it should not reference other objects, because finalizers do not execute in any particular order. 
+            // If an executing finalizer references another object that has already been finalized, the executing finalizer will fail.
         }
 
 

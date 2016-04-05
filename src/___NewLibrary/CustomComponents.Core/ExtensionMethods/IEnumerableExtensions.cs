@@ -143,7 +143,7 @@ namespace CustomComponents.Core.ExtensionMethods
 
             return enumerable.Skip(startInclusive)
                              .Take((endExclusive - startInclusive))
-                             .Select(s => s.GetType().GetProperty(pi.Name).GetValue(s))
+                             .Select(s => s.GetType().GetProperty(pi.Name).GetValue(s, null))
                              .ToList();
         }
 

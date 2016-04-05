@@ -12,6 +12,7 @@ using CustomComponents.Database.Types.Generic;
 using System.Data.Common;
 using System.Data;
 using Repository.EntityFramework.Interfaces;
+using CustomComponents.Repository.Types.Generic;
 
 namespace Repository.EntityFramework.Types.ObjectContextRepository
 {
@@ -57,6 +58,19 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
 
             ObjectContext = context;
             ObjectContext.SavingChanges += OnSavingChanges;
+        }
+
+        event Callback IRepository.ExaclyBeforeSaveCalled
+        {
+            add
+            {
+                throw new NotImplementedException();
+            }
+
+            remove
+            {
+                throw new NotImplementedException();
+            }
         }
 
 
@@ -240,19 +254,11 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
         }
 
 
-        public TResult ExecuteUsing<TResult>(Func<IRepository, TResult> externMethod)
-        {
-            using (IRepository callerInstance = this)
-            {
-                return externMethod(callerInstance);
-            }
-        }
-
-
+ 
         /// <summary>
         ///     Template code to request a transaction, execute code and give the user the repository to make some operations on it, and at the end commit and sync all data to db
         /// </summary>
-        public void ExecuteBlock(Action<IRepository> externMethod, Action<Exception> exceptionMethod = null)
+        public void ExecuteBlock(Callback externMethod, ExceptionCallback exceptionMethod = null)
         {
             using (IRepository callerInstance = this)
             {
@@ -287,6 +293,14 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
                         else { exceptionMethod(e); }
                     }
                 }
+            }
+        }
+
+        public TResult ExecuteUsing<TResult>(CallbackResult<TResult> externMethod)
+        {
+            using (IRepository callerInstance = this)
+            {
+                return externMethod(callerInstance);
             }
         }
     }

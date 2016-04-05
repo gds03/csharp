@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Repository.ObjectMapper</RootNamespace>
     <AssemblyName>Repository.ObjectMapper</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -34,7 +35,6 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
@@ -43,7 +43,7 @@
     <Compile Include="Attributes\BindTo.cs" />
     <Compile Include="Attributes\Exclude.cs" />
     <Compile Include="Attributes\Identity.cs" />
-    <Compile Include="Attributes\Key.cs" />
+    <Compile Include="Attributes\PrimaryKey.cs" />
     <Compile Include="Attributes\Table.cs" />
     <Compile Include="Exceptions\PropertyMustBeNullable.cs" />
     <Compile Include="Exceptions\SqlColumnNotFoundException.cs" />
@@ -53,6 +53,10 @@
     <Compile Include="SimpleDbAccess.cs" />
     <Compile Include="SPMode.cs" />
     <Compile Include="StoredProc.cs" />
+    <Compile Include="Types\ColumnMapping.cs" />
+    <Compile Include="Types\KeyMapping.cs" />
+    <Compile Include="Types\ProcMapping.cs" />
+    <Compile Include="Types\TypeSchema.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CustomComponents.Repository\CustomComponents.Repository.csproj">

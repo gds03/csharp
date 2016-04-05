@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CustomComponents.ConsoleApplication</RootNamespace>
     <AssemblyName>CustomComponents.ConsoleApplication</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -50,6 +51,7 @@
     <Compile Include="CircularListProgram.cs" />
     <Compile Include="EightQueenProgram.cs" />
     <Compile Include="MazeProgram.cs" />
+    <Compile Include="ObjectMapperProgram.cs" />
     <Compile Include="SortingAlgorithmsProgram.cs" />
     <Compile Include="ThreadPoolProgram.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -61,6 +63,10 @@
     <ProjectReference Include="..\Algorithms\CustomComponents.Algorithms\CustomComponents.Algorithms.csproj">
       <Project>{096c5155-4fcb-442d-98ad-8eb1c2551832}</Project>
       <Name>CustomComponents.Algorithms</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CustomComponents.Plugins\Repository.ObjectMapper\Repository.ObjectMapper.csproj">
+      <Project>{92025a68-039f-4ff3-bc77-060afea16495}</Project>
+      <Name>Repository.ObjectMapper</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
