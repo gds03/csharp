@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace Repository.ObjectMapper
 {
-    public class ObjectMapperRepository : ObjectMapper, IRepository
+    public class ObjectMapperRepository : ObjectMapper, IRepository, IDatabaseStored
     {
         public ObjectMapperRepository(string connectionString)
             : base(connectionString)
@@ -30,6 +30,8 @@ namespace Repository.ObjectMapper
 
         }
 
+        public event Callback ExaclyBeforeSaveCalled;
+
 
         public IQueryable<T> Query<T>() where T : class
         {
@@ -48,10 +50,15 @@ namespace Repository.ObjectMapper
             return this;
         }
 
-        IRepository IRepository.Synchronize()
+
+        public IRepository Submit()
         {
+            // base.Submit();
             return this;
         }
+
+
+
 
 
         public IDbConnection RepositoryConnection
@@ -69,12 +76,16 @@ namespace Repository.ObjectMapper
         {
             using (IRepository repository = this)
             {
+                IDatabaseStored db = this as IDatabaseStored;
+                if (db == null)
+                    throw new InvalidCastException("db");
+
                 SqlTransaction transaction = null;
 
                 try
                 {
                     // Initialize transaction
-                    transaction = ((SqlConnection)(repository.RepositoryConnection)).BeginTransaction();
+                    transaction = ((SqlConnection)(db.RepositoryConnection)).BeginTransaction();
 
                     // Call user function
                     externMethod(repository);
@@ -102,8 +113,6 @@ namespace Repository.ObjectMapper
             {
                 return externMethod(callerInstance);
             }
-        }
-
-        public event Callback ExaclyBeforeSaveCalled;
+        }       
     }
 }

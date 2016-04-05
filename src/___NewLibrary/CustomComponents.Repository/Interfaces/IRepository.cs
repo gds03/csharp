@@ -29,39 +29,5 @@ namespace CustomComponents.Repository.Interfaces
         /// <typeparam name="T"></typeparam>
         /// <param name="e"></param>
         IRepository Delete<T>(T e) where T : class;
-
-        /// <summary>
-        ///     Synchronize the database entities with all pending operations in memory.
-        /// </summary>
-        IRepository Synchronize();
-
-
-        /// <summary>
-        ///     Execute user extern method within a transaction of a repository
-        /// </summary>
-        /// <param name="externMethod"></param>
-        void ExecuteBlock(Callback externMethod, ExceptionCallback exceptionMethod = null);
-
-
-        /// <summary>
-        ///     Free the developer to use Using statement
-        /// </summary>
-        /// <param name="externMethod"></param>
-        TResult ExecuteUsing<TResult>(CallbackResult<TResult> externMethod);
-
-
-
-        /// <summary>
-        ///     Get the connection to the repository
-        /// </summary>
-        IDbConnection RepositoryConnection { get; }
-
-
-
-
-        /// <summary>
-        ///     Give the chance to execute some code before save is called.
-        /// </summary>
-        event Callback ExaclyBeforeSaveCalled;
     }
 }

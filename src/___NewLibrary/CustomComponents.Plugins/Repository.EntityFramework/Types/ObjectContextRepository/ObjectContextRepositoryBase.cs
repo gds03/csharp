@@ -19,7 +19,7 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
     /// <summary>
     ///     By inherit from this class, you get the Repository Pattern to query the datasource.
     /// </summary>
-    public abstract class ObjectContextRepositoryBase : IRepository
+    public abstract class ObjectContextRepositoryBase : IRepository, IDatabaseStored
     {
         // Fields
         public ObjectContext ObjectContext { get; private set; }
@@ -47,7 +47,7 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
         /// <summary>
         ///     Give the chance to execute some code before save is called.
         /// </summary>
-        public event Action<IRepository> ExaclyBeforeSaveCalled;
+        public event Callback ExaclyBeforeSaveCalled;
 
 
 
@@ -58,19 +58,6 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
 
             ObjectContext = context;
             ObjectContext.SavingChanges += OnSavingChanges;
-        }
-
-        event Callback IRepository.ExaclyBeforeSaveCalled
-        {
-            add
-            {
-                throw new NotImplementedException();
-            }
-
-            remove
-            {
-                throw new NotImplementedException();
-            }
         }
 
 
@@ -226,7 +213,7 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
         /// <summary>
         ///     Synchronize the database with all pending operations.
         /// </summary>
-        public IRepository Synchronize()
+        public IRepository Submit()
         {
             if (ExaclyBeforeSaveCalled != null)
                 ExaclyBeforeSaveCalled(this);
@@ -262,6 +249,10 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
         {
             using (IRepository callerInstance = this)
             {
+                IDatabaseStored db = this as IDatabaseStored;
+                if (db == null)
+                    throw new InvalidCastException("db");
+
                 using (IDbConnection efConnection = RepositoryConnection)
                 {
                     efConnection.Open();
@@ -276,7 +267,7 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
                         externMethod(callerInstance);
 
                         // sync (unit of work)
-                        callerInstance.Synchronize();
+                        db.Submit();
 
                         // persist
                         efTran.Commit();
