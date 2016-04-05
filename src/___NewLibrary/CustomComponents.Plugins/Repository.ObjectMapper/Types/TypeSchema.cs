@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Repository.ObjectMapper.Types.Mappings;
+using System;
 using System.Collections.Generic;
 
 namespace Repository.ObjectMapper.Types

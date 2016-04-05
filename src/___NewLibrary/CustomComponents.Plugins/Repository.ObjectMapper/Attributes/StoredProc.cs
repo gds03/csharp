@@ -1,6 +1,7 @@
-﻿using System;
+﻿using Repository.ObjectMapper.Types;
+using System;
 
-namespace Repository.ObjectMapper
+namespace Repository.ObjectMapper.Attributes
 {
 
     public sealed class StoredProc : Attribute

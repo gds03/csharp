@@ -47,7 +47,7 @@ namespace CustomComponents.ConsoleApplication
 
 
 
-        private static void AddCategories(ObjectMapper mapper)
+        private static void AddCategoriesAndUpdate(ObjectMapper mapper)
         {
             Category c1 = new Category
             {
@@ -70,9 +70,28 @@ namespace CustomComponents.ConsoleApplication
                 lastModifiedDate = DateTime.Now
             };
 
-            mapper.Insert(c1);
-            mapper.Insert(c2);
-            mapper.Insert(c3);
+            mapper.InsertMany(c1, c2, c3);
+            //mapper.Insert(c2);
+            //mapper.Insert(c3);
+
+            c1.name = "kitchen_updated";
+            c2.name = "Sports_updated";
+            c3.name = "Eletronics_updated";
+
+            mapper.UpdateMany(c1, c2, c3);
+            //mapper.Update(c1);
+            //mapper.Update(c2);
+            //mapper.Update(c3);
+
+            mapper.Submit();
+
+            mapper.Delete(c1);
+            c3.extraInfo = "XPTO TESTE";
+
+            mapper.Update(c3);
+            mapper.Submit();
+
+
         }
 
 
@@ -82,11 +101,7 @@ namespace CustomComponents.ConsoleApplication
         public static void Main(String[] args)
         {
             ObjectMapper mapper = new ObjectMapper(CONNECTION_STRING);
-            AddCategories(mapper);
-
-
-
-            Console.ReadLine();
+            AddCategoriesAndUpdate(mapper);
         }
     }
 }

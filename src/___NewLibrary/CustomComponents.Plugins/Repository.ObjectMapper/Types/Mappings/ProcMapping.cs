@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Repository.ObjectMapper.Types
+namespace Repository.ObjectMapper.Types.Mappings
 {
 
     // Map CLR property type to a stored procedure parameter

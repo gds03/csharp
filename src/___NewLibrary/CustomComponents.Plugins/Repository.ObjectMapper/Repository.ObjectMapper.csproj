@@ -51,11 +51,11 @@
     <Compile Include="ObjectMapperRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimpleDbAccess.cs" />
-    <Compile Include="SPMode.cs" />
-    <Compile Include="StoredProc.cs" />
-    <Compile Include="Types\ColumnMapping.cs" />
-    <Compile Include="Types\KeyMapping.cs" />
-    <Compile Include="Types\ProcMapping.cs" />
+    <Compile Include="Enums\SPMode.cs" />
+    <Compile Include="Attributes\StoredProc.cs" />
+    <Compile Include="Types\Mappings\ColumnMapping.cs" />
+    <Compile Include="Types\Mappings\KeyMapping.cs" />
+    <Compile Include="Types\Mappings\ProcMapping.cs" />
     <Compile Include="Types\TypeSchema.cs" />
   </ItemGroup>
   <ItemGroup>

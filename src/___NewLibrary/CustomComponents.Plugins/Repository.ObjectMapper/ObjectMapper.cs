@@ -4,7 +4,7 @@
 // Author: Goncalo Dias
 //
 //
-// Last updated date: 05 November 2012
+// Last updated date: 05-04-2016
 //
 
 
@@ -22,6 +22,7 @@ using Repository.ObjectMapper.Exceptions;
 using Repository.ObjectMapper.Types;
 using System.Linq.Expressions;
 using System.Diagnostics;
+using Repository.ObjectMapper.Types.Mappings;
 
 namespace Repository.ObjectMapper
 {
@@ -34,12 +35,18 @@ namespace Repository.ObjectMapper
 
 
 
+        //
+        // member fields
 
         bool m_disposed;
         readonly DbConnection m_connection;
         readonly DbTransaction m_transaction;
         readonly int m_commandTimeout = 30;
 
+        // queue for commands
+        readonly List<InsertCommand> m_insertCommandsQueue   = new List<InsertCommand>();
+        readonly List<object> m_updateObjectsQueue           = new List<object>();
+        readonly List<object> m_deleteObjectQueue            = new List<object>();
 
 
 
@@ -70,6 +77,26 @@ namespace Repository.ObjectMapper
 
         // Maps .CLR types to SQL types
         private static readonly Dictionary<Type, String> s_ClrTypeToSqlTypeMapper = new Dictionary<Type, string>(ClrTypesMappingCapacity);
+
+        // helper classes
+        class InsertCommand
+        {
+            public String CommandText { get; private set; }
+
+            public object Object { get; private set; }
+
+            public InsertCommand(string insertCmd, object obj)
+            {
+                if (string.IsNullOrEmpty(insertCmd))
+                    throw new ArgumentException("insertCmd");
+
+                if (obj == null)
+                    throw new ArgumentNullException("obj");
+
+                this.CommandText = insertCmd;
+                this.Object = obj;
+            }
+        }
 
 
 
@@ -377,9 +404,8 @@ namespace Repository.ObjectMapper
         ///     Loads or adds metadata (Schema) to the static dictionary that holds all the information related to all types handled by this type.
         /// </summary>
         /// <param name="type">The type that will cause metadata to be loaded or added.</param>
-        private static Type ConfigureMetadataFor<T>()
+        private static void ConfigureMetadataFor(Type type)
         {
-            Type type = typeof(T);
             Debug.Assert(type != null);
 
             do
@@ -408,7 +434,6 @@ namespace Repository.ObjectMapper
 
             }
             while (true);
-            return type;
         }
 
 
@@ -620,7 +645,37 @@ namespace Repository.ObjectMapper
         #region Instance Auxiliary Methods
 
 
-        private void SetupConnection()
+        /// <summary>
+        ///   Free the DbConnection associated with the ObjectMapper  
+        /// </summary>
+        private void Dispose(bool explicitlyCalled)
+        {
+            if (m_disposed)
+                throw new ObjectDisposedException(typeof(ObjectMapper).Name);
+
+            if (explicitlyCalled)
+            {
+                // get rid of managed resources
+                if (m_connection != null)
+                {
+                    if (m_connection.State != ConnectionState.Closed)
+                        m_connection.Close();
+
+                    m_connection.Dispose();
+                }
+
+                m_disposed = true;
+            }
+
+            // get rid of unmanaged resources            
+
+            //
+            // When an object is executing its finalization code, it should not reference other objects, because finalizers do not execute in any particular order. 
+            // If an executing finalizer references another object that has already been finalized, the executing finalizer will fail.
+        }
+
+
+        private void OpenConnection()
         {
             if (m_connection == null)
                 throw new NullReferenceException("connection is null");
@@ -628,6 +683,16 @@ namespace Repository.ObjectMapper
             // Try open the connection if not opened!
             if (m_connection.State != ConnectionState.Open)
                 m_connection.Open();
+        }
+
+        private void CloseConnection()
+        {
+            if (m_connection == null)
+                throw new NullReferenceException("connection is null");
+
+            // Try open the connection if not opened!
+            if (m_connection.State != ConnectionState.Closed)
+                m_connection.Close();
         }
 
 
@@ -642,6 +707,86 @@ namespace Repository.ObjectMapper
 
             return comm;
         }
+
+
+
+        /// <summary>
+        ///     Cleanup commands that are on hold.
+        /// </summary>        
+        private void ClearnupCommands()
+        {
+            m_insertCommandsQueue.Clear();
+            m_updateObjectsQueue.Clear();
+            m_deleteObjectQueue.Clear();
+        }
+
+        /// <summary>
+        ///     Create a DB command and executes against database.
+        ///     If the object that belongs to the insertCmd has Identity it will be updated.
+        /// </summary>
+        /// <returns>true if has identity and was updated, otherwise return false.</returns>
+        private bool ExecuteInsert_UpdateIdentity(InsertCommand insertCmd)
+        {
+            Debug.Assert(insertCmd != null);
+            Debug.Assert(!string.IsNullOrEmpty(insertCmd.CommandText));
+            Debug.Assert(insertCmd.Object != null);
+
+            Type insertObjRepresentor = insertCmd.Object.GetType();
+            TypeSchema schema = s_TypesToMetadataMapper[insertObjRepresentor];
+
+            // Command Setup parameters
+            DbCommand cmd = CmdForConnection(CommandType.Text, insertCmd.CommandText);
+
+            // If Identity is not setted, execute the query and ignore the rest
+            if (schema.IdentityPropertyName == null)
+            {
+                cmd.ExecuteNonQuery();
+                return false;
+            }
+
+            //
+            // The type have identity column and we must set the identity to instance of the object
+            //
+
+            // Execute scalar query
+            object scope_identity;
+
+            if ((scope_identity = cmd.ExecuteScalar()) == null)
+                throw new InvalidOperationException("{0}:{1} is not an identify column in database".Frmt(insertObjRepresentor.Name, schema.IdentityPropertyName));
+
+            // Set scope_identity to object property identity
+            PropertyInfo pi = insertObjRepresentor.GetProperty(schema.IdentityPropertyName);
+
+            // Convert type from db to property type
+            object converted_identity = Convert.ChangeType(scope_identity, pi.PropertyType);
+
+            // Set property identity
+            pi.SetValue(insertCmd.Object, converted_identity, null);
+            return true;
+        }
+
+
+
+        private bool ExecuteUpdate(string updateCmd)
+        {
+            Debug.Assert(!string.IsNullOrEmpty(updateCmd));
+
+            // Command Setup parameters
+            DbCommand cmd = CmdForConnection(CommandType.Text, updateCmd);
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
+
+
+
+        private bool ExecuteDelete(string deleteCmd)
+        {
+            Debug.Assert(!string.IsNullOrEmpty(deleteCmd));
+            // Command Setup parameters
+            DbCommand cmd = CmdForConnection(CommandType.Text, deleteCmd);
+            return cmd.ExecuteNonQuery() > 0;
+        }
+
 
 
         #endregion
@@ -869,7 +1014,6 @@ namespace Repository.ObjectMapper
             // Set data of parameters in where region
             foreach (KeyMapping map in schema.Keys.Values)
             {
-
                 PropertyInfo pi = objRepresentor.GetProperty(map.From);
                 String valueTxt = ObjectMapper.PrepareValue(pi.GetValue(obj, null));                          // Can contain quotes, based on property type
 
@@ -980,7 +1124,7 @@ namespace Repository.ObjectMapper
         public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) where T : class
         {
             // Lock-Free
-            ConfigureMetadataFor<T>();
+            ConfigureMetadataFor(typeof(T));
 
             //
             // If we are here, the properties for specific type are filled 
@@ -995,7 +1139,7 @@ namespace Repository.ObjectMapper
                 comm.Parameters.AddRange(parameters);
 
             // Open connection if not opened
-            SetupConnection();
+            OpenConnection();
             return ObjectMapper.MapTo<T>(comm.ExecuteReader());
         }
 
@@ -1014,8 +1158,8 @@ namespace Repository.ObjectMapper
             where T2 : class
         {
             // Lock-Free
-            ConfigureMetadataFor<T1>();
-            ConfigureMetadataFor<T2>();
+            ConfigureMetadataFor(typeof(T1));
+            ConfigureMetadataFor(typeof(T2));
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1030,7 +1174,7 @@ namespace Repository.ObjectMapper
                 comm.Parameters.AddRange(parameters);
 
             // Open connection if not opened
-            SetupConnection();
+            OpenConnection();
 
             // Allocate memory
             object[] result = new object[2];
@@ -1063,9 +1207,9 @@ namespace Repository.ObjectMapper
             where T3 : class
         {
             // Lock-Free
-            ConfigureMetadataFor<T1>();
-            ConfigureMetadataFor<T2>();
-            ConfigureMetadataFor<T3>();
+            ConfigureMetadataFor(typeof(T1));
+            ConfigureMetadataFor(typeof(T2));
+            ConfigureMetadataFor(typeof(T3));
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1080,7 +1224,7 @@ namespace Repository.ObjectMapper
                 comm.Parameters.AddRange(parameters);
 
             // Open connection if not opened
-            SetupConnection();
+            OpenConnection();
 
             // Allocate memory
             object[] result = new object[3];
@@ -1121,8 +1265,10 @@ namespace Repository.ObjectMapper
         /// <returns>A list of objects with their properties filled that aren't annotated with [Exclude] attribute</returns>
         public IList<T> Select<T>(Expression<Func<T, bool>> filter) where T : class
         {
+            Type type = typeof(T);
+
             // Lock-Free
-            Type type = ConfigureMetadataFor<T>();
+            ConfigureMetadataFor(type);
 
             //
             // If we are here, the properties for specific type are filled 
@@ -1136,7 +1282,7 @@ namespace Repository.ObjectMapper
             DbCommand cmd = CmdForConnection(CommandType.Text, selectCmd);
 
             // Open connection if not opened
-            SetupConnection();
+            OpenConnection();
             return ObjectMapper.MapTo<T>(cmd.ExecuteReader());
         }
 
@@ -1152,83 +1298,76 @@ namespace Repository.ObjectMapper
         /// <param name="obj">The object that you want to insert</param>
         public void Insert<T>(T obj) where T : class
         {
+            if (obj == null)
+                throw new ArgumentNullException("obj");
+
             Type objRepresentor = obj.GetType();
 
             string scopy_id_name = "Scope_Identity";
 
             // Lock-Free
-            Type type = ConfigureMetadataFor<T>();
+            ConfigureMetadataFor(objRepresentor);
 
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            TypeSchema schema = s_TypesToMetadataMapper[type];
+            TypeSchema schema = s_TypesToMetadataMapper[objRepresentor];
 
             // Prepare insert statement for type
-            String insertCmd = PrepareInsertCmd(type, obj, objRepresentor, scopy_id_name);
-
-            // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, insertCmd);
-
-            // Open connection if not opened
-            SetupConnection();
-
-            // If Identity is not setted, execute the query and ignore the rest
-            if (schema.IdentityPropertyName == null)
-            {
-                cmd.ExecuteNonQuery();
-                return; // Stop execution
-            }
-
-            //
-            // The type have identity column and we must set the identity to instance of the object
-            //
-
-            // Execute scalar query
-            object scope_identity;
-
-            if ((scope_identity = cmd.ExecuteScalar()) == null)
-                throw new InvalidOperationException("{0}:{1} is not an identify column in database".Frmt(typeof(T).Name, schema.IdentityPropertyName));
-
-            // Set scope_identity to object property identity
-            PropertyInfo pi = objRepresentor.GetProperty(schema.IdentityPropertyName);
-
-            // Convert type from db to property type
-            object converted_identity = Convert.ChangeType(scope_identity, pi.PropertyType);
-
-            // Set property identity
-            pi.SetValue(obj, converted_identity, null);
+            String insertCmd = PrepareInsertCmd(objRepresentor, obj, objRepresentor, scopy_id_name);
+            m_insertCommandsQueue.Add(new InsertCommand(insertCmd, obj));
         }
 
 
+        /// <summary>
+        ///     Based on primary key of the type, insert collection of objects passed by parameter in database.
+        /// </summary>
+        /// <param name="objects">The objects that you want to insert</param>
+        public void InsertMany(params object[] objects)
+        {
+            if (objects != null)
+            {
+                foreach (object o in objects)
+                    this.Insert(o);
+            }
+        }
 
         /// <summary>
         ///     Based on primary key of the type, update the object on database
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to update. Note: This type must be annotated with [Key]</typeparam>
         /// <param name="obj">The object that you want to update</param>
-        /// <returns>The number of affected rows in database</returns>
-        public int Update<T>(T obj) where T : class
+        public void Update<T>(T obj) where T : class
         {
+            if (obj == null)
+                throw new ArgumentNullException("obj");
+
             // Lock-Free
-            Type type = ConfigureMetadataFor<T>();
+            ConfigureMetadataFor(obj.GetType());
 
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            // Prepare update statement for type
-            String updateCmd = PrepareUpdateCmd(type, obj);
+            m_updateObjectsQueue.Add(obj);
+        }
 
-            // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, updateCmd);
 
-            // Open connection if not opened
-            SetupConnection();
-            return cmd.ExecuteNonQuery();
+
+        /// <summary>
+        ///     Based on primary key of the type, update collection of objects passed by parameter in database.
+        /// </summary>
+        /// <param name="objects">The objects that you want to update</param>
+        public void UpdateMany(params object[] objects)
+        {
+            if (objects != null)
+            {
+                foreach (object o in objects)
+                    this.Update(o);
+            }
         }
 
 
@@ -1240,37 +1379,85 @@ namespace Repository.ObjectMapper
         /// <typeparam name="T">The type of the object that you want to delete. Note: This type must be annotated with [Key]</typeparam>
         /// <param name="obj">The object that you want to delete</param>
         /// <returns>The number of affected rows in database</returns>
-        public int Delete<T>(T obj) where T : class
+        public void Delete<T>(T obj) where T : class
         {
-            Type type = ConfigureMetadataFor<T>();
+            if (obj == null)
+                throw new ArgumentNullException("obj");
+
+            ConfigureMetadataFor(obj.GetType());
 
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            // Prepare delete statement for type
-            String deleteCmd = PrepareDeleteCmd(type, obj);
+            m_deleteObjectQueue.Add(obj);
+        }
 
-            // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, deleteCmd);
-
-            // Open connection if not opened
-            SetupConnection();
-            return cmd.ExecuteNonQuery();
+        /// <summary>
+        ///     Based on primary key of the type, delete collection of objects passed by parameter in database.
+        /// </summary>
+        /// <param name="objects">The objects that you want to delete</param>
+        public void DeleteMany(params object[] objects)
+        {
+            if (objects != null)
+            {
+                foreach (object o in objects)
+                    this.Delete(o);
+            }
         }
 
 
 
 
 
+        public int Submit()
+        {
+            int operationsPerformed = 0;
 
+            // Open connection if not opened
+            OpenConnection();
 
+            for (int i = 0; i < m_insertCommandsQueue.Count; i++)
+            {
+                InsertCommand insertCmd = this.m_insertCommandsQueue[i];
+                bool insertResult = ExecuteInsert_UpdateIdentity(insertCmd);
+                operationsPerformed++;
 
+                if (!insertResult)
+                    continue;
+            }
 
+            for (int i = 0; i < m_updateObjectsQueue.Count; i++)
+            {
+                object @objUpdate = this.m_updateObjectsQueue[i];
+                
+                // Prepare update statement for type
+                String updateCmd = PrepareUpdateCmd(objUpdate.GetType(), @objUpdate);
+                bool updateResult = ExecuteUpdate(updateCmd);
 
+                if( updateResult )
+                    operationsPerformed++;
 
+            }
 
+            for (int i = 0; i < m_deleteObjectQueue.Count; i++)
+            {
+                object @objDelete = this.m_deleteObjectQueue[i];
+
+                // Prepare delete statement for type
+                String deleteCmd = PrepareDeleteCmd(@objDelete.GetType(), @objDelete);
+                bool deleteResult = ExecuteDelete(deleteCmd);
+
+                if (deleteResult)
+                    operationsPerformed++;
+            }
+
+            CloseConnection();
+            ClearnupCommands();
+            return operationsPerformed;
+
+        }
 
 
         /// <summary>
@@ -1284,7 +1471,11 @@ namespace Repository.ObjectMapper
         /// <returns>The number of affected rows in database</returns>
         public int ExecuteProc<T>(T obj, SPMode mode, string procedureName) where T : class
         {
-            Type type = ConfigureMetadataFor<T>();
+            if (obj == null)
+                throw new ArgumentNullException("obj");
+
+            Type type = obj.GetType();
+            ConfigureMetadataFor(type);
 
 
             //
@@ -1313,7 +1504,7 @@ namespace Repository.ObjectMapper
             }
 
             // Open connection if not opened
-            SetupConnection();
+            OpenConnection();
             return cmd.ExecuteNonQuery();
         }
 
@@ -1327,6 +1518,9 @@ namespace Repository.ObjectMapper
         /// <returns>The number of affected rows in database</returns>
         public int Execute(CommandType commandType, string commandText, params DbParameter[] parameters)
         {
+            if (string.IsNullOrEmpty(commandText))
+                throw new ArgumentException("commandText");
+
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
 
@@ -1335,7 +1529,7 @@ namespace Repository.ObjectMapper
                 comm.Parameters.AddRange(parameters);
 
             // Open connection if not opened
-            SetupConnection();
+            OpenConnection();
             return comm.ExecuteNonQuery();
         }
 
@@ -1349,6 +1543,9 @@ namespace Repository.ObjectMapper
         /// <returns>The first column of the first row in the ResultSet returned by the query</returns>
         public object ExecuteScalar(CommandType commandType, string commandText, params DbParameter[] parameters)
         {
+            if (string.IsNullOrEmpty(commandText))
+                throw new ArgumentException("commandText");
+
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
 
@@ -1357,7 +1554,7 @@ namespace Repository.ObjectMapper
                 comm.Parameters.AddRange(parameters);
 
             // Open connection if not opened
-            SetupConnection();
+            OpenConnection();
             return comm.ExecuteScalar();
         }
 
@@ -1373,34 +1570,6 @@ namespace Repository.ObjectMapper
         }
 
 
-        /// <summary>
-        ///   Free the DbConnection associated with the ObjectMapper  
-        /// </summary>
-        private void Dispose(bool explicitlyCalled)
-        {
-            if (m_disposed)
-                throw new ObjectDisposedException(typeof(ObjectMapper).Name);
-
-            if (explicitlyCalled)
-            {
-                // get rid of managed resources
-                if (m_connection != null)
-                {
-                    if( m_connection.State != ConnectionState.Closed)
-                        m_connection.Close();
-
-                    m_connection.Dispose();
-                }
-
-                m_disposed = true;
-            }
-
-            // get rid of unmanaged resources            
-
-            //
-            // When an object is executing its finalization code, it should not reference other objects, because finalizers do not execute in any particular order. 
-            // If an executing finalizer references another object that has already been finalized, the executing finalizer will fail.
-        }
 
 
 
