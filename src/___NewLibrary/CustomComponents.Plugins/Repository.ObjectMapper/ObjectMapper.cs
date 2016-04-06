@@ -33,6 +33,7 @@ namespace Repository.ObjectMapper
         const int SchemaInitCapacity = 53;
         const int OperatorsInitCapacity = 23;
         const int ClrTypesMappingCapacity = 47;
+        const string scopy_id_name = "Scope_Identity";
 
 
         #region Instance Fields
@@ -44,8 +45,8 @@ namespace Repository.ObjectMapper
         readonly int m_commandTimeout = 30;
 
         // queue for commands
-        readonly List<InsertCommand> m_insertCommandsQueue   = new List<InsertCommand>();
         readonly List<SelectInfo> m_selectedObjects          = new List<SelectInfo>();
+        readonly List<object> m_insertCommandsQueue          = new List<object>();
         readonly List<object> m_deleteObjectQueue            = new List<object>();
 
 
@@ -79,33 +80,6 @@ namespace Repository.ObjectMapper
 
 
         #region Helper Classes
-
-
-
-        /// <summary>
-        ///     A class that holds the command of insert that will run against SQL Database and holds the object that holds update in the identity column if available.
-        /// </summary>
-        class InsertCommand
-        {
-            public String CommandText { get; private set; }
-
-            public object Object { get; private set; }
-
-            public InsertCommand(string insertCmd, object obj)
-            {
-                if (string.IsNullOrEmpty(insertCmd))
-                    throw new ArgumentException("insertCmd");
-
-                if (obj == null)
-                    throw new ArgumentNullException("obj");
-
-                this.CommandText = insertCmd;
-                this.Object = obj;
-            }
-        }
-
-
-
         /// <summary>
         ///     A class that holds the object returned by ObjectMapper and the hash for all properties.
         ///     It contains also a method that returns the updated/changed properties names of that object.
@@ -582,7 +556,7 @@ namespace Repository.ObjectMapper
         /// <param name="objRepresentor">The object type</param>
         /// <param name="scopeIdentity">The propertyName that is the Identity for obj object</param>
         /// <returns>The SQL Command</returns>
-        private static String PrepareInsertCmd<T>(Type type, T obj, Type objRepresentor, string scopeIdentity) where T : class
+        private static String PrepareInsertCmd<T>(T obj, string scopeIdentity) where T : class
         {
 
             //
@@ -590,7 +564,9 @@ namespace Repository.ObjectMapper
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = s_TypesToMetadataMapper[type];         // Get schema information for specific Type
+            Debug.Assert(obj != null);
+            Type objRepresentor = obj.GetType();
+            TypeSchema schema = s_TypesToMetadataMapper[objRepresentor];         // Get schema information for specific Type
 
 
             StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'insert [{0}] (".Frmt(schema.TableName));
@@ -673,7 +649,7 @@ namespace Repository.ObjectMapper
         /// <param name="obj">The object that update command is being build from.</param>
         /// <param name="propertiesChanged">The array of properties that have change since the Select operation</param>
         /// <returns>The SQL Command</returns>
-        private static String PrepareUpdateCmd<T>(Type type, T obj, string[] propertiesChanged) where T : class
+        private static String PrepareUpdateCmd<T>(T obj, string[] propertiesChanged) where T : class
         {
             Type objRepresentor = obj.GetType();
 
@@ -682,10 +658,10 @@ namespace Repository.ObjectMapper
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = s_TypesToMetadataMapper[type];
+            TypeSchema schema = s_TypesToMetadataMapper[objRepresentor];
 
             if (schema.Keys.Count == 0)
-                throw new InvalidOperationException("Type {0} must have at least one key for updating".Frmt(type.Name));
+                throw new InvalidOperationException("Type {0} must have at least one key for updating".Frmt(objRepresentor.Name));
 
             //
             // Update only if we have keys, to find the tuple
@@ -1141,7 +1117,7 @@ namespace Repository.ObjectMapper
         /// <summary>
         ///     Cleanup commands that are on hold. Called on Submit().
         /// </summary>        
-        private void ClearnupCommands()
+        private void CleanupCommands()
         {
             m_insertCommandsQueue.Clear();
             m_selectedObjects.Clear();
@@ -1153,17 +1129,16 @@ namespace Repository.ObjectMapper
         ///     If the object that belongs to the insertCmd has Identity property it will be updated through reflection automatically.
         /// </summary>
         /// <returns>true if has identity and was updated, otherwise return false.</returns>
-        private bool ExecuteInsert_UpdateIdentity(InsertCommand insertCmd)
+        private bool ExecuteInsert_UpdateIdentity(object obj, string insertCmd)
         {
+            Debug.Assert(obj != null);
             Debug.Assert(insertCmd != null);
-            Debug.Assert(!string.IsNullOrEmpty(insertCmd.CommandText));
-            Debug.Assert(insertCmd.Object != null);
 
-            Type insertObjRepresentor = insertCmd.Object.GetType();
+            Type insertObjRepresentor = obj.GetType();
             TypeSchema schema = s_TypesToMetadataMapper[insertObjRepresentor];
 
             // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, insertCmd.CommandText);
+            DbCommand cmd = CmdForConnection(CommandType.Text, insertCmd);
 
             // If Identity is not setted, execute the query and ignore the rest
             if (schema.IdentityPropertyName == null)
@@ -1189,7 +1164,7 @@ namespace Repository.ObjectMapper
             object converted_identity = Convert.ChangeType(scope_identity, pi.PropertyType);
 
             // Set property identity
-            pi.SetValue(insertCmd.Object, converted_identity, null);
+            pi.SetValue(obj, converted_identity, null);
             return true;
         }
 
@@ -1429,23 +1404,15 @@ namespace Repository.ObjectMapper
             if (obj == null)
                 throw new ArgumentNullException("obj");
 
-            Type objRepresentor = obj.GetType();
-
-            string scopy_id_name = "Scope_Identity";
-
             // Lock-Free
-            ConfigureMetadataFor(objRepresentor);
+            ConfigureMetadataFor(obj.GetType());
 
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            TypeSchema schema = s_TypesToMetadataMapper[objRepresentor];
-
-            // Prepare insert statement for type
-            String insertCmd = PrepareInsertCmd(objRepresentor, obj, objRepresentor, scopy_id_name);
-            m_insertCommandsQueue.Add(new InsertCommand(insertCmd, obj));
+            m_insertCommandsQueue.Add(obj);            
         }
 
 
@@ -1512,57 +1479,49 @@ namespace Repository.ObjectMapper
             // Open connection if not opened
             OpenConnection();
 
-            for (int i = 0; i < m_insertCommandsQueue.Count; i++)
+            // Inserts
+            foreach(object @objInsert in m_insertCommandsQueue)
             {
-                InsertCommand insertCmd = this.m_insertCommandsQueue[i];
-                bool insertResult = ExecuteInsert_UpdateIdentity(insertCmd);
+                // Prepare insert statement for type
+                String insertCmd = PrepareInsertCmd(@objInsert, scopy_id_name);
+                bool insertResult = ExecuteInsert_UpdateIdentity(objInsert, insertCmd);
                 operationsPerformed++;
 
                 if (!insertResult)
                     continue;
             }
 
-            for (int i = 0; i < m_selectedObjects.Count; i++)
+            // Updates
+            foreach(SelectInfo selectInfo in m_selectedObjects)
             {
-                SelectInfo selectInfo = this.m_selectedObjects[i];
                 string[] propertiesChanged = selectInfo.GetPropertiesChanged();
-                if( propertiesChanged != null)
+                if (propertiesChanged != null)
                 {
                     object o = selectInfo.Object;
 
                     // Prepare update statement for type
-                    String updateCmd = PrepareUpdateCmd(o.GetType(), o, propertiesChanged);
+                    String updateCmd = PrepareUpdateCmd(o, propertiesChanged);
                     bool updateResult = ExecuteUpdate(updateCmd);
 
                     if (updateResult)
                         operationsPerformed++;
                 }
-
-                //object @objUpdate = this.m_updateObjectsQueue[i];
-
-                //// Prepare update statement for type
-                //String updateCmd = PrepareUpdateCmd(objUpdate.GetType(), @objUpdate);
-                //bool updateResult = ExecuteUpdate(updateCmd);
-
-                //if( updateResult )
-                //    operationsPerformed++;
-
             }
-
-            for (int i = 0; i < m_deleteObjectQueue.Count; i++)
+            
+            // Deletes
+            foreach(object @objDelete in m_deleteObjectQueue)
             {
-                object @objDelete = this.m_deleteObjectQueue[i];
-
                 // Prepare delete statement for type
                 String deleteCmd = PrepareDeleteCmd(@objDelete.GetType(), @objDelete);
                 bool deleteResult = ExecuteDelete(deleteCmd);
 
                 if (deleteResult)
                     operationsPerformed++;
-            }
+            }    
 
+            // Cleanup
             CloseConnection();
-            ClearnupCommands();
+            CleanupCommands();
             return operationsPerformed;
 
         }
