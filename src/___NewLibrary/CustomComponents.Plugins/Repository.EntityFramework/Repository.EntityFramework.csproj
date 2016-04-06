@@ -48,7 +48,6 @@
   <ItemGroup>
     <Compile Include="Interfaces\IRepositorySet.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Types\DbContextRepository.cs" />
     <Compile Include="Enums\Entry.cs" />
     <Compile Include="Types\DbContextRepository\DbContextRepository.cs" />
     <Compile Include="Types\ObjectContextRepository\ObjectContextRepository.cs" />

@@ -78,17 +78,32 @@ namespace CustomComponents.ConsoleApplication
             c2.name = "Sports_updated";
             c3.name = "Eletronics_updated";
 
-            mapper.UpdateMany(c1, c2, c3);
+            // mapper.UpdateMany(c1, c2, c3);
             //mapper.Update(c1);
             //mapper.Update(c2);
             //mapper.Update(c3);
 
             mapper.Submit();
 
+            IList<Category> categories = mapper.Select<Category>();
+
+            if (categories.Count > 0)
+            {
+                categories[0].lastModifiedDate = DateTime.Now;
+                categories[0].name += "updated";
+            }
+
+            if (categories.Count > 1)
+            {
+                categories[1].lastModifiedDate = DateTime.Now;
+                categories[1].name += "updated";
+            }
+           
+
             mapper.Delete(c1);
             c3.extraInfo = "XPTO TESTE";
 
-            mapper.Update(c3);
+            // mapper.Update(c3);
             mapper.Submit();
 
 
