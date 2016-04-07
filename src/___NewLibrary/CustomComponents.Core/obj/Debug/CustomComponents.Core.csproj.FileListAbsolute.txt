@@ -22,3 +22,7 @@ C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Core\bin\Debug\CustomC
 C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Core\bin\Debug\CustomComponents.Core.pdb
 C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Core\obj\Debug\CustomComponents.Core.dll
 C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Core\obj\Debug\CustomComponents.Core.pdb
+<<<<<<< HEAD
+=======
+C:\Repositories\csharp\src\___NewLibrary\CustomComponents.Core\obj\Debug\CustomComponents.Core.csprojResolveAssemblyReference.cache
+>>>>>>> parent of 4208672... Renaming ___NewLibrary to CustomComponentsFramework
