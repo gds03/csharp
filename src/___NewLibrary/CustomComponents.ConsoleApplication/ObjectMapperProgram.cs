@@ -81,8 +81,6 @@ namespace CustomComponents.ConsoleApplication
 
             // mapper.UpdateMany(c1, c2, c3);
             //mapper.Update(c1);
-            //mapper.Update(c2);
-            //mapper.Update(c3);
 
             mapper.Submit();
 
@@ -117,13 +115,14 @@ namespace CustomComponents.ConsoleApplication
         {
             ObjectMapper mapper = new ObjectMapper(CONNECTION_STRING);
 
-            ObjectMapper.Initialization += i =>
+            ObjectMapper.Configuration(i =>
             {
                 i.For<Category>().PrimaryKey(x => x.id)
-                                 .Identity(x => x.id);
-                                    // .OtherFluentMethodsHere()
-
-            };
+                                 .Identity(x => x.id)
+                                 // .BindFrom()
+                                 // .BindTo()
+                                 ;
+            });
 
             AddCategoriesAndUpdate(mapper);
         }

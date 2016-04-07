@@ -1,10 +1,10 @@
 ﻿
 //
-// Released at: 17 February 2012
+// Released at: 17 February 2012 v1.0
 // Author: Goncalo Dias
 //
 //
-// Last updated date: 05-04-2016
+// Last updated date: 07-04-2016
 //
 
 
@@ -15,16 +15,13 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Reflection;
 using System.Threading;
-using System.Text;
 using System.Data;
-using System.Linq;
 using Repository.ObjectMapper.Attributes;
 using Repository.ObjectMapper.Exceptions;
 using Repository.ObjectMapper.Types;
 using System.Linq.Expressions;
 using System.Diagnostics;
 using Repository.ObjectMapper.Types.Mappings;
-using Repository.ObjectMapper.Internal.Commands;
 using Repository.ObjectMapper.Internal;
 using Repository.ObjectMapper.Internal.CLR2SQL;
 using Repository.ObjectMapper.Providers;
@@ -72,6 +69,7 @@ namespace Repository.ObjectMapper
 
         private static volatile object s_metadataLoaded;
         private static volatile object s_metadataLoading;
+        private static volatile Action<InitializationMetadata> s_InitializationUserFunc;
 
 
         #endregion
@@ -165,49 +163,10 @@ namespace Repository.ObjectMapper
 
 
 
-        #region Events
-
-
-        public static event Action<InitializationMetadata> Initialization;       // must be protected with lock
-
-
-        #endregion
-
-
-
 
 
 
         #region Private Static Methods        
-
-
-        /// <summary>
-        ///     Checks if ObjectMapper is already initialized.
-        ///     If is not, execute Initialization event to configure initial properties for objects.
-        /// </summary>
-        /// <returns>true if this call executed Initialization event, otherwise false.</returns>
-        private static bool CheckInitialization()
-        {
-            SpinWait sWaiter = new SpinWait();
-
-            do
-            {
-                bool initialized = (s_metadataLoaded != null);
-
-                if (initialized == true)
-                    return false;
-
-                if( !initialized && Interlocked.CompareExchange(ref s_metadataLoading, new object(), null) == null)
-                {
-                    Initialization(new InitializationMetadata());
-                    Interlocked.Exchange(ref s_metadataLoaded, new object());
-                    return true;
-                }
-
-                sWaiter.SpinOnce();
-
-            } while (true);
-        }
        
 
         /// <summary>
@@ -698,12 +657,50 @@ namespace Repository.ObjectMapper
             return value.ToString();
         }
 
-        #endregion 
+        #endregion
 
 
 
 
 
+        #region Public Static Methods
+
+
+        /// <summary>
+        ///     Allows user to configure fluently types options/properties that will be used by the ObjectMapper.
+        /// </summary>
+        /// <param name="userFunc"></param>
+        public static void Configuration(Action<InitializationMetadata> userFunc)
+        {
+            if (userFunc == null)
+                throw new ArgumentNullException("userFunc");
+
+            
+            SpinWait sWait = new SpinWait();
+            do
+            {
+                Action<InitializationMetadata> func = s_InitializationUserFunc;
+
+                if (func != null)
+                    throw new InvalidOperationException("Initialization code is already defined");
+
+                if ( func == null && Interlocked.CompareExchange(ref s_InitializationUserFunc, userFunc, null) == null)
+                {
+                    userFunc(new InitializationMetadata());
+                    return;
+                }
+
+                sWait.SpinOnce();
+            }
+            while (true);
+
+
+                  
+        }
+
+
+
+        #endregion
 
 
 
@@ -722,9 +719,6 @@ namespace Repository.ObjectMapper
         /// <returns>A list of objects with their properties filled that aren't annotated with [Exclude] attribute</returns>
         public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) where T : class
         {
-            // Lock-Free
-            CheckInitialization();
-
             // Lock-Free
             AddMetadataFor(typeof(T));
 
@@ -759,9 +753,6 @@ namespace Repository.ObjectMapper
             where T1 : class
             where T2 : class
         {
-            // Lock-Free
-            CheckInitialization();
-
             // Lock-Free
             AddMetadataFor(typeof(T1));
             AddMetadataFor(typeof(T2));
@@ -811,9 +802,6 @@ namespace Repository.ObjectMapper
             where T2 : class
             where T3 : class
         {
-            // Lock-Free
-            CheckInitialization();
-
             // Lock-Free
             AddMetadataFor(typeof(T1));
             AddMetadataFor(typeof(T2));
@@ -876,9 +864,6 @@ namespace Repository.ObjectMapper
             Type type = typeof(T);
 
             // Lock-Free
-            CheckInitialization();
-
-            // Lock-Free
             AddMetadataFor(type);
 
             //
@@ -916,9 +901,6 @@ namespace Repository.ObjectMapper
                 throw new ArgumentNullException("obj");
 
             // Lock-Free
-            CheckInitialization();
-
-            // Lock-Free
             AddMetadataFor(obj.GetType());
 
             //
@@ -954,9 +936,6 @@ namespace Repository.ObjectMapper
         {
             if (obj == null)
                 throw new ArgumentNullException("obj");
-
-            // Lock-Free
-            CheckInitialization();
 
             // Lock-Free
             AddMetadataFor(obj.GetType());
@@ -1060,9 +1039,6 @@ namespace Repository.ObjectMapper
                 throw new ArgumentNullException("obj");
 
             Type type = obj.GetType();
-
-            // Lock-Free
-            CheckInitialization();
 
             // Lock-Free
             AddMetadataFor(type);

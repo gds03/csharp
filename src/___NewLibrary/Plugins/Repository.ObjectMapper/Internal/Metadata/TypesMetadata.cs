@@ -13,7 +13,7 @@ namespace Repository.ObjectMapper.Internal.Metadata
         // FluentAPI
         public TypesMetadata<T> PrimaryKey(Expression<Func<T, object>> selector)
         {
-            TypeSchema schema = this.GetSchema();
+            TypeSchema schema = GetSchema();
             string selected = GetPropertySelected(selector);
 
             if (!schema.Keys.Any(x => x.Key == selected))
@@ -27,7 +27,7 @@ namespace Repository.ObjectMapper.Internal.Metadata
 
         public TypesMetadata<T> Identity(Expression<Func<T, object>> selector)
         {
-            TypeSchema schema = this.GetSchema();
+            TypeSchema schema = GetSchema();
             string selected = GetPropertySelected(selector);
 
             schema.IdentityPropertyName = selected;
@@ -35,15 +35,33 @@ namespace Repository.ObjectMapper.Internal.Metadata
         }
 
 
+        public TypesMetadata<T> BindFrom(string FromSQLColumnName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypesMetadata<T> BindTo(string ToSQLColumnName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public TypesMetadata<T> Exclude(Expression<Func<T, object>> selector)
+        {
+            throw new NotImplementedException();
+        }
 
 
-        private TypeSchema GetSchema()
+
+        #region Helper Methods
+
+
+        private static TypeSchema GetSchema()
         {
             return ObjectMapper.AddMetadataFor(typeof(T));
         }
 
 
-        private string GetPropertySelected(Expression<Func<T, object>> selector)
+        private static string GetPropertySelected(Expression<Func<T, object>> selector)
         {
             UnaryExpression uex = selector.Body as UnaryExpression;
 
@@ -52,5 +70,8 @@ namespace Repository.ObjectMapper.Internal.Metadata
             if (uex == null) throw new NotSupportedException("Only Member Expressions are supported by ObjectMapper");
             return mex.Member.Name;
         }
+
+
+        #endregion
     }
 }
