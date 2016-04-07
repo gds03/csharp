@@ -27,7 +27,7 @@ namespace Repository.ObjectMapper.Types
 
             this.TableName = clrType.Name;
 
-            int totalPropertiesCount = clrType.GetProperties(ObjectMapper.s_bindingflags).Length;
+            int totalPropertiesCount = clrType.GetProperties(ObjectMapper.s_PropertiesFlags).Length;
             Keys = new Dictionary<string, KeyMapping>(totalPropertiesCount);
             Columns = new Dictionary<string, ColumnMapping>(totalPropertiesCount);
             Procedures = new Dictionary<string, ProcMapping>(8);

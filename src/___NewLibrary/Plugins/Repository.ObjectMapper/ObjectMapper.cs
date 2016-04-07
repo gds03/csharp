@@ -29,6 +29,7 @@ using Repository.ObjectMapper.Internal;
 using Repository.ObjectMapper.Internal.CLR2SQL;
 using Repository.ObjectMapper.Providers;
 using Repository.ObjectMapper.Interfaces;
+using Repository.ObjectMapper.Internal.Metadata;
 
 namespace Repository.ObjectMapper
 {
@@ -41,10 +42,11 @@ namespace Repository.ObjectMapper
 
 
 
-        #region Instance Fields
+        #region Private Instance Fields
 
         // member fields
         bool m_disposed;
+
         readonly DbConnection m_connection;
         readonly DbTransaction m_transaction;
         readonly int m_commandTimeout = 30;
@@ -65,19 +67,30 @@ namespace Repository.ObjectMapper
 
 
 
+        #region Private Static Fields
+
+
+        private static volatile object s_metadataLoaded;
+        private static volatile object s_metadataLoading;
+
+
+        #endregion
+
+
+
+
         #region Internal Static Fields
 
-        internal static readonly BindingFlags s_bindingflags = BindingFlags.Public | BindingFlags.Instance;
-
+        internal static readonly BindingFlags s_PropertiesFlags = BindingFlags.Public | BindingFlags.Instance;
 
         // For specific type, stores the properties that must be mapped from SQL (Accessed in context of multiple threads)
-        internal static volatile Dictionary<Type, TypeSchema> s_TypesToMetadataMapper;
+        internal static volatile Dictionary<Type, TypeSchema> s_TypesSchemaMapper;
 
         // Map expressionType (LINQ expression nodes to strings (e.g && -> AND, || -> OR, etc..)
-        internal static readonly Dictionary<ExpressionType, String> s_ExpressionMapper;
+        internal static readonly Dictionary<ExpressionType, String> s_ExpressionToSQLMapper;
 
         // Maps .CLR types to SQL types
-        internal static readonly Dictionary<Type, String> s_ClrTypeToSqlTypeMapper;
+        internal static readonly Dictionary<Type, String> s_ClrToSqlTypesMapper;
 
 
 
@@ -91,9 +104,9 @@ namespace Repository.ObjectMapper
 
         static ObjectMapper()
         {
-            s_TypesToMetadataMapper = new Dictionary<Type, TypeSchema>(SchemaInitCapacity);
-            s_ExpressionMapper = CLRExpressionLinq2SQLExpressionLogicNames.GetConversions(OperatorsInitCapacity);
-            s_ClrTypeToSqlTypeMapper = CLRTypes2SQLTypes.GetConversions(ClrTypesMappingCapacity);
+            s_TypesSchemaMapper = new Dictionary<Type, TypeSchema>(SchemaInitCapacity);
+            s_ExpressionToSQLMapper = CLRExpressionLinq2SQLExpressionLogicNames.GetConversions(OperatorsInitCapacity);
+            s_ClrToSqlTypesMapper = CLRTypes2SQLTypes.GetConversions(ClrTypesMappingCapacity);
         }
 
 
@@ -148,18 +161,53 @@ namespace Repository.ObjectMapper
 
         #endregion
 
-     
 
 
 
 
-        #region Static Methods
+        #region Events
 
 
-        
+        public static event Action<InitializationMetadata> Initialization;       // must be protected with lock
 
-        
 
+        #endregion
+
+
+
+
+
+
+        #region Private Static Methods        
+
+
+        /// <summary>
+        ///     Checks if ObjectMapper is already initialized.
+        ///     If is not, execute Initialization event to configure initial properties for objects.
+        /// </summary>
+        /// <returns>true if this call executed Initialization event, otherwise false.</returns>
+        private static bool CheckInitialization()
+        {
+            SpinWait sWaiter = new SpinWait();
+
+            do
+            {
+                bool initialized = (s_metadataLoaded != null);
+
+                if (initialized == true)
+                    return false;
+
+                if( !initialized && Interlocked.CompareExchange(ref s_metadataLoading, new object(), null) == null)
+                {
+                    Initialization(new InitializationMetadata());
+                    Interlocked.Exchange(ref s_metadataLoaded, new object());
+                    return true;
+                }
+
+                sWaiter.SpinOnce();
+
+            } while (true);
+        }
        
 
         /// <summary>
@@ -182,7 +230,7 @@ namespace Repository.ObjectMapper
             }
 
             // Iterate over each property of the type
-            foreach (PropertyInfo pi in type.GetProperties(s_bindingflags))
+            foreach (PropertyInfo pi in type.GetProperties(s_PropertiesFlags))
             {
                 bool mapProperty = true;                                    // Always to map, unless specified Exclude costum attribute
                 bool isPrimaryKey = false;                                  // Only if attribute were found, sets this flag to true
@@ -287,46 +335,10 @@ namespace Repository.ObjectMapper
         {
 
             TypeSchema schema = ObjectMapper.CreateSchema(type);
-            return new Dictionary<Type, TypeSchema>(s_TypesToMetadataMapper) { { type, schema } };
+            return new Dictionary<Type, TypeSchema>(s_TypesSchemaMapper) { { type, schema } };
         }
 
 
-
-        /// <summary>
-        ///     Loads or adds metadata (Schema) to the static dictionary that holds all the information related to all types handled by ObjectMapper.
-        /// </summary>
-        /// <param name="type">The type that will cause metadata to be loaded or added.</param>
-        private static void ConfigureMetadataFor(Type type)
-        {
-            Debug.Assert(type != null);
-
-            do
-            {
-                TypeSchema s;
-
-                if (s_TypesToMetadataMapper.TryGetValue(type, out s)) // Typically, this is the most common case to occur
-                    break;
-
-                //
-                // Schema must be setted! - multiple threads can be here;
-                // Threads can be here concurrently when a new type is added, 
-                // or then 2 or more threads are setting the same type metadata
-                // 
-
-                Dictionary<Type, TypeSchema> backup = s_TypesToMetadataMapper;                   // Get a local copy for each thread.
-                var newSchema = ObjectMapper.NewCopyWithAddedTypeSchema(type);                   // Copy and add metadata for specific Type
-
-
-#pragma warning disable 420
-
-                if (s_TypesToMetadataMapper == backup && Interlocked.CompareExchange(ref s_TypesToMetadataMapper, newSchema, backup) == backup)
-                    break;
-
-#pragma warning restore 420
-
-            }
-            while (true);
-        }
 
 
 
@@ -424,7 +436,7 @@ namespace Repository.ObjectMapper
 
 
             Type type = typeof(T);
-            TypeSchema schema = s_TypesToMetadataMapper[type];
+            TypeSchema schema = s_TypesSchemaMapper[type];
 
             //
             // If we are here, the properties for specific type are filled 
@@ -519,7 +531,7 @@ namespace Repository.ObjectMapper
             Debug.Assert(insertCmd != null);
 
             Type insertObjRepresentor = obj.GetType();
-            TypeSchema schema = s_TypesToMetadataMapper[insertObjRepresentor];
+            TypeSchema schema = s_TypesSchemaMapper[insertObjRepresentor];
 
             // Command Setup parameters
             DbCommand cmd = CmdForConnection(CommandType.Text, insertCmd);
@@ -590,12 +602,51 @@ namespace Repository.ObjectMapper
         #region Internal Static Methods
 
 
+
+        /// <summary>
+        ///     Loads or adds metadata (Schema) to the static dictionary that holds all the information related to all types handled by ObjectMapper.
+        /// </summary>
+        /// <param name="type">The type that will cause metadata to be loaded or added.</param>
+        internal static TypeSchema AddMetadataFor(Type type)
+        {
+            Debug.Assert(type != null);
+
+            do
+            {
+                TypeSchema s;
+
+                if (s_TypesSchemaMapper.TryGetValue(type, out s)) // Typically, this is the most common case to occur
+                    return s;
+
+                //
+                // Schema must be setted! - multiple threads can be here;
+                // Threads can be here concurrently when a new type is added, 
+                // or then 2 or more threads are setting the same type metadata
+                // 
+
+                Dictionary<Type, TypeSchema> backup = s_TypesSchemaMapper;                   // Get a local copy for each thread.
+                var newSchema = ObjectMapper.NewCopyWithAddedTypeSchema(type);                   // Copy and add metadata for specific Type
+
+
+#pragma warning disable 420
+
+                if (s_TypesSchemaMapper == backup && Interlocked.CompareExchange(ref s_TypesSchemaMapper, newSchema, backup) == backup)
+                    return newSchema[type];
+
+#pragma warning restore 420
+
+            }
+            while (true);
+        }
+
+
+
         /// <summary>
         ///     Get SQL column mapping to the respective propertyName.
         /// </summary>
         internal static String GetMappingForProperty(Type t, String propertyName)
         {
-            TypeSchema schema = s_TypesToMetadataMapper[t];
+            TypeSchema schema = s_TypesSchemaMapper[t];
             Debug.Assert(schema != null);
 
             ColumnMapping cm = schema.Columns[propertyName];
@@ -653,6 +704,10 @@ namespace Repository.ObjectMapper
 
 
 
+
+
+
+
         #region Public Interface
 
 
@@ -668,7 +723,10 @@ namespace Repository.ObjectMapper
         public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) where T : class
         {
             // Lock-Free
-            ConfigureMetadataFor(typeof(T));
+            CheckInitialization();
+
+            // Lock-Free
+            AddMetadataFor(typeof(T));
 
             //
             // If we are here, the properties for specific type are filled 
@@ -702,8 +760,11 @@ namespace Repository.ObjectMapper
             where T2 : class
         {
             // Lock-Free
-            ConfigureMetadataFor(typeof(T1));
-            ConfigureMetadataFor(typeof(T2));
+            CheckInitialization();
+
+            // Lock-Free
+            AddMetadataFor(typeof(T1));
+            AddMetadataFor(typeof(T2));
 
             //
             // If we are here, the properties for specific type are filled 
@@ -751,9 +812,12 @@ namespace Repository.ObjectMapper
             where T3 : class
         {
             // Lock-Free
-            ConfigureMetadataFor(typeof(T1));
-            ConfigureMetadataFor(typeof(T2));
-            ConfigureMetadataFor(typeof(T3));
+            CheckInitialization();
+
+            // Lock-Free
+            AddMetadataFor(typeof(T1));
+            AddMetadataFor(typeof(T2));
+            AddMetadataFor(typeof(T3));
 
             //
             // If we are here, the properties for specific type are filled 
@@ -812,14 +876,17 @@ namespace Repository.ObjectMapper
             Type type = typeof(T);
 
             // Lock-Free
-            ConfigureMetadataFor(type);
+            CheckInitialization();
+
+            // Lock-Free
+            AddMetadataFor(type);
 
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            TypeSchema schema = s_TypesToMetadataMapper[type];         // Get schema information for specific Type
+            TypeSchema schema = s_TypesSchemaMapper[type];         // Get schema information for specific Type
 
             // Prepare select statement for type
             
@@ -849,7 +916,10 @@ namespace Repository.ObjectMapper
                 throw new ArgumentNullException("obj");
 
             // Lock-Free
-            ConfigureMetadataFor(obj.GetType());
+            CheckInitialization();
+
+            // Lock-Free
+            AddMetadataFor(obj.GetType());
 
             //
             // If we are here, the properties for specific type are filled 
@@ -885,7 +955,11 @@ namespace Repository.ObjectMapper
             if (obj == null)
                 throw new ArgumentNullException("obj");
 
-            ConfigureMetadataFor(obj.GetType());
+            // Lock-Free
+            CheckInitialization();
+
+            // Lock-Free
+            AddMetadataFor(obj.GetType());
 
             //
             // If we are here, the properties for specific type are filled 
@@ -986,7 +1060,12 @@ namespace Repository.ObjectMapper
                 throw new ArgumentNullException("obj");
 
             Type type = obj.GetType();
-            ConfigureMetadataFor(type);
+
+            // Lock-Free
+            CheckInitialization();
+
+            // Lock-Free
+            AddMetadataFor(type);
 
 
             //
@@ -1001,13 +1080,13 @@ namespace Repository.ObjectMapper
             //
 
             Type objRepresentor = obj.GetType();
-            TypeSchema schema = s_TypesToMetadataMapper[type];
+            TypeSchema schema = s_TypesSchemaMapper[type];
 
             foreach (ProcMapping pm in schema.Procedures.Values)
             {
                 if ((pm.Mode & mode) == mode)      // Mode match!
                 {
-                    object value = objRepresentor.GetProperty(pm.Map.From, s_bindingflags).GetValue(obj, null);
+                    object value = objRepresentor.GetProperty(pm.Map.From, s_PropertiesFlags).GetValue(obj, null);
                     object value2 = value == null ? DBNull.Value : value;
 
                     cmd.Parameters.Add(new SqlParameter(pm.Map.To, value2));

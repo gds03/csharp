@@ -24,7 +24,7 @@ namespace Repository.ObjectMapper.Internal
 
             Object = initialStateObj;
             Type t = initialStateObj.GetType();
-            PropertyInfo[] properties = t.GetProperties(ObjectMapper.s_bindingflags);
+            PropertyInfo[] properties = t.GetProperties(ObjectMapper.s_PropertiesFlags);
             PropertiesHashInfo = new int[properties.Length];
 
             int i = 0;
@@ -43,7 +43,7 @@ namespace Repository.ObjectMapper.Internal
                 return null;
 
             Type t = Object.GetType();
-            PropertyInfo[] properties = t.GetProperties(ObjectMapper.s_bindingflags);
+            PropertyInfo[] properties = t.GetProperties(ObjectMapper.s_PropertiesFlags);
             List<string> changedProperties = new List<string>();
 
             int i = 0;

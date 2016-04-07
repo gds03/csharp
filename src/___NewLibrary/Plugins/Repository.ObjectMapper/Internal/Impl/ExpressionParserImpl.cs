@@ -41,7 +41,7 @@ namespace Repository.ObjectMapper.Internal.Impl
                 innerText.Append(recursiveResult);
                 innerText.Append(" ");
 
-                innerText.Append(ObjectMapper.s_ExpressionMapper[bExpr.NodeType]);      // Map node types to SQL operators
+                innerText.Append(ObjectMapper.s_ExpressionToSQLMapper[bExpr.NodeType]);      // Map node types to SQL operators
                 innerText.Append(" ");
 
                 recursiveResult = ParseFilter(bExpr.Right);               // Go right

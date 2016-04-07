@@ -30,7 +30,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = ObjectMapper.s_TypesToMetadataMapper[typeof(T)];         // Get schema information for specific Type
+            TypeSchema schema = ObjectMapper.s_TypesSchemaMapper[typeof(T)];         // Get schema information for specific Type
 
 
             cmdTxt.Append("select ");

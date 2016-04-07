@@ -57,6 +57,8 @@
     <Compile Include="Internal\Impl\Commands\SelectCommand.cs" />
     <Compile Include="Internal\Impl\Commands\UpdateCommand.cs" />
     <Compile Include="Internal\Impl\ExpressionParserImpl.cs" />
+    <Compile Include="Internal\Metadata\InitializationMetadata.cs" />
+    <Compile Include="Internal\Metadata\TypesMetadata.cs" />
     <Compile Include="ObjectMapper.cs" />
     <Compile Include="ObjectMapperRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

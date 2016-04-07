@@ -1,5 +1,6 @@
 ﻿using Repository.ObjectMapper;
 using Repository.ObjectMapper.Attributes;
+using Repository.ObjectMapper.Internal.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,8 +28,8 @@ namespace CustomComponents.ConsoleApplication
 
     public class Category
     {
-        [Identity]
-        [PrimaryKey]
+        //[Identity]
+        //[PrimaryKey] --> this is removed, now we use ObjectMapper.Initialize to initialize instead of use custom attributes.
         public int id { get; set; }
 
         public string name { get; set; }
@@ -97,11 +98,10 @@ namespace CustomComponents.ConsoleApplication
             {
                 categories[1].lastModifiedDate = DateTime.Now;
                 categories[1].name += "updated";
+                categories[1].extraInfo = "ExtraINFO here";
             }
-
-
+            
             mapper.Delete(c1);
-            c3.extraInfo = "XPTO TESTE";
 
             // mapper.Update(c3);
             mapper.Submit();
@@ -116,6 +116,15 @@ namespace CustomComponents.ConsoleApplication
         public static void Main(String[] args)
         {
             ObjectMapper mapper = new ObjectMapper(CONNECTION_STRING);
+
+            ObjectMapper.Initialization += i =>
+            {
+                i.For<Category>().PrimaryKey(x => x.id)
+                                 .Identity(x => x.id);
+                                    // .OtherFluentMethodsHere()
+
+            };
+
             AddCategoriesAndUpdate(mapper);
         }
     }

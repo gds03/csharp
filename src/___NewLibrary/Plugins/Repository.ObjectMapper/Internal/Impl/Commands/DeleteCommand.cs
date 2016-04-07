@@ -35,7 +35,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = ObjectMapper.s_TypesToMetadataMapper[objRepresentor];
+            TypeSchema schema = ObjectMapper.s_TypesSchemaMapper[objRepresentor];
 
             if (schema.Keys.Count == 0)
                 throw new InvalidOperationException("Type {0} must have at least one key for deleting".Frmt(objRepresentor.Name));
@@ -74,7 +74,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
             {
                 Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
 
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ObjectMapper.s_ClrTypeToSqlTypeMapper[propertyType]));
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ObjectMapper.s_ClrToSqlTypesMapper[propertyType]));
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last

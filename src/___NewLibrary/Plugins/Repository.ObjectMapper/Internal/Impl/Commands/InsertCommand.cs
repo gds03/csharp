@@ -32,7 +32,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
 
 
             Type objRepresentor = obj.GetType();
-            TypeSchema schema = ObjectMapper.s_TypesToMetadataMapper[objRepresentor];         // Get schema information for specific Type
+            TypeSchema schema = ObjectMapper.s_TypesSchemaMapper[objRepresentor];         // Get schema information for specific Type
 
 
             StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'insert [{0}] (".Frmt(schema.TableName));
@@ -77,7 +77,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
 
                 // set sql type based on property type of the object
                 Type propertyType = objRepresentor.GetProperty(cm.ClrProperty).PropertyType;
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ObjectMapper.s_ClrTypeToSqlTypeMapper[propertyType]));    // Map CLR property to SqlColumn Type 
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ObjectMapper.s_ClrToSqlTypesMapper[propertyType]));    // Map CLR property to SqlColumn Type 
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
