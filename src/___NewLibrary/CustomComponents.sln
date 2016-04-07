@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.Core", "CustomComponents.Core\CustomComponents.Core.csproj", "{48584AC1-403E-43FB-8C62-748F5CC6154D}"
 EndProject
@@ -9,15 +9,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.Repository
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.Mvc", "CustomComponents.Mvc\CustomComponents.Mvc.csproj", "{2C83EAC4-B94F-4C2F-901B-8BB1B92460A9}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{E8E57CD5-57ED-4C6D-8913-8F18026A6400}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repository.EntityFramework", "CustomComponents.Plugins\Repository.EntityFramework\Repository.EntityFramework.csproj", "{E8201F94-365B-49CD-806E-6429C90C8505}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logging.Log4net", "CustomComponents.Plugins\Logging.Log4net\Logging.Log4net.csproj", "{51717B52-2156-4C2D-A089-ECF299C752A1}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.Services", "CustomComponents.Services\CustomComponents.Services.csproj", "{4D1AF5FA-6BC6-4403-A45D-AD2BBF3B609A}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repository.ObjectMapper", "CustomComponents.Plugins\Repository.ObjectMapper\Repository.ObjectMapper.csproj", "{92025A68-039F-4FF3-BC77-060AFEA16495}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.WinForms", "CustomComponents.WinForms\CustomComponents.WinForms.csproj", "{6D0508D2-CC2E-412F-8574-7DE276195EEC}"
 EndProject
@@ -39,6 +31,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.ConsoleApp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomComponents.Tests", "CustomComponents.Tests\CustomComponents.Tests.csproj", "{F81F1978-A99E-4F47-991F-F68336424B0D}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{3AD75C14-EE49-4EA0-B11F-0008B8748AC3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logging.Log4net", "Plugins\Logging.Log4net\Logging.Log4net.csproj", "{51717B52-2156-4C2D-A089-ECF299C752A1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repository.EntityFramework", "Plugins\Repository.EntityFramework\Repository.EntityFramework.csproj", "{E8201F94-365B-49CD-806E-6429C90C8505}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repository.ObjectMapper", "Plugins\Repository.ObjectMapper\Repository.ObjectMapper.csproj", "{92025A68-039F-4FF3-BC77-060AFEA16495}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -57,22 +57,10 @@ Global
 		{2C83EAC4-B94F-4C2F-901B-8BB1B92460A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2C83EAC4-B94F-4C2F-901B-8BB1B92460A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2C83EAC4-B94F-4C2F-901B-8BB1B92460A9}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E8201F94-365B-49CD-806E-6429C90C8505}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E8201F94-365B-49CD-806E-6429C90C8505}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E8201F94-365B-49CD-806E-6429C90C8505}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E8201F94-365B-49CD-806E-6429C90C8505}.Release|Any CPU.Build.0 = Release|Any CPU
-		{51717B52-2156-4C2D-A089-ECF299C752A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{51717B52-2156-4C2D-A089-ECF299C752A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{51717B52-2156-4C2D-A089-ECF299C752A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{51717B52-2156-4C2D-A089-ECF299C752A1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4D1AF5FA-6BC6-4403-A45D-AD2BBF3B609A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4D1AF5FA-6BC6-4403-A45D-AD2BBF3B609A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4D1AF5FA-6BC6-4403-A45D-AD2BBF3B609A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4D1AF5FA-6BC6-4403-A45D-AD2BBF3B609A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{92025A68-039F-4FF3-BC77-060AFEA16495}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{92025A68-039F-4FF3-BC77-060AFEA16495}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{92025A68-039F-4FF3-BC77-060AFEA16495}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{92025A68-039F-4FF3-BC77-060AFEA16495}.Release|Any CPU.Build.0 = Release|Any CPU
 		{6D0508D2-CC2E-412F-8574-7DE276195EEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6D0508D2-CC2E-412F-8574-7DE276195EEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6D0508D2-CC2E-412F-8574-7DE276195EEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -105,16 +93,28 @@ Global
 		{F81F1978-A99E-4F47-991F-F68336424B0D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F81F1978-A99E-4F47-991F-F68336424B0D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F81F1978-A99E-4F47-991F-F68336424B0D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51717B52-2156-4C2D-A089-ECF299C752A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51717B52-2156-4C2D-A089-ECF299C752A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51717B52-2156-4C2D-A089-ECF299C752A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51717B52-2156-4C2D-A089-ECF299C752A1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E8201F94-365B-49CD-806E-6429C90C8505}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E8201F94-365B-49CD-806E-6429C90C8505}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E8201F94-365B-49CD-806E-6429C90C8505}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E8201F94-365B-49CD-806E-6429C90C8505}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92025A68-039F-4FF3-BC77-060AFEA16495}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92025A68-039F-4FF3-BC77-060AFEA16495}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92025A68-039F-4FF3-BC77-060AFEA16495}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92025A68-039F-4FF3-BC77-060AFEA16495}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{E8201F94-365B-49CD-806E-6429C90C8505} = {E8E57CD5-57ED-4C6D-8913-8F18026A6400}
-		{51717B52-2156-4C2D-A089-ECF299C752A1} = {E8E57CD5-57ED-4C6D-8913-8F18026A6400}
-		{92025A68-039F-4FF3-BC77-060AFEA16495} = {E8E57CD5-57ED-4C6D-8913-8F18026A6400}
 		{1B9398E6-C43B-47C2-A7B5-4FA00AAC1D7B} = {30052992-72AF-42F7-BE58-70E9E26FB41A}
 		{0DD2C80A-2C39-4AC3-8BE5-124161F5AF8C} = {30052992-72AF-42F7-BE58-70E9E26FB41A}
 		{096C5155-4FCB-442D-98AD-8EB1C2551832} = {3560F2F8-16F2-4E11-9056-8FEA2ED1887D}
+		{51717B52-2156-4C2D-A089-ECF299C752A1} = {3AD75C14-EE49-4EA0-B11F-0008B8748AC3}
+		{E8201F94-365B-49CD-806E-6429C90C8505} = {3AD75C14-EE49-4EA0-B11F-0008B8748AC3}
+		{92025A68-039F-4FF3-BC77-060AFEA16495} = {3AD75C14-EE49-4EA0-B11F-0008B8748AC3}
 	EndGlobalSection
 EndGlobal
