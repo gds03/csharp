@@ -67,9 +67,8 @@ namespace Repository.ObjectMapper
         #region Private Static Fields
 
 
-        private static volatile object s_metadataLoaded;
-        private static volatile object s_metadataLoading;
-        private static volatile Action<InitializationMetadata> s_InitializationUserFunc;
+        private static readonly object s_locker = new object();
+        private static Action<InitializationMetadata> s_InitializationUserFunc;
 
 
         #endregion
@@ -569,7 +568,7 @@ namespace Repository.ObjectMapper
         internal static TypeSchema AddMetadataFor(Type type)
         {
             Debug.Assert(type != null);
-
+            SpinWait sWait = new SpinWait();
             do
             {
                 TypeSchema s;
@@ -591,6 +590,8 @@ namespace Repository.ObjectMapper
 
                 if (s_TypesSchemaMapper == backup && Interlocked.CompareExchange(ref s_TypesSchemaMapper, newSchema, backup) == backup)
                     return newSchema[type];
+
+                sWait.SpinOnce();
 
 #pragma warning restore 420
 
@@ -672,30 +673,15 @@ namespace Repository.ObjectMapper
         /// <param name="userFunc"></param>
         public static void Configuration(Action<InitializationMetadata> userFunc)
         {
-            if (userFunc == null)
-                throw new ArgumentNullException("userFunc");
-
-            
-            SpinWait sWait = new SpinWait();
-            do
+            // use lock here since is called once - at startup time.
+            lock(s_locker)
             {
-                Action<InitializationMetadata> func = s_InitializationUserFunc;
-
-                if (func != null)
+                if(s_InitializationUserFunc != null)
                     throw new InvalidOperationException("Initialization code is already defined");
 
-                if ( func == null && Interlocked.CompareExchange(ref s_InitializationUserFunc, userFunc, null) == null)
-                {
-                    userFunc(new InitializationMetadata());
-                    return;
-                }
-
-                sWait.SpinOnce();
-            }
-            while (true);
-
-
-                  
+                userFunc(new InitializationMetadata());
+                s_InitializationUserFunc = userFunc;
+            }   
         }
 
 
@@ -890,8 +876,8 @@ namespace Repository.ObjectMapper
 
 
         /// <summary>
-        ///     Inserts the object on database and update the identity property in CLR object (if annotated with)
-        ///     The property annotated with Identity Attribute is ignored on insert command.
+        ///     Mark the object to be inserted once Submit() is called; 
+        ///     Identity property if defined is automatically updated in the object.
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to insert</typeparam>
         /// <param name="obj">The object that you want to insert</param>
@@ -913,7 +899,8 @@ namespace Repository.ObjectMapper
 
 
         /// <summary>
-        ///     Based on primary key of the type, insert collection of objects passed by parameter in database.
+        ///     Mark the objects to be inserted once Submit() is called; 
+        ///     Identity property if defined is automatically updated for each the object.
         /// </summary>
         /// <param name="objects">The objects that you want to insert</param>
         public void InsertMany(params object[] objects)
@@ -924,14 +911,13 @@ namespace Repository.ObjectMapper
                     this.Insert(o);
             }
         }
-        
+
 
         /// <summary>
-        ///     Based on primary key of the type, delete the object from database
+        ///     Based on primary key of the type, marks the object to be deleted from database
         /// </summary>
         /// <typeparam name="T">The type of the object that you want to delete. Note: This type must be annotated with [Key]</typeparam>
         /// <param name="obj">The object that you want to delete</param>
-        /// <returns>The number of affected rows in database</returns>
         public void Delete<T>(T obj) where T : class
         {
             if (obj == null)
@@ -949,7 +935,7 @@ namespace Repository.ObjectMapper
         }
 
         /// <summary>
-        ///     Based on primary key of the type, delete collection of objects passed by parameter in database.
+        ///     Based on primary key of the type, marks the objects to be deleted from database
         /// </summary>
         /// <param name="objects">The objects that you want to delete</param>
         public void DeleteMany(params object[] objects)
@@ -966,7 +952,7 @@ namespace Repository.ObjectMapper
 
         /// <summary>
         ///     Submit all the changes within the current instance.
-        ///     All entities obtained and updated and all entities that were inserted and deleted will be persisted in data storage.
+        ///     All entities that were inserted, deleted or retrieved and then updated will be persisted into data storage.
         /// </summary>
         /// <returns>The number commands that ran sucessfully against database.</returns>
         public int Submit()
