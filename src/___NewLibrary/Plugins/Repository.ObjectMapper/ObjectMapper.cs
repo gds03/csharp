@@ -24,6 +24,9 @@ using Repository.ObjectMapper.Types;
 using System.Linq.Expressions;
 using System.Diagnostics;
 using Repository.ObjectMapper.Types.Mappings;
+using Repository.ObjectMapper.Internal.Commands;
+using Repository.ObjectMapper.Internal;
+using Repository.ObjectMapper.Internal.CLR2SQL;
 
 namespace Repository.ObjectMapper
 {
@@ -45,7 +48,7 @@ namespace Repository.ObjectMapper
         readonly int m_commandTimeout = 30;
 
         // queue for commands
-        readonly List<SelectInfo> m_selectedObjects          = new List<SelectInfo>();
+        readonly List<SelectObjectInfo> m_selectedObjects          = new List<SelectObjectInfo>();
         readonly List<object> m_insertCommandsQueue          = new List<object>();
         readonly List<object> m_deleteObjectQueue            = new List<object>();
 
@@ -58,96 +61,35 @@ namespace Repository.ObjectMapper
 
 
 
-        #region Static Fields
+        #region Internal Static Fields
 
         internal static readonly BindingFlags s_bindingflags = BindingFlags.Public | BindingFlags.Instance;
 
-       
+
         // For specific type, stores the properties that must be mapped from SQL (Accessed in context of multiple threads)
-        private static volatile Dictionary<Type, TypeSchema> s_TypesToMetadataMapper = new Dictionary<Type, TypeSchema>(SchemaInitCapacity);
+        internal static volatile Dictionary<Type, TypeSchema> s_TypesToMetadataMapper;
 
         // Map expressionType (LINQ expression nodes to strings (e.g && -> AND, || -> OR, etc..)
-        private static readonly Dictionary<ExpressionType, String> s_ExpressionMapper = new Dictionary<ExpressionType, string>(OperatorsInitCapacity);
+        internal static readonly Dictionary<ExpressionType, String> s_ExpressionMapper;
 
         // Maps .CLR types to SQL types
-        private static readonly Dictionary<Type, String> s_ClrTypeToSqlTypeMapper = new Dictionary<Type, string>(ClrTypesMappingCapacity);
+        internal static readonly Dictionary<Type, String> s_ClrTypeToSqlTypeMapper;
 
 
 
         #endregion
 
 
-
-
-        #region Helper Classes
-        /// <summary>
-        ///     A class that holds the object returned by ObjectMapper and the hash for all properties.
-        ///     It contains also a method that returns the updated/changed properties names of that object.
-        /// </summary>
-        class SelectInfo
-        {
-            public object Object { get; private set; }
-
-            public int[] PropertiesHashInfo { get; private set; }
-
-
-            public SelectInfo(object initialStateObj)
-            {
-                if (initialStateObj == null)
-                    throw new ArgumentNullException("initialStateObj");
-
-                Object = initialStateObj;
-                Type t = initialStateObj.GetType();
-                PropertyInfo[] properties = t.GetProperties(s_bindingflags);
-                PropertiesHashInfo = new int[properties.Length];
-
-                int i = 0;
-                foreach (var pi in properties)
-                {
-                    object v = pi.GetValue(initialStateObj, null);
-                    int hash = (v == null) ? 0 : v.GetHashCode();
-                    PropertiesHashInfo[i] = hash;
-                    i++;
-                }
-            }
-
-            public string[] GetPropertiesChanged()
-            {
-                if (Object == null)
-                    return null;
-
-                Type t = Object.GetType();
-                PropertyInfo[] properties = t.GetProperties(s_bindingflags);
-                List<string> changedProperties = new List<string>();
-
-                int i = 0;
-                foreach (var pi in properties)
-                {
-                    object v = pi.GetValue(Object, null);
-                    int hash = (v == null) ? 0 : v.GetHashCode();
-                    if (PropertiesHashInfo[i] != hash)
-                        changedProperties.Add(pi.Name);
-
-                    i++;
-                }
-
-                return (changedProperties.Count == 0) ? null : changedProperties.ToArray();
-            }
-        }
-
-
-        #endregion
-
-
-
+   
 
         #region Constructors
 
 
         static ObjectMapper()
         {
-            SetExpressionOperator();
-            SetClrToSqlConversions();
+            s_TypesToMetadataMapper = new Dictionary<Type, TypeSchema>(SchemaInitCapacity);
+            s_ExpressionMapper = CLRExpressionLinq2SQLExpressionLogicNames.GetConversions(OperatorsInitCapacity);
+            s_ClrTypeToSqlTypeMapper = CLRTypes2SQLTypes.GetConversions(ClrTypesMappingCapacity);
         }
 
 
@@ -200,118 +142,19 @@ namespace Repository.ObjectMapper
 
         #endregion
 
-
-
-
-
      
 
 
 
 
-        #region Static Auxiliary Methods
+        #region Static Methods
 
 
-        /// <summary>
-        ///     Map LINQ expressions into string SQL operations.
-        /// </summary>
-        private static void SetExpressionOperator()
-        {
-            s_ExpressionMapper.Add(ExpressionType.AndAlso, "AND");
-            s_ExpressionMapper.Add(ExpressionType.Equal, "=");
-            s_ExpressionMapper.Add(ExpressionType.GreaterThan, ">");
-            s_ExpressionMapper.Add(ExpressionType.GreaterThanOrEqual, ">=");
-            s_ExpressionMapper.Add(ExpressionType.LessThan, "<");
-            s_ExpressionMapper.Add(ExpressionType.LessThanOrEqual, "<=");
-            s_ExpressionMapper.Add(ExpressionType.Modulo, "%");
-            s_ExpressionMapper.Add(ExpressionType.Multiply, "*");
-            s_ExpressionMapper.Add(ExpressionType.NotEqual, "<>");
-            s_ExpressionMapper.Add(ExpressionType.OrElse, "OR");
-            s_ExpressionMapper.Add(ExpressionType.Subtract, "-");
-            s_ExpressionMapper.Add(ExpressionType.Add, "+");
-        }
+        
 
-        /// <summary>
-        ///     Map CLR types into SQL Types
-        /// </summary>
-        private static void SetClrToSqlConversions()
-        {
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Boolean), "bit");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Byte), "tinyint");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Int16), "smallint");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Int32), "int");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Int64), "bigint");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Decimal), "decimal");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Single), "float");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Double), "float");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Enum), "int");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Char), "smallint");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(String), "nvarchar(max)");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Char[]), "nvarchar(max)");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(DateTime), "datetime");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(DateTimeOffset), "datetime2");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(TimeSpan), "time");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Byte[]), "image");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Guid), "uniqueidentifier");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Object), "sql_variant");
+        
 
-            // For nullables
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Boolean?), "bit");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Byte?), "tinyint");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Int16?), "smallint");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Int32?), "int");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Int64?), "bigint");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Decimal?), "decimal");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Single?), "float");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Double?), "float");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Char?), "smallint");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(DateTime?), "datetime");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(DateTimeOffset?), "datetime2");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(TimeSpan?), "time");
-            s_ClrTypeToSqlTypeMapper.Add(typeof(Guid?), "uniqueidentifier");
-        }
-
-        /// <summary>
-        ///     Converts value into string correctly formatted and supported by SQL.
-        /// </summary>
-        private static String PrepareValue(object value)
-        {
-            if (value == null)
-                return "NULL";
-
-            // We must know the concrete type
-            Type type = value.GetType();
-
-            if (type == typeof(bool))
-                return ((bool)value) ? "1" : "0";
-
-            if (type == typeof(DateTime))
-            {
-                DateTime d = (DateTime)value;
-                return "'" + d.ToString("yyyy-MM-dd HH:mm:ss") + "'";
-            }
-
-            if (type == typeof(Nullable<DateTime>))
-            {
-                DateTime? dn = (DateTime?)value;
-
-                if (dn.HasValue)
-                {
-                    return "'" + dn.Value.ToString("yyyy-MM-dd HH:mm:ss") + "'";
-                }
-                else
-                {
-                    return dn.ToString();
-                }
-            }
-
-            if (type == typeof(Guid) || type == typeof(String) || type == typeof(Char) || type == typeof(Char[]))
-                return "'" + value.ToString() + "'";
-
-
-            // return normal
-            return value.ToString();
-        }
+       
 
         /// <summary>
         ///     Create TypeSchema object representing the type and type properties in database.
@@ -480,471 +323,6 @@ namespace Repository.ObjectMapper
         }
 
 
-        /// <summary>
-        ///     Get SQL column mapping to the respective propertyName.
-        /// </summary>
-        private static String GetMappingForProperty(Type t, String propertyName)
-        {
-            TypeSchema schema = s_TypesToMetadataMapper[t];
-            Debug.Assert(schema != null);
-
-            ColumnMapping cm = schema.Columns[propertyName];
-            Debug.Assert(cm != null);
-
-            return cm.ToSqlTableColumn;
-        }
-
-
-
-        #region Commands Dynamic SQL Preparers
-
-
-        /// <summary>
-        ///     Creates a SQL string that will represent Select statement.
-        ///     This method will use parameterized queries.
-        /// </summary>
-        /// <typeparam name="T">The type of object being mapped.</typeparam>
-        /// <param name="type">The object type</param>
-        /// <param name="filter">The predicate to apply on where condition.</param>
-        /// <returns>The SQL Command</returns>
-        private static String PrepareSelectCmd<T>(Type type, Expression<Func<T, bool>> filter) where T : class
-        {
-            StringBuilder cmdTxt = new StringBuilder();
-
-            //
-            // Obtain local copy because another thread can change the reference of _typesSchema
-            // and we need iterate in a secure way.
-            //
-
-            TypeSchema schema = s_TypesToMetadataMapper[type];         // Get schema information for specific Type
-
-
-            cmdTxt.Append("select ");
-
-            // Select all columns that are mapped
-            foreach (ColumnMapping cm in schema.Columns.Values)
-            {
-                cmdTxt.Append("[{0}], ".Frmt(cm.FromResultSetColumn));
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            cmdTxt.Append(" from [{0}] ".Frmt(schema.TableName));
-
-            if (filter != null)
-            {
-                //
-                // Apply filter
-                //
-
-                cmdTxt.Append("where ");
-                String filtered = ObjectMapper.ParseFilter(filter.Body);
-
-                cmdTxt.Append(filtered);
-            }
-
-            return cmdTxt.ToString();
-        }
-
-
-        /// <summary>
-        ///     Creates a SQL string that will represent Insert statement.
-        ///     This method will use parameterized queries.
-        /// </summary>
-        /// <typeparam name="T">The type of object being mapped.</typeparam>
-        /// <param name="type">The object type</param>
-        /// <param name="obj">The object that will be updated with identity</param>
-        /// <param name="objRepresentor">The object type</param>
-        /// <param name="scopeIdentity">The propertyName that is the Identity for obj object</param>
-        /// <returns>The SQL Command</returns>
-        private static String PrepareInsertCmd<T>(T obj, string scopeIdentity) where T : class
-        {
-
-            //
-            // Obtain local copy because another thread can change the reference of _typesSchema
-            // and we need iterate in a secure way.
-            //
-
-            Debug.Assert(obj != null);
-            Type objRepresentor = obj.GetType();
-            TypeSchema schema = s_TypesToMetadataMapper[objRepresentor];         // Get schema information for specific Type
-
-
-            StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'insert [{0}] (".Frmt(schema.TableName));
-
-
-            // Build header (exclude identities)
-            foreach (ColumnMapping cm in schema.Columns.Values)
-            {
-                if (cm.ClrProperty == schema.IdentityPropertyName)                    // Identity Column never's updated!
-                    continue;
-
-                cmdTxt.Append("[{0}], ".Frmt(cm.ToSqlTableColumn));
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            cmdTxt.Append(") values (");
-
-            // Build body (exclude identities)
-            int paramIndex = 0;
-            foreach (ColumnMapping cm in schema.Columns.Values)
-            {
-                if (cm.ClrProperty == schema.IdentityPropertyName)                    // Identity Column never's updated!
-                    continue;
-
-                cmdTxt.Append("@{0}, ".Frmt(paramIndex++));
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            cmdTxt.Append(")");
-            cmdTxt.Append(" select SCOPE_IDENTITY() as [{0}]', N'".Frmt(scopeIdentity));
-
-
-            //
-            // Set parameter indexes and types,                                                     @0 varchar(max), @1 int, ...
-            //
-
-            paramIndex = 0;
-            foreach (ColumnMapping cm in schema.Columns.Values)
-            {
-                if (cm.ClrProperty == schema.IdentityPropertyName)                            // Identity Column never's updated!
-                    continue;
-
-                // set sql type based on property type of the object
-                Type propertyType = objRepresentor.GetProperty(cm.ClrProperty).PropertyType;
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, s_ClrTypeToSqlTypeMapper[propertyType]));    // Map CLR property to SqlColumn Type 
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
-            cmdTxt.Append("', ");   // Close quote and add comma
-
-
-            //
-            // Set parameter indexes and data
-            //
-
-            paramIndex = 0;
-            foreach (ColumnMapping cm in schema.Columns.Values)
-            {
-                if (cm.ClrProperty == schema.IdentityPropertyName)                            // Identity Column never's updated!
-                    continue;
-
-                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = ObjectMapper.PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
-
-                cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            return cmdTxt.ToString();
-        }
-
-
-
-        /// <summary>
-        ///     Creates a SQL string that will represent Update statement.
-        ///     This method will use parameterized queries.
-        /// </summary>
-        /// <typeparam name="T">The type of object being mapped.</typeparam>
-        /// <param name="type">The object type</param>
-        /// <param name="obj">The object that update command is being build from.</param>
-        /// <param name="propertiesChanged">The array of properties that have change since the Select operation</param>
-        /// <returns>The SQL Command</returns>
-        private static String PrepareUpdateCmd<T>(T obj, string[] propertiesChanged) where T : class
-        {
-            Type objRepresentor = obj.GetType();
-
-            //
-            // Obtain local copy because another thread can change the reference of _typesSchema
-            // and we need iterate in a secure way.
-            //
-
-            TypeSchema schema = s_TypesToMetadataMapper[objRepresentor];
-
-            if (schema.Keys.Count == 0)
-                throw new InvalidOperationException("Type {0} must have at least one key for updating".Frmt(objRepresentor.Name));
-
-            //
-            // Update only if we have keys, to find the tuple
-            // 
-
-            StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'update [{0}] set ".Frmt(schema.TableName));
-
-
-            // Build Set clause
-            int paramIndex = 0;
-            foreach (ColumnMapping cm in schema.Columns.Values)
-            {
-                if (cm.ClrProperty == schema.IdentityPropertyName || !propertiesChanged.Any(p => p == cm.ClrProperty))   // Identity Column never's updated nor unchanged properties!
-                    continue;
-
-                cmdTxt.Append("[{0}] = @{1}, ".Frmt(cm.ToSqlTableColumn, paramIndex++));        // [Column] = @0, [Column2] = @1 ...
-            }
-
-            if (cmdTxt.Length > 1)
-                cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
-
-            // Build Where clause
-            cmdTxt.Append(" where ");
-
-            int count = 0;
-            foreach (KeyMapping map in schema.Keys.Values)
-            {
-                cmdTxt.Append("[{0}] = @{1} ".Frmt(map.To, paramIndex++));
-
-                if ((count + 1) < schema.Keys.Count)
-                    cmdTxt.Append(" and ");
-
-                count++;
-            }
-
-            cmdTxt.Append("', N'"); // Close quote and add comma
-
-            //
-            // Set the types of parameters for set region,                                                     @0 varchar(max), @1 int, ...
-            //
-
-            paramIndex = 0;
-            foreach (ColumnMapping cm in schema.Columns.Values)
-            {
-                if (cm.ClrProperty == schema.IdentityPropertyName || !propertiesChanged.Any(p => p == cm.ClrProperty))  // Identity Column never's updated nor updated properties!
-                    continue;
-
-                // set sql type based on property type of the object
-                Type propertyType = objRepresentor.GetProperty(cm.ClrProperty).PropertyType;
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, s_ClrTypeToSqlTypeMapper[propertyType]));    // Map CLR property to SqlColumn Type 
-            }
-
-            // Set the types of parameters for where region
-            foreach (KeyMapping map in schema.Keys.Values)
-            {
-
-                // set sql type based on property type of the object
-                Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, s_ClrTypeToSqlTypeMapper[propertyType]));    // Map CLR property to SqlColumn Type 
-            }
-
-            if (cmdTxt.Length > 1)
-                cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
-
-            cmdTxt.Append("', ");   // Close quote and add comma
-
-
-            //
-            // Set data of parameters in set region
-            //
-
-            paramIndex = 0;
-            foreach (ColumnMapping cm in schema.Columns.Values)
-            {
-                if (cm.ClrProperty == schema.IdentityPropertyName || !propertiesChanged.Any(p => p == cm.ClrProperty))   // Identity Column never's updated nor updated properties!
-                    continue;
-
-                PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = ObjectMapper.PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
-
-                cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
-            }
-
-            // Set data of parameters in where region
-            foreach (KeyMapping map in schema.Keys.Values)
-            {
-                PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = ObjectMapper.PrepareValue(pi.GetValue(obj, null));                          // Can contain quotes, based on property type
-
-                cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
-            }
-
-            if (cmdTxt.Length > 1)
-                cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-
-            return cmdTxt.ToString();
-        }
-
-
-
-        /// <summary>
-        ///     Creates a SQL string that will represent Delete statement.
-        ///     This method will use parameterized queries.
-        /// </summary>
-        /// <typeparam name="T">The type of object being mapped.</typeparam>
-        /// <param name="type">The object type</param>
-        /// <param name="obj">The object that delete command is being build from.</param>
-        /// <returns>The SQL Command</returns>
-        private static String PrepareDeleteCmd<T>(Type type, T obj) where T : class
-        {
-            Type objRepresentor = obj.GetType();
-
-            //
-            // Obtain local copy because another thread can change the reference of _typesSchema
-            // and we need iterate in a secure way.
-            //
-
-            TypeSchema schema = s_TypesToMetadataMapper[type];
-
-            if (schema.Keys.Count == 0)
-                throw new InvalidOperationException("Type {0} must have at least one key for deleting".Frmt(type.Name));
-
-
-            //
-            // Delete only if we have keys, to find the tuple
-            // 
-
-            StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'delete [{0}]".Frmt(schema.TableName));
-
-            // Build Where clause if keys are defined
-            cmdTxt.Append(" where ");
-
-            int count = 0, paramIndex = 0;
-            foreach (KeyMapping map in schema.Keys.Values)
-            {
-                cmdTxt.Append("[{0}] = @{1}".Frmt(map.To, paramIndex++));
-
-                if ((count + 1) < schema.Keys.Count)
-                    cmdTxt.Append(" and ");
-
-                count++;
-            }
-
-
-            cmdTxt.Append("', N'");
-
-
-            //
-            // Set parameter indexes and types,                                                     @0 varchar(max), @1 int, ...
-            //
-
-            paramIndex = 0;
-            foreach (KeyMapping map in schema.Keys.Values)
-            {
-                Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
-
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, s_ClrTypeToSqlTypeMapper[propertyType]));
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
-            cmdTxt.Append("', ");   // Close quote and add comma
-
-
-
-            //
-            // Set parameter indexes and data
-            //
-
-            paramIndex = 0;
-            foreach (KeyMapping map in schema.Keys.Values)
-            {
-                PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = PrepareValue(pi.GetValue(obj, null));         // Can contain quotes, based on property type
-
-                cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
-            }
-
-            cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
-            return cmdTxt.ToString();
-        }
-
-
-
-        #endregion
-
-
-
-
-        #region Parser for Where Filter
-
-
-        /// <summary>
-        ///     Translates the expression into a string to be passed into SQL
-        /// </summary>
-        private static String ParseFilter(Expression expr)
-        {
-            //
-            // This is a simple filter, we only want (and parse) simple expressions.
-            // 
-
-            BinaryExpression bExpr;
-            MemberExpression mExpr;
-            ConstantExpression cExpr;
-
-            if ((bExpr = expr as BinaryExpression) != null)
-            {
-                //
-                // We have 2 expressions (left and right)
-                // We get the first left result use the operator and get the right part 
-                // (that can contain another BinaryExpression For example)
-                // 
-
-                StringBuilder innerText = new StringBuilder();
-                String recursiveResult;
-
-                recursiveResult = ObjectMapper.ParseFilter(bExpr.Left);                 // Go left
-
-                innerText.Append("( ");
-                innerText.Append(recursiveResult);
-                innerText.Append(" ");
-
-                innerText.Append(s_ExpressionMapper[bExpr.NodeType]);      // Map node types to SQL operators
-                innerText.Append(" ");
-
-                recursiveResult = ObjectMapper.ParseFilter(bExpr.Right);               // Go right
-
-                innerText.Append(recursiveResult);
-                innerText.Append(" )");
-
-                return innerText.ToString();
-            }
-
-            if ((cExpr = expr as ConstantExpression) != null)
-            {
-                return ObjectMapper.PrepareValue(cExpr.Value);
-            }
-
-            if ((mExpr = expr as MemberExpression) == null)
-                throw new NotSupportedException("unsupported filter");
-
-            // expr is of MemberExpression type            
-            Expression innerExpr = mExpr.Expression;
-
-            ParameterExpression pInnerExpr;
-            MemberExpression mInnerExpr;
-            ConstantExpression cInnerExpr;
-            BinaryExpression bInnerExpr;
-
-            if ((bInnerExpr = innerExpr as BinaryExpression) != null)
-                return ObjectMapper.ParseFilter(bInnerExpr);                                          // Go recursive    
-
-            if ((pInnerExpr = innerExpr as ParameterExpression) != null)
-            {
-                return ObjectMapper.GetMappingForProperty(pInnerExpr.Type, mExpr.Member.Name);        // We must map property of the type to SQL Column
-            }
-
-            if ((cInnerExpr = innerExpr as ConstantExpression) != null)
-            {
-                object obj = cInnerExpr.Value;                                           // Get anonymous object (captured by the compiler)
-
-                FieldInfo value = obj.GetType().GetField(mExpr.Member.Name);             // Get the field of the anonymous object 
-                return ObjectMapper.PrepareValue(value.GetValue(obj));
-            }
-
-            if ((mInnerExpr = innerExpr as MemberExpression) == null)
-                throw new NotSupportedException("unsupported filter");
-
-            // innerExpr is MemberExpression!
-            if ((cInnerExpr = mInnerExpr.Expression as ConstantExpression) == null)
-                throw new NotSupportedException("unsupported filter");
-
-            object objValue = cInnerExpr.Value;                                                     // Get anonymous object (captured by the compiler)
-
-            FieldInfo fieldValue = objValue.GetType().GetField(mInnerExpr.Member.Name);             // Get the field of the anonymous object 
-            object obj2 = fieldValue.GetValue(objValue);                                            // Get the object in the field
-
-            return ObjectMapper.PrepareValue(obj2.GetType().GetProperty(mExpr.Member.Name).GetValue(obj2, null));       // Based on the object, finally get the value in the property 
-        }
-
-
-
-        #endregion
-
 
 
 
@@ -954,7 +332,7 @@ namespace Repository.ObjectMapper
 
 
 
-        #region Instance Auxiliary Methods
+        #region Private Instance Methods
 
 
         /// <summary>
@@ -1100,7 +478,7 @@ namespace Repository.ObjectMapper
                 objectsQueue.Add(newInstance);
 
                 // Track those elements behind the scenes for update scenarios
-                m_selectedObjects.Add(new SelectInfo(newInstance));
+                m_selectedObjects.Add(new SelectObjectInfo(newInstance));
             }
 
             if (CloseDbReader)
@@ -1129,7 +507,7 @@ namespace Repository.ObjectMapper
         ///     If the object that belongs to the insertCmd has Identity property it will be updated through reflection automatically.
         /// </summary>
         /// <returns>true if has identity and was updated, otherwise return false.</returns>
-        private bool ExecuteInsert_UpdateIdentity(object obj, string insertCmd)
+        private bool ExecuteInsert(object obj, string insertCmd)
         {
             Debug.Assert(obj != null);
             Debug.Assert(insertCmd != null);
@@ -1203,10 +581,67 @@ namespace Repository.ObjectMapper
 
 
 
-        
+        #region Internal Static Methods
 
 
+        /// <summary>
+        ///     Get SQL column mapping to the respective propertyName.
+        /// </summary>
+        internal static String GetMappingForProperty(Type t, String propertyName)
+        {
+            TypeSchema schema = s_TypesToMetadataMapper[t];
+            Debug.Assert(schema != null);
 
+            ColumnMapping cm = schema.Columns[propertyName];
+            Debug.Assert(cm != null);
+
+            return cm.ToSqlTableColumn;
+        }
+
+
+        /// <summary>
+        ///     Converts value into string correctly formatted and supported by SQL.
+        /// </summary>
+        internal static String PrepareValue(object value)
+        {
+            if (value == null)
+                return "NULL";
+
+            // We must know the concrete type
+            Type type = value.GetType();
+
+            if (type == typeof(bool))
+                return ((bool)value) ? "1" : "0";
+
+            if (type == typeof(DateTime))
+            {
+                DateTime d = (DateTime)value;
+                return "'" + d.ToString("yyyy-MM-dd HH:mm:ss") + "'";
+            }
+
+            if (type == typeof(Nullable<DateTime>))
+            {
+                DateTime? dn = (DateTime?)value;
+
+                if (dn.HasValue)
+                {
+                    return "'" + dn.Value.ToString("yyyy-MM-dd HH:mm:ss") + "'";
+                }
+                else
+                {
+                    return dn.ToString();
+                }
+            }
+
+            if (type == typeof(Guid) || type == typeof(String) || type == typeof(Char) || type == typeof(Char[]))
+                return "'" + value.ToString() + "'";
+
+
+            // return normal
+            return value.ToString();
+        }
+
+        #endregion 
 
 
 
@@ -1378,8 +813,10 @@ namespace Repository.ObjectMapper
             // and never be touched (modified) again for the type.
             // 
 
+            TypeSchema schema = s_TypesToMetadataMapper[type];         // Get schema information for specific Type
+
             // Prepare select statement for type
-            String selectCmd = PrepareSelectCmd(type, filter);
+            String selectCmd = CommandsForTypeSchema.PrepareSelectCmd(this, filter);
 
             // Command Setup parameters
             DbCommand cmd = CmdForConnection(CommandType.Text, selectCmd);
@@ -1483,8 +920,8 @@ namespace Repository.ObjectMapper
             foreach(object @objInsert in m_insertCommandsQueue)
             {
                 // Prepare insert statement for type
-                String insertCmd = PrepareInsertCmd(@objInsert, scopy_id_name);
-                bool insertResult = ExecuteInsert_UpdateIdentity(objInsert, insertCmd);
+                String insertCmd = CommandsForTypeSchema.PrepareInsertCmd(this, @objInsert, scopy_id_name);
+                bool insertResult = ExecuteInsert(objInsert, insertCmd);
                 operationsPerformed++;
 
                 if (!insertResult)
@@ -1492,7 +929,7 @@ namespace Repository.ObjectMapper
             }
 
             // Updates
-            foreach(SelectInfo selectInfo in m_selectedObjects)
+            foreach(SelectObjectInfo selectInfo in m_selectedObjects)
             {
                 string[] propertiesChanged = selectInfo.GetPropertiesChanged();
                 if (propertiesChanged != null)
@@ -1500,7 +937,7 @@ namespace Repository.ObjectMapper
                     object o = selectInfo.Object;
 
                     // Prepare update statement for type
-                    String updateCmd = PrepareUpdateCmd(o, propertiesChanged);
+                    String updateCmd = CommandsForTypeSchema.PrepareUpdateCmd(this, o, propertiesChanged);
                     bool updateResult = ExecuteUpdate(updateCmd);
 
                     if (updateResult)
@@ -1512,7 +949,7 @@ namespace Repository.ObjectMapper
             foreach(object @objDelete in m_deleteObjectQueue)
             {
                 // Prepare delete statement for type
-                String deleteCmd = PrepareDeleteCmd(@objDelete.GetType(), @objDelete);
+                String deleteCmd = CommandsForTypeSchema.PrepareDeleteCmd(this, @objDelete);
                 bool deleteResult = ExecuteDelete(deleteCmd);
 
                 if (deleteResult)
