@@ -6,9 +6,9 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 
-namespace Repository.ObjectMapper.Internal
+namespace Repository.ObjectMapper.Internal.Impl
 {
-    internal class ExpressionParserForObjectMapper : IPredicateParser
+    internal class ExpressionParserImpl : IPredicateParser
     {
 
         /// <summary>

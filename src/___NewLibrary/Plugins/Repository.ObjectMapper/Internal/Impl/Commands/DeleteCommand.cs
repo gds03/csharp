@@ -1,4 +1,5 @@
-﻿using Repository.ObjectMapper.Types;
+﻿using Repository.ObjectMapper.Interfaces;
+using Repository.ObjectMapper.Types;
 using Repository.ObjectMapper.Types.Mappings;
 using System;
 using System.Collections.Generic;
@@ -7,23 +8,24 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Repository.ObjectMapper.Internal.Commands
+namespace Repository.ObjectMapper.Internal.Commands.Impl
 {
-    internal partial class CommandsForTypeSchema
+    internal partial class CommandsForTypeSchema : CommandsForTypeSchemaBase, ISqlCommandTextGenerator
     {
-
+        // ctor
+        public CommandsForTypeSchema(ObjectMapper oMapper) : base(oMapper)
+        {
+            
+        }
 
         /// <summary>
         ///     Creates a SQL string that will represent Delete statement.
         ///     This method will use parameterized queries.
         /// </summary>
-        /// <typeparam name="T">The type of object being mapped.</typeparam>
-        /// <param name="type">The object type</param>
         /// <param name="obj">The object that delete command is being build from.</param>
         /// <returns>The SQL Command</returns>
-        internal static String PrepareDeleteCmd<T>(ObjectMapper orm, T obj) where T : class
+        public String DeleteCommand(object obj)
         {
-            Debug.Assert(orm != null);
             Debug.Assert(obj != null);
 
             Type objRepresentor = obj.GetType();

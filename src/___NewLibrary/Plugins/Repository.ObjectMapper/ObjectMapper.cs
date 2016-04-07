@@ -27,6 +27,8 @@ using Repository.ObjectMapper.Types.Mappings;
 using Repository.ObjectMapper.Internal.Commands;
 using Repository.ObjectMapper.Internal;
 using Repository.ObjectMapper.Internal.CLR2SQL;
+using Repository.ObjectMapper.Providers;
+using Repository.ObjectMapper.Interfaces;
 
 namespace Repository.ObjectMapper
 {
@@ -36,7 +38,7 @@ namespace Repository.ObjectMapper
         const int SchemaInitCapacity = 53;
         const int OperatorsInitCapacity = 23;
         const int ClrTypesMappingCapacity = 47;
-        const string scopy_id_name = "Scope_Identity";
+
 
 
         #region Instance Fields
@@ -48,9 +50,11 @@ namespace Repository.ObjectMapper
         readonly int m_commandTimeout = 30;
 
         // queue for commands
-        readonly List<SelectObjectInfo> m_selectedObjects          = new List<SelectObjectInfo>();
+        readonly List<SelectObjectInfo> m_selectedObjects    = new List<SelectObjectInfo>();
         readonly List<object> m_insertCommandsQueue          = new List<object>();
         readonly List<object> m_deleteObjectQueue            = new List<object>();
+
+        readonly ISqlCommandTextGenerator m_sqlCommandsProvider;
 
 
 
@@ -104,6 +108,7 @@ namespace Repository.ObjectMapper
                 throw new ArgumentNullException("connectionString");
 
             m_connection = new SqlConnection(connectionString);
+            m_sqlCommandsProvider = CommandsForTypeSchemaProvider.GetCurrent(this);
         }
 
 
@@ -118,6 +123,7 @@ namespace Repository.ObjectMapper
 
             m_connection = connection;
             m_transaction = transaction;
+            m_sqlCommandsProvider = CommandsForTypeSchemaProvider.GetCurrent(this);
         }
 
 
@@ -816,10 +822,11 @@ namespace Repository.ObjectMapper
             TypeSchema schema = s_TypesToMetadataMapper[type];         // Get schema information for specific Type
 
             // Prepare select statement for type
-            String selectCmd = CommandsForTypeSchema.PrepareSelectCmd(this, filter);
+            
+            String SQLSelectCommand = m_sqlCommandsProvider.SelectCommand(filter);
 
             // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, selectCmd);
+            DbCommand cmd = CmdForConnection(CommandType.Text, SQLSelectCommand);
 
             // Open connection if not opened
             OpenConnection();
@@ -920,8 +927,8 @@ namespace Repository.ObjectMapper
             foreach(object @objInsert in m_insertCommandsQueue)
             {
                 // Prepare insert statement for type
-                String insertCmd = CommandsForTypeSchema.PrepareInsertCmd(this, @objInsert, scopy_id_name);
-                bool insertResult = ExecuteInsert(objInsert, insertCmd);
+                String SQLInsertCommand = m_sqlCommandsProvider.InsertCommand(@objInsert);
+                bool insertResult = ExecuteInsert(objInsert, SQLInsertCommand);
                 operationsPerformed++;
 
                 if (!insertResult)
@@ -937,8 +944,8 @@ namespace Repository.ObjectMapper
                     object o = selectInfo.Object;
 
                     // Prepare update statement for type
-                    String updateCmd = CommandsForTypeSchema.PrepareUpdateCmd(this, o, propertiesChanged);
-                    bool updateResult = ExecuteUpdate(updateCmd);
+                    String SQLUpdateCommand = m_sqlCommandsProvider.UpdateCommand(o, propertiesChanged);
+                    bool updateResult = ExecuteUpdate(SQLUpdateCommand);
 
                     if (updateResult)
                         operationsPerformed++;
@@ -949,8 +956,8 @@ namespace Repository.ObjectMapper
             foreach(object @objDelete in m_deleteObjectQueue)
             {
                 // Prepare delete statement for type
-                String deleteCmd = CommandsForTypeSchema.PrepareDeleteCmd(this, @objDelete);
-                bool deleteResult = ExecuteDelete(deleteCmd);
+                String SQLDeleteCommand = m_sqlCommandsProvider.DeleteCommand(@objDelete);
+                bool deleteResult = ExecuteDelete(SQLDeleteCommand);
 
                 if (deleteResult)
                     operationsPerformed++;

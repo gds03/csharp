@@ -98,7 +98,7 @@ namespace CustomComponents.ConsoleApplication
                 categories[1].lastModifiedDate = DateTime.Now;
                 categories[1].name += "updated";
             }
-           
+
 
             mapper.Delete(c1);
             c3.extraInfo = "XPTO TESTE";

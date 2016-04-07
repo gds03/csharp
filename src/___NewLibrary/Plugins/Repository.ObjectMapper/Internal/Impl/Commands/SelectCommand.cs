@@ -1,4 +1,5 @@
-﻿using Repository.ObjectMapper.Providers;
+﻿using Repository.ObjectMapper.Interfaces;
+using Repository.ObjectMapper.Providers;
 using Repository.ObjectMapper.Types;
 using Repository.ObjectMapper.Types.Mappings;
 using System;
@@ -8,9 +9,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace Repository.ObjectMapper.Internal.Commands
+namespace Repository.ObjectMapper.Internal.Commands.Impl
 {
-    internal partial class CommandsForTypeSchema
+    internal partial class CommandsForTypeSchema : CommandsForTypeSchemaBase, ISqlCommandTextGenerator
     {
         /// <summary>
         ///     Creates a SQL string that will represent Select statement.
@@ -20,9 +21,8 @@ namespace Repository.ObjectMapper.Internal.Commands
         /// <param name="type">The object type</param>
         /// <param name="filter">The predicate to apply on where condition.</param>
         /// <returns>The SQL Command</returns>
-        internal static String PrepareSelectCmd<T>(ObjectMapper orm, Expression<Func<T, bool>> filter) where T : class
+        public string SelectCommand<T>(Expression<Func<T, bool>> predicate) where T : class
         {
-            Debug.Assert(orm != null);
             StringBuilder cmdTxt = new StringBuilder();
 
             //
@@ -44,14 +44,14 @@ namespace Repository.ObjectMapper.Internal.Commands
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             cmdTxt.Append(" from [{0}] ".Frmt(schema.TableName));
 
-            if (filter != null)
+            if (predicate != null)
             {
                 //
                 // Apply filter
                 //
 
                 cmdTxt.Append("where ");
-                String filtered = PredicateParserProvider.Current.ParseFilter(filter.Body);
+                String filtered = PredicateParserProvider.Current.ParseFilter(predicate.Body);
 
                 cmdTxt.Append(filtered);
             }

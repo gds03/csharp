@@ -38,14 +38,14 @@ namespace CustomComponents.Algorithms.Collections.Generic
 
 
         public Dictionary()
-            : this(DEFAULT_SIZE)
+            : this(0)
         {
 
         }
 
         public Dictionary(int initialCapacity)
         {
-            if (initialCapacity <= 0)
+            if (initialCapacity < 0)
                 throw new ArgumentException("initialCapacity <= 0");
 
             m_hashArray = new Node[m_initialSize = initialCapacity];
@@ -288,7 +288,8 @@ namespace CustomComponents.Algorithms.Collections.Generic
         {
             Stopwatch counter = Stopwatch.StartNew();
             counter.Restart();
-            Node[] newArray = new Node[2 * m_hashArray.Length + 1];
+            int size = (m_hashArray.Length == 0) ? DEFAULT_SIZE : (2 * m_hashArray.Length + 1);
+            Node[] newArray = new Node[size];
             for (int i = 0; i < m_hashArray.Length; i++)
             {
                 Node iter = m_hashArray[i];

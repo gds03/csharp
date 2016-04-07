@@ -1,4 +1,5 @@
-﻿using Repository.ObjectMapper.Types;
+﻿using Repository.ObjectMapper.Interfaces;
+using Repository.ObjectMapper.Types;
 using Repository.ObjectMapper.Types.Mappings;
 using System;
 using System.Collections.Generic;
@@ -7,25 +8,22 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Repository.ObjectMapper.Internal.Commands
+namespace Repository.ObjectMapper.Internal.Commands.Impl
 {
-    internal partial class CommandsForTypeSchema
+    internal partial class CommandsForTypeSchema : CommandsForTypeSchemaBase, ISqlCommandTextGenerator
     {
+        const string scopy_id_name = "Scope_Identity";
+
+
         /// <summary>
         ///     Creates a SQL string that will represent Insert statement.
         ///     This method will use parameterized queries.
         /// </summary>
-        /// <typeparam name="T">The type of object being mapped.</typeparam>
-        /// <param name="type">The object type</param>
         /// <param name="obj">The object that will be updated with identity</param>
-        /// <param name="objRepresentor">The object type</param>
-        /// <param name="scopeIdentity">The propertyName that is the Identity for obj object</param>
         /// <returns>The SQL Command</returns>
-        internal static String PrepareInsertCmd<T>(ObjectMapper orm, T obj, string scopeIdentity) where T : class
+        public String InsertCommand(object obj)
         {
-            Debug.Assert(orm != null);
             Debug.Assert(obj != null);
-            Debug.Assert(!string.IsNullOrEmpty(scopeIdentity));
 
             //
             // Obtain local copy because another thread can change the reference of _typesSchema
@@ -64,7 +62,7 @@ namespace Repository.ObjectMapper.Internal.Commands
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2); // Remove last ,
             cmdTxt.Append(")");
-            cmdTxt.Append(" select SCOPE_IDENTITY() as [{0}]', N'".Frmt(scopeIdentity));
+            cmdTxt.Append(" select SCOPE_IDENTITY() as [{0}]', N'".Frmt(scopy_id_name));
 
 
             //

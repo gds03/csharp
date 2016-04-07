@@ -26,11 +26,11 @@
 //            clock.Stop();
 
 //            Console.WriteLine("Array Growth {0} times and took {1} Miliseconds", dict.GrowthTimes, dict.GrowthOperationMiliseconds);
-//            Console.WriteLine("Finished to insert {1} items... Took {0} miliseconds", clock.ElapsedMilliseconds, OPERATIONS);           
+//            Console.WriteLine("Finished to insert {1} items... Took {0} miliseconds", clock.ElapsedMilliseconds, OPERATIONS);
 
 //            Console.WriteLine("SEARCHING IN COLLECTION");
 //            clock = Stopwatch.StartNew();
-//            for ( i = 0; i < OPERATIONS; i++)
+//            for (i = 0; i < OPERATIONS; i++)
 //            {
 //                int c = dict[i];
 //            }
@@ -39,7 +39,7 @@
 
 //            Console.WriteLine("REMOVING IN COLLECTION");
 //            clock = Stopwatch.StartNew();
-//            for ( i = 0; i < OPERATIONS; i++)
+//            for (i = 0; i < OPERATIONS; i++)
 //            {
 //                dict.Remove(i);
 //            }
@@ -52,7 +52,7 @@
 //            //    Console.WriteLine(it.Current);
 //            //}
 
-            
+
 //            Console.ReadLine();
 
 

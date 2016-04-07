@@ -1,5 +1,6 @@
 ﻿using Repository.ObjectMapper.Interfaces;
 using Repository.ObjectMapper.Internal;
+using Repository.ObjectMapper.Internal.Impl;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,8 +15,8 @@ namespace Repository.ObjectMapper.Providers
 
         static PredicateParserProvider()
         {
-            // add here more in the future.
-            PredicateProviders.Add(new ExpressionParserForObjectMapper());
+            // add here more in the future through Ioc for example.
+            PredicateProviders.Add(new ExpressionParserImpl());
         }
 
 
