@@ -51,9 +51,9 @@ namespace Repository.ObjectMapper
         }
 
 
-        public IRepository Submit()
+        public new IRepository Submit()
         {
-            // base.Submit();
+            base.Submit();
             return this;
         }
 
