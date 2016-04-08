@@ -37,6 +37,8 @@ namespace Repository.ObjectMapper
         const int OperatorsInitCapacity = 23;
         const int ClrTypesMappingCapacity = 47;
 
+        const IsolationLevel CURRENT_ISOLATION_LEVEL = IsolationLevel.ReadCommitted;
+
 
 
         #region Private Instance Fields
@@ -44,8 +46,8 @@ namespace Repository.ObjectMapper
         // member fields
         bool m_disposed;
 
-        readonly DbConnection m_connection;
-        readonly DbTransaction m_transaction;
+        DbTransaction m_transaction;
+        readonly DbConnection m_connection;        
         readonly int m_commandTimeout = 30;
 
         // queue for commands
@@ -342,7 +344,7 @@ namespace Repository.ObjectMapper
             // If an executing finalizer references another object that has already been finalized, the executing finalizer will fail.
         }
 
-        private void OpenConnection()
+        private DbTransaction OpenConnection()
         {
             if (m_connection == null)
                 throw new NullReferenceException("connection is null");
@@ -350,12 +352,25 @@ namespace Repository.ObjectMapper
             // Try open the connection if not opened!
             if (m_connection.State != ConnectionState.Open)
                 m_connection.Open();
+
+            if (m_transaction == null)
+                m_transaction = m_connection.BeginTransaction(CURRENT_ISOLATION_LEVEL);
+
+            return m_transaction;
+
         }
 
         private void CloseConnection()
         {
             if (m_connection == null)
                 throw new NullReferenceException("connection is null");
+
+            if (m_transaction != null)
+            {
+                m_transaction.Commit();
+                m_transaction.Dispose();
+                m_transaction = null;
+            }
 
             // Try open the connection if not opened!
             if (m_connection.State != ConnectionState.Closed)
@@ -463,6 +478,7 @@ namespace Repository.ObjectMapper
                 // Free Connection Resources
                 reader.Close();
                 reader.Dispose();
+                CloseConnection();
             }
 
             return objectsQueue;
@@ -727,15 +743,16 @@ namespace Repository.ObjectMapper
             // and never be touched (modified) again for the type.
             // 
 
+            // Open connection if not opened
+            OpenConnection();
+
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
             if (parameters != null && parameters.Length > 0)
                 comm.Parameters.AddRange(parameters);
-
-            // Open connection if not opened
-            OpenConnection();
+            
             return MapTo<T>(comm.ExecuteReader());
         }
 
@@ -762,16 +779,16 @@ namespace Repository.ObjectMapper
             // and never be touched (modified) again for the type.
             // 
 
+            // Open connection if not opened
+            OpenConnection();
+
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
             if (parameters != null && parameters.Length > 0)
                 comm.Parameters.AddRange(parameters);
-
-            // Open connection if not opened
-            OpenConnection();
-
+            
             // Allocate memory
             object[] result = new object[2];
             DbDataReader reader;
@@ -812,16 +829,16 @@ namespace Repository.ObjectMapper
             // and never be touched (modified) again for the type.
             // 
 
+            // Open connection if not opened
+            OpenConnection();
+
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
             if (parameters != null && parameters.Length > 0)
                 comm.Parameters.AddRange(parameters);
-
-            // Open connection if not opened
-            OpenConnection();
-
+            
             // Allocate memory
             object[] result = new object[3];
             DbDataReader reader;
@@ -877,11 +894,11 @@ namespace Repository.ObjectMapper
             
             String SQLSelectCommand = m_sqlCommandsProvider.SelectCommand(filter);
 
-            // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, SQLSelectCommand);
-
             // Open connection if not opened
             OpenConnection();
+
+            // Command Setup parameters
+            DbCommand cmd = CmdForConnection(CommandType.Text, SQLSelectCommand);
             return MapTo<T>(cmd.ExecuteReader());
         }
 
@@ -974,50 +991,61 @@ namespace Repository.ObjectMapper
             int operationsPerformed = 0;
 
             // Open connection if not opened
-            OpenConnection();
+            DbTransaction unitOfWork = OpenConnection();
 
-            // Inserts
-            foreach(object @objInsert in m_insertCommandsQueue)
+            try
             {
-                // Prepare insert statement for type
-                String SQLInsertCommand = m_sqlCommandsProvider.InsertCommand(@objInsert);
-                bool insertResult = ExecuteInsert(objInsert, SQLInsertCommand);
-                operationsPerformed++;
-
-                if (!insertResult)
-                    continue;
-            }
-
-            // Updates
-            foreach(SelectObjectInfo selectInfo in m_selectedObjects)
-            {
-                string[] propertiesChanged = selectInfo.GetPropertiesChanged();
-                if (propertiesChanged != null)
+                // Inserts
+                foreach (object @objInsert in m_insertCommandsQueue)
                 {
-                    object o = selectInfo.Object;
+                    // Prepare insert statement for type
+                    String SQLInsertCommand = m_sqlCommandsProvider.InsertCommand(@objInsert);
+                    bool insertResult = ExecuteInsert(objInsert, SQLInsertCommand);
+                    operationsPerformed++;
 
-                    // Prepare update statement for type
-                    String SQLUpdateCommand = m_sqlCommandsProvider.UpdateCommand(o, propertiesChanged);
-                    bool updateResult = ExecuteUpdate(SQLUpdateCommand);
+                    if (!insertResult)
+                        continue;
+                }
 
-                    if (updateResult)
+                // Updates
+                foreach (SelectObjectInfo selectInfo in m_selectedObjects)
+                {
+                    string[] propertiesChanged = selectInfo.GetPropertiesChanged();
+                    if (propertiesChanged != null)
+                    {
+                        object o = selectInfo.Object;
+
+                        // Prepare update statement for type
+                        String SQLUpdateCommand = m_sqlCommandsProvider.UpdateCommand(o, propertiesChanged);
+                        bool updateResult = ExecuteUpdate(SQLUpdateCommand);
+
+                        if (updateResult)
+                            operationsPerformed++;
+                    }
+                }
+
+                // Deletes
+                foreach (object @objDelete in m_deleteObjectQueue)
+                {
+                    // Prepare delete statement for type
+                    String SQLDeleteCommand = m_sqlCommandsProvider.DeleteCommand(@objDelete);
+                    bool deleteResult = ExecuteDelete(SQLDeleteCommand);
+
+                    if (deleteResult)
                         operationsPerformed++;
                 }
             }
-            
-            // Deletes
-            foreach(object @objDelete in m_deleteObjectQueue)
+            catch(Exception e)
             {
-                // Prepare delete statement for type
-                String SQLDeleteCommand = m_sqlCommandsProvider.DeleteCommand(@objDelete);
-                bool deleteResult = ExecuteDelete(SQLDeleteCommand);
+                unitOfWork.Rollback();
+                throw;
+            }
+            finally
+            {
+                // Cleanup
+                CloseConnection();
 
-                if (deleteResult)
-                    operationsPerformed++;
-            }    
-
-            // Cleanup
-            CloseConnection();
+            }
             CleanupCommands();
             return operationsPerformed;
 
@@ -1049,6 +1077,9 @@ namespace Repository.ObjectMapper
             // and never be touched (modified) again for the type.
             // 
 
+            // Open connection if not opened
+            OpenConnection();
+
             // Command Setup parameters
             DbCommand cmd = CmdForConnection(CommandType.StoredProcedure, procedureName);
 
@@ -1069,8 +1100,7 @@ namespace Repository.ObjectMapper
                 }
             }
 
-            // Open connection if not opened
-            OpenConnection();
+            
             return cmd.ExecuteNonQuery();
         }
 
@@ -1087,15 +1117,16 @@ namespace Repository.ObjectMapper
             if (string.IsNullOrEmpty(commandText))
                 throw new ArgumentException("commandText");
 
+            // Open connection if not opened
+            OpenConnection();
+
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
             if (parameters != null && parameters.Length > 0)
                 comm.Parameters.AddRange(parameters);
-
-            // Open connection if not opened
-            OpenConnection();
+            
             return comm.ExecuteNonQuery();
         }
 
@@ -1112,15 +1143,16 @@ namespace Repository.ObjectMapper
             if (string.IsNullOrEmpty(commandText))
                 throw new ArgumentException("commandText");
 
+            // Open connection if not opened
+            OpenConnection();
+
             // Command Setup parameters
             DbCommand comm = CmdForConnection(commandType, commandText);
 
             // Set parameters
             if (parameters != null && parameters.Length > 0)
                 comm.Parameters.AddRange(parameters);
-
-            // Open connection if not opened
-            OpenConnection();
+                        
             return comm.ExecuteScalar();
         }
 

@@ -109,11 +109,42 @@ namespace CustomComponents.ConsoleApplication
 
 
 
+        private static void AddCategoriesMassRandomOperations(ObjectMapper oMapper)
+        {
+            const int ITERATIONS = 2000;
+            Random r = new Random();
 
+            Category c;
+            for (int i = 0; i < ITERATIONS; i++)
+            {
+                c = new Category
+                {
+                    creationDate = DateTime.Now,
+                    name = i.ToString(),
+                    lastModifiedDate = DateTime.Now,
+                    extraInfo = "abc" + r.Next(0, 99)
+                };
+                oMapper.Insert(c);
+            }
+            oMapper.Submit();
+
+            IList<Category> categoriesHalf = oMapper.Select<Category>(x => x.id > 1000);
+
+            for (int i = 0; i < ITERATIONS; i++)
+            {
+                if (i % 2 == 0)
+                    categoriesHalf[i].name += "_%2";
+            }
+
+            oMapper.Delete(categoriesHalf[0]);
+            oMapper.Delete(categoriesHalf[1]);
+
+            oMapper.Submit();
+        }
 
         public static void Main(String[] args)
         {
-            ObjectMapper mapper = new ObjectMapper(CONNECTION_STRING);
+            ObjectMapper oMapper = new ObjectMapper(CONNECTION_STRING);
 
             ObjectMapper.Configuration(i =>
             {
@@ -124,7 +155,10 @@ namespace CustomComponents.ConsoleApplication
                                  ;
             });
 
-            AddCategoriesAndUpdate(mapper);
+            AddCategoriesMassRandomOperations(oMapper);
+            // AddCategoriesAndUpdate(mapper);
         }
+
+        
     }
 }
