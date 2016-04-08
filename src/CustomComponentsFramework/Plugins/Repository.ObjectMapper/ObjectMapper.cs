@@ -68,9 +68,6 @@ namespace Repository.ObjectMapper
 
         #region Private Static Fields
 
-
-        private static volatile object s_metadataLoaded;
-        private static volatile object s_metadataLoading;
         private static volatile Action<InitializationMetadata> s_InitializationUserFunc;
 
 
