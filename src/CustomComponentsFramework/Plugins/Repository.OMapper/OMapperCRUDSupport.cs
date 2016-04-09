@@ -9,6 +9,7 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
+using Repository.OMapper.Extensions;
 
 namespace Repository.OMapper
 {

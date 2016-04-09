@@ -64,7 +64,7 @@
       <Project>{096c5155-4fcb-442d-98ad-8eb1c2551832}</Project>
       <Name>CustomComponents.Algorithms</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Plugins\Repository.ObjectMapper\Repository.OMapper.csproj">
+    <ProjectReference Include="..\Plugins\Repository.OMapper\Repository.OMapper.csproj">
       <Project>{92025a68-039f-4ff3-bc77-060afea16495}</Project>
       <Name>Repository.OMapper</Name>
     </ProjectReference>

@@ -23,6 +23,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using Repository.OMapper.Extensions;
 
 namespace Repository.OMapper
 {
@@ -896,12 +897,16 @@ namespace Repository.OMapper
 
 
 
-		#endregion
+        #endregion
 
 
-		#endregion Instance Methods
+        #endregion Instance Methods
 
 
 
-	}
+
+        
+
+
+    }
 }

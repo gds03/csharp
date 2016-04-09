@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using Repository.OMapper.Extensions;
 
 namespace Repository.OMapper.Internal.Commands.Impl
 {

@@ -47,6 +47,7 @@
     <Compile Include="Attributes\Table.cs" />
     <Compile Include="Exceptions\PropertyMustBeNullable.cs" />
     <Compile Include="Exceptions\SqlColumnNotFoundException.cs" />
+    <Compile Include="Extensions\StringExtensions.cs" />
     <Compile Include="Interfaces\IPredicateParser.cs" />
     <Compile Include="Interfaces\ISqlCommandTextGenerator.cs" />
     <Compile Include="Internal\CLR2SQL\CLRExpressionLinq2SQLExpressionLogicNames.cs" />

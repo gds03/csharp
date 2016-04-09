@@ -281,15 +281,4 @@ namespace Repository.OMapper
         #endregion Instance Methods
 
     }
-
-
-
-
-    internal static class StringExtensions
-    {
-        internal static string Frmt(this String str, params object[] objs)
-        {
-            return string.Format(str, objs);
-        }
-    }
 }
