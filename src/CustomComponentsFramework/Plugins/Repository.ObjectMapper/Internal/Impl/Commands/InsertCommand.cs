@@ -1,6 +1,6 @@
-﻿using Repository.ObjectMapper.Interfaces;
-using Repository.ObjectMapper.Types;
-using Repository.ObjectMapper.Types.Mappings;
+﻿using Repository.OMapper.Interfaces;
+using Repository.OMapper.Types;
+using Repository.OMapper.Types.Mappings;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,9 +8,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Repository.ObjectMapper.Internal.Commands.Impl
+namespace Repository.OMapper.Internal.Commands.Impl
 {
-    internal partial class CommandsForTypeSchema : CommandsForTypeSchemaBase, ISqlCommandTextGenerator
+    internal partial class CommandsForTypeSchema : ISqlCommandTextGenerator
     {
         const string scopy_id_name = "Scope_Identity";
 
@@ -32,7 +32,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
 
 
             Type objRepresentor = obj.GetType();
-            TypeSchema schema = ObjectMapper.s_TypesSchemaMapper[objRepresentor];         // Get schema information for specific Type
+            TypeSchema schema = OMapper.s_TypesSchemaMapper[objRepresentor];         // Get schema information for specific Type
 
 
             StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'insert [{0}] (".Frmt(schema.TableName));
@@ -77,7 +77,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
 
                 // set sql type based on property type of the object
                 Type propertyType = objRepresentor.GetProperty(cm.ClrProperty).PropertyType;
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ObjectMapper.s_ClrToSqlTypesMapper[propertyType]));    // Map CLR property to SqlColumn Type 
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupport.s_ClrToSqlTypesMapper[propertyType]));    // Map CLR property to SqlColumn Type 
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
@@ -95,7 +95,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
                     continue;
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = ObjectMapper.PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
+                String valueTxt = OMapper.PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }

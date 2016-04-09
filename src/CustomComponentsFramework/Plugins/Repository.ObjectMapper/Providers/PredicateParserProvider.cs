@@ -1,12 +1,12 @@
-﻿using Repository.ObjectMapper.Interfaces;
-using Repository.ObjectMapper.Internal;
-using Repository.ObjectMapper.Internal.Impl;
+﻿using Repository.OMapper.Interfaces;
+using Repository.OMapper.Internal;
+using Repository.OMapper.Internal.Impl;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Repository.ObjectMapper.Providers
+namespace Repository.OMapper.Providers
 {
     public static class PredicateParserProvider
     {

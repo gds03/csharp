@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Repository.ObjectMapper.Types
+namespace Repository.OMapper.Types
 {
     [Flags]
     public enum SPMode

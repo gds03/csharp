@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Repository.ObjectMapper.Attributes
+namespace Repository.OMapper.Attributes
 {
 
     public sealed class PrimaryKey : Attribute

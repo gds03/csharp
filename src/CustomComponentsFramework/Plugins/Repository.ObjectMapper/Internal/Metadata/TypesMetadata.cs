@@ -1,12 +1,10 @@
-﻿using Repository.ObjectMapper.Types;
-using Repository.ObjectMapper.Types.Mappings;
+﻿using Repository.OMapper.Types;
+using Repository.OMapper.Types.Mappings;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
 
-namespace Repository.ObjectMapper.Internal.Metadata
+namespace Repository.OMapper.Internal.Metadata
 {
     public class TypesMetadata<T>
     {
@@ -57,7 +55,7 @@ namespace Repository.ObjectMapper.Internal.Metadata
 
         private static TypeSchema GetSchema()
         {
-            return ObjectMapper.AddMetadataFor(typeof(T));
+            return OMapper.AddMetadataFor(typeof(T));
         }
 
 
@@ -65,9 +63,9 @@ namespace Repository.ObjectMapper.Internal.Metadata
         {
             UnaryExpression uex = selector.Body as UnaryExpression;
 
-            if (uex == null) throw new NotSupportedException("Only Unary expressions are supported by ObjectMapper");
+            if (uex == null) throw new NotSupportedException("Only Unary expressions are supported by OMapper");
             MemberExpression mex = uex.Operand as MemberExpression;
-            if (uex == null) throw new NotSupportedException("Only Member Expressions are supported by ObjectMapper");
+            if (uex == null) throw new NotSupportedException("Only Member Expressions are supported by OMapper");
             return mex.Member.Name;
         }
 

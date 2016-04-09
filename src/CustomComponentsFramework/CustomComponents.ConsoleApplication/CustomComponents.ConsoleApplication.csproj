@@ -51,7 +51,7 @@
     <Compile Include="CircularListProgram.cs" />
     <Compile Include="EightQueenProgram.cs" />
     <Compile Include="MazeProgram.cs" />
-    <Compile Include="ObjectMapperProgram.cs" />
+    <Compile Include="OMapperProgram.cs" />
     <Compile Include="SortingAlgorithmsProgram.cs" />
     <Compile Include="ThreadPoolProgram.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -64,9 +64,9 @@
       <Project>{096c5155-4fcb-442d-98ad-8eb1c2551832}</Project>
       <Name>CustomComponents.Algorithms</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Plugins\Repository.ObjectMapper\Repository.ObjectMapper.csproj">
+    <ProjectReference Include="..\Plugins\Repository.ObjectMapper\Repository.OMapper.csproj">
       <Project>{92025a68-039f-4ff3-bc77-060afea16495}</Project>
-      <Name>Repository.ObjectMapper</Name>
+      <Name>Repository.OMapper</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

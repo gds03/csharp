@@ -1,8 +1,8 @@
-﻿using Repository.ObjectMapper.Types.Mappings;
+﻿using Repository.OMapper.Types.Mappings;
 using System;
 using System.Collections.Generic;
 
-namespace Repository.ObjectMapper.Types
+namespace Repository.OMapper.Types
 {
     /// <summary>
     ///     Contains the necessary information about the table, the keys, the columns, and the identity column.
@@ -27,7 +27,7 @@ namespace Repository.ObjectMapper.Types
 
             this.TableName = clrType.Name;
 
-            int totalPropertiesCount = clrType.GetProperties(ObjectMapper.s_PropertiesFlags).Length;
+            int totalPropertiesCount = clrType.GetProperties(OMapper.s_PropertiesFlags).Length;
             Keys = new Dictionary<string, KeyMapping>(totalPropertiesCount);
             Columns = new Dictionary<string, ColumnMapping>(totalPropertiesCount);
             Procedures = new Dictionary<string, ProcMapping>(8);

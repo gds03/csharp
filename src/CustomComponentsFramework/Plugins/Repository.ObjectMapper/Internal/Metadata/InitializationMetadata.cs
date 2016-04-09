@@ -1,10 +1,4 @@
-﻿using Repository.ObjectMapper.Internal;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace Repository.ObjectMapper.Internal.Metadata
+﻿namespace Repository.OMapper.Internal.Metadata
 {
     public class InitializationMetadata
     {

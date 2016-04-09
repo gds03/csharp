@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace Repository.ObjectMapper.Interfaces
+namespace Repository.OMapper.Interfaces
 {
     public interface IPredicateParser
     {

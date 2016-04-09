@@ -1,4 +1,4 @@
-﻿using Repository.ObjectMapper.Attributes;
+﻿using Repository.OMapper.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -6,7 +6,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
 
-namespace Repository.ObjectMapper
+namespace Repository.OMapper
 {
     public class SimpleDbAccess
     {

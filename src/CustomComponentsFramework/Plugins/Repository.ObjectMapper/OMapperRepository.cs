@@ -7,53 +7,50 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 
-namespace Repository.ObjectMapper
+namespace Repository.OMapper
 {
-    public class ObjectMapperRepository : ObjectMapper, IRepository, IDatabaseStored
+    public class OMapperRepository : IRepository, IDatabaseStored
     {
-        public ObjectMapperRepository(string connectionString)
-            : base(connectionString)
-        {
+        private readonly OMapperContextExecuter m_oMapper;
 
+
+        public OMapperRepository(string connectionString)
+        {
+            m_oMapper = new OMapperContextExecuter(connectionString);
         }
 
-        public ObjectMapperRepository(DbConnection connection, DbTransaction transaction = null)
-            : base(connection, transaction)
+        public OMapperRepository(DbConnection connection, DbTransaction transaction = null)
         {
-
+            m_oMapper = new OMapperContextExecuter(connection, transaction);
         }
 
 
-        public ObjectMapperRepository(DbConnection connection, int commandTimeout, DbTransaction transaction = null)
-            : base(connection, commandTimeout, transaction)
+        public OMapperRepository(DbConnection connection, int commandTimeout, DbTransaction transaction = null)
         {
-
+            m_oMapper = new OMapperContextExecuter(connection, commandTimeout, transaction);
         }
 
         public event Callback ExaclyBeforeSaveCalled;
 
 
-        public IQueryable<T> Query<T>() where T : class
-        {
-            return Select<T>().AsQueryable<T>();
-        }
+        
 
-        public new IRepository Insert<T>(T e) where T : class
+        public IRepository Insert<T>(T e) where T : class
         {
-            base.Insert(e);
+            m_oMapper.Insert(e);
             return this;
         }
 
-        public new IRepository Delete<T>(T e) where T : class
+        public IRepository Delete<T>(T e) where T : class
         {
-            base.Delete(e);
+            m_oMapper.Delete(e);
             return this;
         }
 
 
-        public new IRepository Submit()
+        public IRepository Submit()
         {
-            base.Submit();
+            m_oMapper.Submit();
             return this;
         }
 
@@ -63,14 +60,12 @@ namespace Repository.ObjectMapper
 
         public IDbConnection RepositoryConnection
         {
-            get { return base.Connection; }
+            get { return m_oMapper.Connection; }
         }
 
+        
 
-        QueryResult<T> IRepository.Query<T>()
-        {
-            throw new NotImplementedException();
-        }
+
 
         public void ExecuteBlock(Callback externMethod, ExceptionCallback exceptionMethod = null)
         {
@@ -113,6 +108,31 @@ namespace Repository.ObjectMapper
             {
                 return externMethod(callerInstance);
             }
-        }       
+        }
+
+
+
+
+        QueryResult<T> IRepository.Query<T>()
+        {
+            return new QueryResult<T>(this.Query<T>());
+        }
+
+        public void Dispose()
+        {
+            m_oMapper.Dispose();
+        }
+
+
+
+
+
+
+
+
+        private IQueryable<T> Query<T>() where T : class
+        {
+            return m_oMapper.Select<T>().AsQueryable<T>();
+        }
     }
 }

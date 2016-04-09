@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Repository.ObjectMapper.Types.Mappings
+namespace Repository.OMapper.Types.Mappings
 {
     /// <summary>
     ///     Map CLR properties to SQL columns, and contains the column to get data from a ResultSet

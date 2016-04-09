@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Repository.ObjectMapper.Exceptions
+namespace Repository.OMapper.Exceptions
 {
     public sealed class SqlColumnNotFoundException : Exception
     {

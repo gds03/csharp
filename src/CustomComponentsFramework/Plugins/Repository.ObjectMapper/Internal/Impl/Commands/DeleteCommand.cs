@@ -1,6 +1,6 @@
-﻿using Repository.ObjectMapper.Interfaces;
-using Repository.ObjectMapper.Types;
-using Repository.ObjectMapper.Types.Mappings;
+﻿using Repository.OMapper.Interfaces;
+using Repository.OMapper.Types;
+using Repository.OMapper.Types.Mappings;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,16 +8,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Repository.ObjectMapper.Internal.Commands.Impl
+namespace Repository.OMapper.Internal.Commands.Impl
 {
-    internal partial class CommandsForTypeSchema : CommandsForTypeSchemaBase, ISqlCommandTextGenerator
+    internal partial class CommandsForTypeSchema : ISqlCommandTextGenerator
     {
-        // ctor
-        public CommandsForTypeSchema(ObjectMapper oMapper) : base(oMapper)
-        {
-            
-        }
-
         /// <summary>
         ///     Creates a SQL string that will represent Delete statement.
         ///     This method will use parameterized queries.
@@ -35,7 +29,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = ObjectMapper.s_TypesSchemaMapper[objRepresentor];
+            TypeSchema schema = OMapper.s_TypesSchemaMapper[objRepresentor];
 
             if (schema.Keys.Count == 0)
                 throw new InvalidOperationException("Type {0} must have at least one key for deleting".Frmt(objRepresentor.Name));
@@ -74,7 +68,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
             {
                 Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
 
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, ObjectMapper.s_ClrToSqlTypesMapper[propertyType]));
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupport.s_ClrToSqlTypesMapper[propertyType]));
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
@@ -90,7 +84,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
             foreach (KeyMapping map in schema.Keys.Values)
             {
                 PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = ObjectMapper.PrepareValue(pi.GetValue(obj, null));         // Can contain quotes, based on property type
+                String valueTxt = OMapper.PrepareValue(pi.GetValue(obj, null));         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }

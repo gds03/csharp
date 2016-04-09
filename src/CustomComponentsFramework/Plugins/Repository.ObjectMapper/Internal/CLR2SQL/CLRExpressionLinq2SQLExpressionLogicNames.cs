@@ -5,7 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace Repository.ObjectMapper.Internal.CLR2SQL
+namespace Repository.OMapper.Internal.CLR2SQL
 {
     internal static class CLRExpressionLinq2SQLExpressionLogicNames
     {

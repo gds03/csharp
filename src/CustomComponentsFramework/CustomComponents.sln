@@ -37,7 +37,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Logging.Log4net", "Plugins\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repository.EntityFramework", "Plugins\Repository.EntityFramework\Repository.EntityFramework.csproj", "{E8201F94-365B-49CD-806E-6429C90C8505}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repository.ObjectMapper", "Plugins\Repository.ObjectMapper\Repository.ObjectMapper.csproj", "{92025A68-039F-4FF3-BC77-060AFEA16495}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Repository.OMapper", "Plugins\Repository.ObjectMapper\Repository.OMapper.csproj", "{92025A68-039F-4FF3-BC77-060AFEA16495}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

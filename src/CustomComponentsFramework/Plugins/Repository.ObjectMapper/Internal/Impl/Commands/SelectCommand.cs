@@ -1,7 +1,7 @@
-﻿using Repository.ObjectMapper.Interfaces;
-using Repository.ObjectMapper.Providers;
-using Repository.ObjectMapper.Types;
-using Repository.ObjectMapper.Types.Mappings;
+﻿using Repository.OMapper.Interfaces;
+using Repository.OMapper.Providers;
+using Repository.OMapper.Types;
+using Repository.OMapper.Types.Mappings;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,9 +9,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace Repository.ObjectMapper.Internal.Commands.Impl
+namespace Repository.OMapper.Internal.Commands.Impl
 {
-    internal partial class CommandsForTypeSchema : CommandsForTypeSchemaBase, ISqlCommandTextGenerator
+    internal partial class CommandsForTypeSchema : ISqlCommandTextGenerator
     {
         /// <summary>
         ///     Creates a SQL string that will represent Select statement.
@@ -30,7 +30,7 @@ namespace Repository.ObjectMapper.Internal.Commands.Impl
             // and we need iterate in a secure way.
             //
 
-            TypeSchema schema = ObjectMapper.s_TypesSchemaMapper[typeof(T)];         // Get schema information for specific Type
+            TypeSchema schema = OMapper.s_TypesSchemaMapper[typeof(T)];         // Get schema information for specific Type
 
 
             cmdTxt.Append("select ");

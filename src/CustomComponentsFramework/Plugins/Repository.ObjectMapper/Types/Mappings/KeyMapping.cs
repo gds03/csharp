@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Repository.ObjectMapper.Types.Mappings
+namespace Repository.OMapper.Types.Mappings
 {
     /// <summary>
     ///     Typically used to map the identity column of a type

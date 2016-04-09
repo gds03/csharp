@@ -1,33 +1,32 @@
-﻿using Repository.ObjectMapper.Interfaces;
-using Repository.ObjectMapper.Internal;
-using Repository.ObjectMapper.Internal.Commands.Impl;
-using Repository.ObjectMapper.Internal.Impl;
+﻿using Repository.OMapper.Interfaces;
+using Repository.OMapper.Internal;
+using Repository.OMapper.Internal.Commands.Impl;
+using Repository.OMapper.Internal.Impl;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Repository.ObjectMapper.Providers
+namespace Repository.OMapper.Providers
 {
     public static class CommandsForTypeSchemaProvider
     {
-        public static List<Func<ObjectMapper, ISqlCommandTextGenerator>> CommandProviders = new List<Func<ObjectMapper, ISqlCommandTextGenerator>>();
+        public static List<Func<ISqlCommandTextGenerator>> CommandProviders = new List<Func<ISqlCommandTextGenerator>>();
 
 
         static CommandsForTypeSchemaProvider()
         {
             // add here more in the future through Ioc for example.
-            CommandProviders.Add(oMapper => new CommandsForTypeSchema(oMapper));
+            CommandProviders.Add(() => new CommandsForTypeSchema());
         }
 
 
-        public static ISqlCommandTextGenerator GetCurrent(ObjectMapper oMapper)
+        public static ISqlCommandTextGenerator Current
         {
-            if (oMapper == null)
-                throw new ArgumentNullException("oMapper");
-
-
-            return CommandProviders[0](oMapper);
+            get
+            {
+                return CommandProviders[0]();
+            }
         }
     }
 }
