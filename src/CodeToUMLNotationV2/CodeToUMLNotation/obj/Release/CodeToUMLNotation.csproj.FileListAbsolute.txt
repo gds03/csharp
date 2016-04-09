@@ -6,7 +6,6 @@ C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\bin\Release\ICS
 C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\bin\Release\ICSharpCode.NRefactory.dll
 C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\bin\Release\ICSharpCode.NRefactory.xml
 C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\bin\Release\ICSharpCode.NRefactory.CSharp.xml
-C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\obj\Release\CodeToUMLNotation.csprojResolveAssemblyReference.cache
 C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\obj\Release\CodeToUMLNotation.Controls.FindDialog.resources
 C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\obj\Release\CodeToUMLNotation.ParserForm.resources
 C:\Repositories\csharp\src\CodeToUMLNotationV2\CodeToUMLNotation\obj\Release\CodeToUMLNotation.Properties.Resources.resources

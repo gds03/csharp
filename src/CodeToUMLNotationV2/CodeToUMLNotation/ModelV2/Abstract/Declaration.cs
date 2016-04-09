@@ -10,7 +10,7 @@ namespace CodeToUMLNotation.ModelV2.Abstract
 {
     public abstract class Declaration
     {
-        public Visibility Visibility { get; private set; }
+        public Visibility Visibility { get; protected set; }
 
         public string Name { get; private set; }
 

@@ -77,12 +77,15 @@ namespace CodeToUMLNotation.ModelV2.Abstract
                 
         protected bool WritePropertiesUML(IRichStringbuilder richSb)
         {
-            Properties.OrderBy(x => x.Static).ToList().ForEach(p => p.Design(richSb).WriteLine());
+            Properties.OrderByDescending(x => !x.Static).ToList().ForEach(p => p.Design(richSb).WriteLine());
             return Properties.Count > 0;
         }
         protected bool WriteMethodsUML(IRichStringbuilder richSb)
         {
-            Methods.OrderBy(x => x.Static).ToList().ForEach(m => m.Design(richSb).WriteLine());
+             Methods.OrderByDescending(x => !x.Static).ToList().Aggregate(new List<Method>(), (l, m) => {
+                        l.Insert((m.Ctor && m.Static) ? 0 : l.Count, m);
+                        return l;
+                    }).ForEach(m => m.Design(richSb).WriteLine());
             return Methods.Count > 0;
         }
 

@@ -40,11 +40,15 @@ namespace CodeToUMLNotation.NRefactoryHelper
                     break;
                     
                 case PARSE_TYPE.PROPERTIES:
-                    CLRDeclarations.OfType<ClassesAndStructsAndInterfaces>().ToList().ForEach(csi => csi.Properties.OrderBy(x => x.Static).ToList().ForEach(p => p.Design(m_richSb).WriteLine()));
+                    CLRDeclarations.OfType<ClassesAndStructsAndInterfaces>().ToList().ForEach(csi => csi.Properties.OrderByDescending(x => !x.Static).ToList().ForEach(p => p.Design(m_richSb).WriteLine()));
                     break;
 
-                case PARSE_TYPE.METHODS:
-                    CLRDeclarations.OfType<ClassesAndStructsAndInterfaces>().ToList().ForEach(csi => csi.Methods.OrderBy(x => x.Static).ToList().ForEach(m => m.Design(m_richSb).WriteLine()));
+                case PARSE_TYPE.METHODS:                    
+                    CLRDeclarations.OfType<ClassesAndStructsAndInterfaces>().ToList().ForEach(csi => csi.Methods.OrderByDescending(x => !x.Static).ToList().Aggregate(new List<Method>(), (l, m) => {
+                        l.Insert((m.Ctor && m.Static) ? 0 : l.Count, m);
+                        return l;
+                    })
+                    .ForEach(m => m.Design(m_richSb).WriteLine()));
                     break;
 
                 case PARSE_TYPE.ALL:

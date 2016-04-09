@@ -48,6 +48,8 @@ namespace CodeToUMLNotation.ModelV2
                 innerSb.WriteRegular(")");
             };
 
+            if( Ctor && Static )
+                this.Visibility = new Visibility(Enums.VisibilityMode.@public);
 
             Visibility.Design(richSb);
             richSb.WriteRegular(" ");
