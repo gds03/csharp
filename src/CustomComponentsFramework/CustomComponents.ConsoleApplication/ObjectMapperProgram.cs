@@ -29,7 +29,7 @@ namespace CustomComponents.ConsoleApplication
     public class Category
     {
         //[Identity]
-        //[PrimaryKey] --> this is removed, now we use ObjectMapper.Initialize to initialize instead of use custom attributes.
+        //[PrimaryKey] --> this is removed, now we use ObjectMapper.Configure() method to configure instead of use custom attributes.
         public int id { get; set; }
 
         public string name { get; set; }
@@ -111,7 +111,7 @@ namespace CustomComponents.ConsoleApplication
 
         private static void AddCategoriesMassRandomOperations(ObjectMapper oMapper)
         {
-            const int ITERATIONS = 2000;
+            const int ITERATIONS = 20000;
             Random r = new Random();
 
             Category c;
@@ -133,7 +133,10 @@ namespace CustomComponents.ConsoleApplication
             for (int i = 0; i < ITERATIONS; i++)
             {
                 if (i % 2 == 0)
+                {
                     categoriesHalf[i].name += "_%2";
+                    categoriesHalf[i].extraInfo = "UPDATED" + i.ToString();
+                }
             }
 
             oMapper.Delete(categoriesHalf[0]);
@@ -152,7 +155,10 @@ namespace CustomComponents.ConsoleApplication
                                  .Identity(x => x.id)
                                  // .BindFrom()
                                  // .BindTo()
-                                 ;
+                                ;
+
+                //i.For<Product>().PrimaryKey(x => x.name)
+                //                .Identity(x => x.id);
             });
 
             AddCategoriesMassRandomOperations(oMapper);
