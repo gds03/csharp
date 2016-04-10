@@ -56,13 +56,18 @@ namespace Repository.OMapper
         // member fields
         protected bool m_disposed;
 
-		protected DbTransaction m_transaction;
-		protected readonly DbConnection m_connection;
-		protected readonly int m_commandTimeout = 30;
+        
+        protected readonly IsolationLevel m_isolationLevel;
+        protected readonly int m_commandTimeout = 30;
+        protected readonly string m_connectionString;
+
+        private readonly DbTransaction m_transaction;
+        protected DbTransaction m_curr_transaction;
+        protected DbConnection m_curr_connection;
 
 
 
-		protected event Action<object> OnMappingOneEntry;
+        protected event Action<object> OnMappingOneEntry;
 
 
 		#endregion
@@ -86,32 +91,40 @@ namespace Repository.OMapper
 
 
 
-
-
-		/// <summary>
-		///     Initialize OMapper with specified connectionString and with a default command timeout of 30 seconds
+        /// <summary>
+		///     Initialize OMapper with specified connectionString, IsolationLevel ReadCommitted and with a default command timeout of 30 seconds
 		/// </summary>
 		/// <param name="connectionString"></param>
-		public OMapper(string connectionString)
+		public OMapper(string connectionString) : this(connectionString, IsolationLevel.ReadCommitted)
+        {
+           
+        }
+
+        /// <summary>
+        ///     Initialize OMapper with specified connectionString, Isolation and with a default command timeout of 30 seconds
+        /// </summary>
+        /// <param name="connectionString"></param>
+        public OMapper(string connectionString, IsolationLevel isolationLevel)
 		{
 			if (string.IsNullOrEmpty(connectionString))
 				throw new ArgumentNullException("connectionString");
 
-			m_connection = new SqlConnection(connectionString);
-		}
+
+            m_isolationLevel = isolationLevel;
+            m_connectionString = connectionString;
+        }
 
 
 		/// <summary>
 		///     Initialize OMapper with specified connection and with a default command timeout of 30 seconds
 		/// </summary>
 		/// <param name="connection"></param>
-		public OMapper(DbConnection connection, DbTransaction transaction = null)
+		public OMapper(DbTransaction transaction)
 		{
-			if (connection == null)
+			if (m_curr_transaction == null)
 				throw new ArgumentNullException("connection");
 
-			m_connection = connection;
-			m_transaction = transaction;
+            m_transaction = transaction;
 		}
 
 
@@ -120,8 +133,8 @@ namespace Repository.OMapper
 		/// </summary>
 		/// <param name="connection"></param>
 		/// <param name="commandTimeout"></param>
-		public OMapper(DbConnection connection, int commandTimeout, DbTransaction transaction = null)
-			: this(connection, transaction)
+		public OMapper(int commandTimeout, DbTransaction transaction)
+			: this(transaction)
 		{
 			m_commandTimeout = commandTimeout;
 		}
@@ -446,7 +459,7 @@ namespace Repository.OMapper
         /// </summary>
         public DbConnection Connection
         {
-            get { return m_connection; }
+            get { return m_curr_connection; }
         }
 
         /// <summary>
@@ -470,26 +483,26 @@ namespace Repository.OMapper
         /// <param name="parameters">The parameters that command use. (optional)</param>
         /// <returns>A list of objects with their properties filled that aren't annotated with [Exclude] attribute</returns>
         public IList<T> Select<T>(CommandType commandType, string commandText, params DbParameter[] parameters) where T : class
-		{
-			// Lock-Free
-			AddMetadataFor(typeof(T));
+        {
+            // Lock-Free
+            AddMetadataFor(typeof(T));
 
-			//
-			// If we are here, the properties for specific type are filled 
-			// and never be touched (modified) again for the type.
-			// 
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
 
-			// Open connection if not opened
-			OpenConnection();
+            // Command Setup parameters
+            return OpenCloseConnection(false, () =>
+            {
+                DbCommand cmd = CreateCommandForCurrentConnection(commandType, commandText);
 
-			// Command Setup parameters
-			DbCommand comm = CmdForConnection(commandType, commandText);
+                // Set parameters
+                if (parameters != null && parameters.Length > 0)
+                    cmd.Parameters.AddRange(parameters);
 
-			// Set parameters
-			if (parameters != null && parameters.Length > 0)
-				comm.Parameters.AddRange(parameters);
-
-			return MapTo<T>(comm.ExecuteReader());
+                return MapTo<T>(cmd.ExecuteReader());
+            });
 		}
 
 
@@ -510,31 +523,31 @@ namespace Repository.OMapper
 			AddMetadataFor(typeof(T1));
 			AddMetadataFor(typeof(T2));
 
-			//
-			// If we are here, the properties for specific type are filled 
-			// and never be touched (modified) again for the type.
-			// 
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
 
-			// Open connection if not opened
-			OpenConnection();
 
-			// Command Setup parameters
-			DbCommand comm = CmdForConnection(commandType, commandText);
+            return OpenCloseConnection(false, () =>
+            {
+                object[] result = new object[2];
 
-			// Set parameters
-			if (parameters != null && parameters.Length > 0)
-				comm.Parameters.AddRange(parameters);
+                DbCommand cmd = CreateCommandForCurrentConnection(commandType, commandText);
 
-			// Allocate memory
-			object[] result = new object[2];
-			DbDataReader reader;
+                // Set parameters
+                if (parameters != null && parameters.Length > 0)
+                    cmd.Parameters.AddRange(parameters);
 
-			result[0] = MapTo<T1>(reader = comm.ExecuteReader(), false);
-			reader.NextResult();
-			result[1] = MapTo<T2>(reader);
+                DbDataReader reader;
 
-			// return reference
-			return result;
+                result[0] = MapTo<T1>(reader = cmd.ExecuteReader(), false);
+                reader.NextResult();
+                result[1] = MapTo<T2>(reader);
+                return result;
+            });
+
+           
 		}
 
 
@@ -560,33 +573,28 @@ namespace Repository.OMapper
 			AddMetadataFor(typeof(T2));
 			AddMetadataFor(typeof(T3));
 
-			//
-			// If we are here, the properties for specific type are filled 
-			// and never be touched (modified) again for the type.
-			// 
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
 
-			// Open connection if not opened
-			OpenConnection();
+            return OpenCloseConnection(false, () =>
+            {
+                object[] result = new object[3];
 
-			// Command Setup parameters
-			DbCommand comm = CmdForConnection(commandType, commandText);
+                DbCommand cmd = CreateCommandForCurrentConnection(commandType, commandText);
+                // Set parameters
+                if (parameters != null && parameters.Length > 0)
+                    cmd.Parameters.AddRange(parameters);
 
-			// Set parameters
-			if (parameters != null && parameters.Length > 0)
-				comm.Parameters.AddRange(parameters);
+                DbDataReader reader;
 
-			// Allocate memory
-			object[] result = new object[3];
-			DbDataReader reader;
-
-			result[0] = MapTo<T1>(reader = comm.ExecuteReader(), false);
-			reader.NextResult();
-			result[1] = MapTo<T2>(reader, false);
-			reader.NextResult();
-			result[2] = MapTo<T3>(reader);
-
-			// return reference
-			return result;
+                result[0] = MapTo<T1>(reader = cmd.ExecuteReader(), false);
+                reader.NextResult();
+                result[1] = MapTo<T2>(reader, false);
+                reader.NextResult();
+                result[2] = MapTo<T3>(reader);
+                return result;
+            });
 		}
 
 
@@ -610,42 +618,28 @@ namespace Repository.OMapper
             if (obj == null)
                 throw new ArgumentNullException("obj");
 
-            Type type = obj.GetType();
+            Type objRepresentor = obj.GetType();
 
             // Lock-Free
-            AddMetadataFor(type);
+            TypeSchema schema = AddMetadataFor(objRepresentor);
 
-
-            //
-            // If we are here, the properties for specific type are filled 
-            // and never be touched (modified) again for the type.
-            // 
-
-            // Open connection if not opened
-            OpenConnection();
-
-            // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.StoredProcedure, procedureName);
-
-
-            //
-
-            Type objRepresentor = obj.GetType();
-            TypeSchema schema = s_TypesSchemaMapper[type];
-
-            foreach (ProcMapping pm in schema.Procedures.Values)
+            return OpenCloseConnection(false, () =>
             {
-                if ((pm.Mode & mode) == mode)      // Mode match!
+                DbCommand cmd = CreateCommandForCurrentConnection(CommandType.StoredProcedure, procedureName);
+
+                foreach (ProcMapping pm in schema.Procedures.Values)
                 {
-                    object value = objRepresentor.GetProperty(pm.Map.From, s_PropertiesFlags).GetValue(obj, null);
-                    object value2 = value == null ? DBNull.Value : value;
+                    if ((pm.Mode & mode) == mode)      // Mode match!
+                    {
+                        object value = objRepresentor.GetProperty(pm.Map.From, s_PropertiesFlags).GetValue(obj, null);
+                        object value2 = value == null ? DBNull.Value : value;
 
-                    cmd.Parameters.Add(new SqlParameter(pm.Map.To, value2));
+                        cmd.Parameters.Add(new SqlParameter(pm.Map.To, value2));
+                    }
                 }
-            }
 
-
-            return cmd.ExecuteNonQuery();
+                return cmd.ExecuteNonQuery();
+            });
         }
 
 
@@ -661,17 +655,16 @@ namespace Repository.OMapper
             if (string.IsNullOrEmpty(commandText))
                 throw new ArgumentException("commandText");
 
-            // Open connection if not opened
-            OpenConnection();
+            return OpenCloseConnection(false, () =>
+            {
+                DbCommand cmd = CreateCommandForCurrentConnection(commandType, commandText);
 
-            // Command Setup parameters
-            DbCommand comm = CmdForConnection(commandType, commandText);
+                // Set parameters
+                if (parameters != null && parameters.Length > 0)
+                    cmd.Parameters.AddRange(parameters);
 
-            // Set parameters
-            if (parameters != null && parameters.Length > 0)
-                comm.Parameters.AddRange(parameters);
-
-            return comm.ExecuteNonQuery();
+                return cmd.ExecuteNonQuery();
+            });
         }
 
 
@@ -687,17 +680,17 @@ namespace Repository.OMapper
             if (string.IsNullOrEmpty(commandText))
                 throw new ArgumentException("commandText");
 
-            // Open connection if not opened
-            OpenConnection();
 
-            // Command Setup parameters
-            DbCommand comm = CmdForConnection(commandType, commandText);
+            return OpenCloseConnection(false, () =>
+            {
+                DbCommand cmd = CreateCommandForCurrentConnection(commandType, commandText);
 
-            // Set parameters
-            if (parameters != null && parameters.Length > 0)
-                comm.Parameters.AddRange(parameters);
+                // Set parameters
+                if (parameters != null && parameters.Length > 0)
+                    cmd.Parameters.AddRange(parameters);
 
-            return comm.ExecuteScalar();
+                return cmd.ExecuteScalar();
+            });
         }
 
 
@@ -715,55 +708,77 @@ namespace Repository.OMapper
         #region Protected
 
 
+        protected DbCommand CreateCommandForCurrentConnection(CommandType commandType, string commandText)
+        {
+            Debug.Assert(!string.IsNullOrEmpty(commandText));
+            DbCommand cmd = m_curr_connection.CreateCommand();
+
+            cmd.CommandType = commandType;
+            cmd.CommandText = commandText;
+            cmd.CommandTimeout = m_commandTimeout;
+            cmd.Transaction = m_curr_transaction;
+
+            return cmd;
+        }
+
+        protected TResult OpenCloseConnection<TResult>(bool makeTransactional, Func<TResult> userFunc)
+        {
+            DbTransaction dbTran = null;
+            DbConnection dbConn = null;
+
+            if( m_transaction != null )
+            {
+                dbTran = m_transaction;
+                dbConn = m_transaction.Connection;
+            }
+
+            else
+            {
+                dbConn = new SqlConnection(m_connectionString);
+                if ( makeTransactional)
+                {
+                    dbConn.Open();
+                    dbTran = dbConn.BeginTransaction(m_isolationLevel);
+                }
+            }
 
 
-        protected DbTransaction OpenConnection()
-		{
-			if (m_connection == null)
-				throw new NullReferenceException("connection is null");
+            m_curr_connection = dbConn;
+            m_curr_transaction = dbTran;
 
-			// Try open the connection if not opened!
-			if (m_connection.State != ConnectionState.Open)
-				m_connection.Open();
+            if (dbConn.State == ConnectionState.Closed)
+                dbConn.Open();            
 
-			if (m_transaction == null)
-				m_transaction = m_connection.BeginTransaction(CURRENT_ISOLATION_LEVEL);
+            using (m_curr_connection)
+            {
+                
+                try
+                {
+                    return userFunc();
+                }
 
-			return m_transaction;
+                catch(Exception ex)
+                {
+                    if (dbTran != null)
+                        dbTran.Rollback();
 
-		}
+                    throw;
+                }
 
-		protected void CloseConnection()
-		{
-			if (m_connection == null)
-				throw new NullReferenceException("connection is null");
+                finally
+                {
+                    if (dbTran != null)
+                    {
+                        dbTran.Commit();
+                        dbTran.Dispose();
+                    }
+                }
+            }
 
-			if (m_transaction != null)
-			{
-				m_transaction.Commit();
-				m_transaction.Dispose();
-				m_transaction = null;
-			}
+            m_curr_connection = null;
+        }
 
-			// Try open the connection if not opened!
-			if (m_connection.State != ConnectionState.Closed)
-				m_connection.Close();
-		}
-
-
-		protected DbCommand CmdForConnection(CommandType type, String text)
-		{
-			DbCommand comm = m_connection.CreateCommand();
-
-			comm.CommandType = type;
-			comm.CommandText = text;
-			comm.CommandTimeout = m_commandTimeout;
-			comm.Transaction = m_transaction;
-
-			return comm;
-		}
-
-
+        
 		/// <summary>
 		///     Iterate over the reader and maps properties that are not excluded to the OMapper.
 		/// </summary>
@@ -852,7 +867,6 @@ namespace Repository.OMapper
 				// Free Connection Resources
 				reader.Close();
 				reader.Dispose();
-				CloseConnection();
 			}
 
 			return objectsQueue;
@@ -877,12 +891,12 @@ namespace Repository.OMapper
 			if (explicitlyCalled)
 			{
 				// get rid of managed resources
-				if (m_connection != null)
+				if (m_curr_connection != null)
 				{
-					if (m_connection.State != ConnectionState.Closed)
-						m_connection.Close();
+					if (m_curr_connection.State != ConnectionState.Closed)
+						m_curr_connection.Close();
 
-					m_connection.Dispose();
+					m_curr_connection.Dispose();
 				}
 
 				m_disposed = true;

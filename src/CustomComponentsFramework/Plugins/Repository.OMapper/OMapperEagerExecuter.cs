@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Text;
@@ -13,10 +14,8 @@ namespace Repository.OMapper
 
 
 
-
-
         /// <summary>
-        ///     Initialize OMapper with specified connectionString and with a default command timeout of 30 seconds
+        ///     Initialize OMapper with specified connectionString, IsolationLevel ReadCommitted and with a default command timeout of 30 seconds
         /// </summary>
         /// <param name="connectionString"></param>
         public OMapperEagerExecuter(string connectionString) : base(connectionString)
@@ -26,10 +25,20 @@ namespace Repository.OMapper
 
 
         /// <summary>
+        ///     Initialize OMapper with specified connectionString and with a default command timeout of 30 seconds
+        /// </summary>
+        /// <param name="connectionString"></param>
+        public OMapperEagerExecuter(string connectionString, IsolationLevel isolationLevel) : base(connectionString, isolationLevel )
+        {
+
+        }
+
+
+        /// <summary>
         ///     Initialize OMapper with specified connection and with a default command timeout of 30 seconds
         /// </summary>
         /// <param name="connection"></param>
-        public OMapperEagerExecuter(DbConnection connection, DbTransaction transaction = null) : base(connection, transaction)
+        public OMapperEagerExecuter(DbTransaction transaction) : base(transaction)
         {
 
         }
@@ -40,8 +49,8 @@ namespace Repository.OMapper
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="commandTimeout"></param>
-        public OMapperEagerExecuter(DbConnection connection, int commandTimeout, DbTransaction transaction = null)
-            : base(connection, commandTimeout, transaction)
+        public OMapperEagerExecuter(int commandTimeout, DbTransaction transaction)
+            : base(commandTimeout, transaction)
         {
       
         }

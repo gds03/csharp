@@ -38,8 +38,9 @@ namespace Repository.OMapper
 
 
 
+
         /// <summary>
-        ///     Initialize OMapper with specified connectionString and with a default command timeout of 30 seconds
+        ///     Initialize OMapper with specified connectionString, IsolationLevel ReadCommitted and with a default command timeout of 30 seconds
         /// </summary>
         /// <param name="connectionString"></param>
         public OMapperContextExecuter(string connectionString) : base(connectionString)
@@ -49,10 +50,20 @@ namespace Repository.OMapper
 
 
         /// <summary>
+        ///     Initialize OMapper with specified connectionString and with a default command timeout of 30 seconds
+        /// </summary>
+        /// <param name="connectionString"></param>
+        public OMapperContextExecuter(string connectionString, IsolationLevel isolationLevel) : base(connectionString, isolationLevel)
+        {
+            SetEventHandler();
+        }
+
+
+        /// <summary>
         ///     Initialize OMapper with specified connection and with a default command timeout of 30 seconds
         /// </summary>
         /// <param name="connection"></param>
-        public OMapperContextExecuter(DbConnection connection, DbTransaction transaction = null) : base(connection, transaction)
+        public OMapperContextExecuter(DbTransaction transaction = null) : base(transaction)
         {
             SetEventHandler();
         }
@@ -63,8 +74,8 @@ namespace Repository.OMapper
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="commandTimeout"></param>
-        public OMapperContextExecuter(DbConnection connection, int commandTimeout, DbTransaction transaction = null)
-            : base(connection, commandTimeout, transaction)
+        public OMapperContextExecuter(int commandTimeout, DbTransaction transaction)
+            : base(commandTimeout, transaction)
         {
             SetEventHandler();
         }
@@ -157,10 +168,7 @@ namespace Repository.OMapper
         {
             int operationsPerformed = 0;
 
-            // Open connection if not opened
-            DbTransaction unitOfWork = OpenConnection();
-
-            try
+            return OpenCloseConnection(true, () =>
             {
                 // Inserts
                 foreach (object @objInsert in m_insertCommandsQueue)
@@ -201,21 +209,10 @@ namespace Repository.OMapper
                     if (deleteResult)
                         operationsPerformed++;
                 }
-            }
-            catch (Exception e)
-            {
-                unitOfWork.Rollback();
-                throw;
-            }
-            finally
-            {
-                // Cleanup
-                CloseConnection();
 
-            }
-            CleanupCommands();
-            return operationsPerformed;
-
+                CleanupCommands();
+                return operationsPerformed;
+            });
         }
 
         #endregion

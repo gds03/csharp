@@ -16,19 +16,9 @@ namespace Repository.OMapper
 
         public OMapperRepository(string connectionString)
         {
-            m_oMapper = new OMapperContextExecuter(connectionString);
+            m_oMapper = new OMapperContextExecuter(connectionString, IsolationLevel.ReadCommitted);
         }
 
-        public OMapperRepository(DbConnection connection, DbTransaction transaction = null)
-        {
-            m_oMapper = new OMapperContextExecuter(connection, transaction);
-        }
-
-
-        public OMapperRepository(DbConnection connection, int commandTimeout, DbTransaction transaction = null)
-        {
-            m_oMapper = new OMapperContextExecuter(connection, commandTimeout, transaction);
-        }
 
         public event Callback ExaclyBeforeSaveCalled;
 

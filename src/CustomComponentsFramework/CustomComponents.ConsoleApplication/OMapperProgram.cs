@@ -3,6 +3,7 @@ using Repository.OMapper.Attributes;
 using Repository.OMapper.Internal.Metadata;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -115,6 +116,8 @@ namespace CustomComponents.ConsoleApplication
             Random r = new Random();
 
             Category c;
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
             for (int i = 0; i < ITERATIONS; i++)
             {
                 c = new Category
@@ -126,9 +129,21 @@ namespace CustomComponents.ConsoleApplication
                 };
                 oMapper.Insert(c);
             }
-            oMapper.Submit();
+            watch.Stop();
+            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to insert { ITERATIONS } elements into OMapper");
 
-            IList<Category> categoriesHalf = oMapper.Select<Category>(x => x.id > 1000);
+            Console.WriteLine($"Sending commands to database");
+            watch.Restart();
+            oMapper.Submit();
+            watch.Stop();
+            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to submit");
+
+            const int afterId = 1000;
+            watch.Restart();
+            Console.WriteLine($"Mapping objects into memory");
+            IList<Category> categoriesHalf = oMapper.Select<Category>(x => x.id > afterId);
+            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Select { ITERATIONS - afterId } objects");
+            watch.Stop();
 
             for (int i = 0; i < ITERATIONS; i++)
             {
@@ -142,7 +157,15 @@ namespace CustomComponents.ConsoleApplication
             oMapper.Delete(categoriesHalf[0]);
             oMapper.Delete(categoriesHalf[1]);
 
+            watch.Restart();
+            Console.WriteLine($"Sending commands to database");
             oMapper.Submit();
+            watch.Stop();
+
+            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Submit the changes");
+            Console.WriteLine("Press any key to leave <<<");
+            Console.Read();
+
         }
 
         public static void Main(String[] args)

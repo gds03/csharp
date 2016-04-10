@@ -56,13 +56,21 @@ namespace Repository.OMapper
 
 
 
+        /// <summary>
+        ///     Initialize OMapper with specified connectionString, IsolationLevel ReadCommitted and with a default command timeout of 30 seconds
+        /// </summary>
+        /// <param name="connectionString"></param>
+        public OMapperCRUDSupport(string connectionString) : base(connectionString)
+        {
+
+        }
 
 
         /// <summary>
         ///     Initialize OMapper with specified connectionString and with a default command timeout of 30 seconds
         /// </summary>
         /// <param name="connectionString"></param>
-        public OMapperCRUDSupport(string connectionString) : base(connectionString)
+        public OMapperCRUDSupport(string connectionString, IsolationLevel isolationLevel) : base(connectionString,isolationLevel )
         {
  
         }
@@ -72,7 +80,7 @@ namespace Repository.OMapper
         ///     Initialize OMapper with specified connection and with a default command timeout of 30 seconds
         /// </summary>
         /// <param name="connection"></param>
-        public OMapperCRUDSupport(DbConnection connection, DbTransaction transaction = null) : base(connection, transaction)
+        public OMapperCRUDSupport(DbTransaction transaction) : base(transaction)
         {
 
         }
@@ -83,8 +91,8 @@ namespace Repository.OMapper
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="commandTimeout"></param>
-        public OMapperCRUDSupport(DbConnection connection, int commandTimeout, DbTransaction transaction = null)
-            : base(connection, commandTimeout, transaction)
+        public OMapperCRUDSupport(int commandTimeout, DbTransaction transaction)
+            : base(commandTimeout, transaction)
         {
 
         }
@@ -187,28 +195,24 @@ namespace Repository.OMapper
         /// <returns>A list of objects with their properties filled that aren't annotated with [Exclude] attribute</returns>
         public IList<T> Select<T>(Expression<Func<T, bool>> filter) where T : class
         {
-            Type type = typeof(T);
-
             // Lock-Free
-            AddMetadataFor(type);
-
+            TypeSchema schema = AddMetadataFor(typeof(T));
+            
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            TypeSchema schema = s_TypesSchemaMapper[type];         // Get schema information for specific Type
-
             // Prepare select statement for type
 
             String SQLSelectCommand = m_sqlCommandsProvider.SelectCommand(filter);
 
-            // Open connection if not opened
-            OpenConnection();
-
-            // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, SQLSelectCommand);
-            return MapTo<T>(cmd.ExecuteReader());
+            return OpenCloseConnection(false, () =>
+            {
+                // Command Setup parameters
+                DbCommand cmd = CreateCommandForCurrentConnection(CommandType.Text, SQLSelectCommand);
+                return MapTo<T>(cmd.ExecuteReader());
+            });
         }
 
 
@@ -317,7 +321,7 @@ namespace Repository.OMapper
             TypeSchema schema = s_TypesSchemaMapper[insertObjRepresentor];
 
             // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, insertCmd);
+            DbCommand cmd = CreateCommandForCurrentConnection(CommandType.Text, insertCmd);
 
             // If Identity is not setted, execute the query and ignore the rest
             if (schema.IdentityPropertyName == null)
@@ -357,7 +361,7 @@ namespace Repository.OMapper
             Debug.Assert(!string.IsNullOrEmpty(updateCmd));
 
             // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, updateCmd);
+            DbCommand cmd = CreateCommandForCurrentConnection(CommandType.Text, updateCmd);
             return cmd.ExecuteNonQuery() > 0;
         }
 
@@ -371,7 +375,7 @@ namespace Repository.OMapper
         {
             Debug.Assert(!string.IsNullOrEmpty(deleteCmd));
             // Command Setup parameters
-            DbCommand cmd = CmdForConnection(CommandType.Text, deleteCmd);
+            DbCommand cmd = CreateCommandForCurrentConnection(CommandType.Text, deleteCmd);
             return cmd.ExecuteNonQuery() > 0;
         }
 
