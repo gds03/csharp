@@ -95,7 +95,7 @@ namespace Repository.OMapper
 		///     Initialize OMapper with specified connectionString, IsolationLevel ReadCommitted and with a default command timeout of 30 seconds
 		/// </summary>
 		/// <param name="connectionString"></param>
-		public OMapper(string connectionString) : this(connectionString, IsolationLevel.ReadCommitted)
+		public OMapper(string connectionString) : this(connectionString, CURRENT_ISOLATION_LEVEL)
         {
            
         }
