@@ -30,7 +30,7 @@ namespace Repository.OMapper
 	public class OMapper : IDisposable
 	{
 		const int SchemaInitCapacity = 53;
-		const IsolationLevel CURRENT_ISOLATION_LEVEL = IsolationLevel.ReadCommitted;
+		const IsolationLevel DEFAULT_ISOLATION_LEVEL = IsolationLevel.ReadCommitted;
 
 
 
@@ -45,6 +45,7 @@ namespace Repository.OMapper
 
 		// For specific type, stores the properties that must be mapped from SQL (Accessed in context of multiple threads)
 		internal static volatile Dictionary<Type, TypeSchema> s_TypesSchemaMapper;
+        private static volatile int s_addingType = 0;
         
 
         #endregion
@@ -95,7 +96,7 @@ namespace Repository.OMapper
 		///     Initialize OMapper with specified connectionString, IsolationLevel ReadCommitted and with a default command timeout of 30 seconds
 		/// </summary>
 		/// <param name="connectionString"></param>
-		public OMapper(string connectionString) : this(connectionString, CURRENT_ISOLATION_LEVEL)
+		public OMapper(string connectionString) : this(connectionString, DEFAULT_ISOLATION_LEVEL)
         {
            
         }
@@ -271,21 +272,25 @@ namespace Repository.OMapper
 				if (s_TypesSchemaMapper.TryGetValue(type, out s)) // Typically, this is the most common case to occur
 					return s;
 
-				//
-				// Schema must be setted! - multiple threads can be here;
-				// Threads can be here concurrently when a new type is added, 
-				// or then 2 or more threads are setting the same type metadata
-				// 
-
-				Dictionary<Type, TypeSchema> backup = s_TypesSchemaMapper;                   // Get a local copy for each thread.
-				var newSchema = OMapper.NewCopyWithAddedTypeSchema(type);                   // Copy and add metadata for specific Type
-
+                //
+                // Schema must be setted! - multiple threads can be here;
+                // Threads can be here concurrently when a new type is added, 
+                // or then 2 or more threads are setting the same type metadata
+                // 
 
 #pragma warning disable 420
 
-				if (s_TypesSchemaMapper == backup && Interlocked.CompareExchange(ref s_TypesSchemaMapper, newSchema, backup) == backup)
-					return newSchema[type];
+                if (s_addingType == 0 && Interlocked.CompareExchange(ref s_addingType, 1, 0) == 0)
+                {
+                    // only one thread is here.
+                    var newSchema = OMapper.NewCopyWithAddedTypeSchema(type);                   // Copy and add metadata for specific Type
+                    s_TypesSchemaMapper = newSchema;
+
+                    s_addingType = 0;
+                    return newSchema[type];
+                }
 #pragma warning restore 420
+
 
                 sWait.SpinOnce();
 

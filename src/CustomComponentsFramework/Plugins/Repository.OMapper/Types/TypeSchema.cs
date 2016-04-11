@@ -7,7 +7,7 @@ namespace Repository.OMapper.Types
     /// <summary>
     ///     Contains the necessary information about the table, the keys, the columns, and the identity column.
     /// </summary>
-    sealed class TypeSchema
+    class TypeSchema
     {
         internal String TableName;                                                       // If != null overrides the type name (used for CUD operations)
         internal String IdentityPropertyName;                                            // If != null, this stores the property of the type that is identity

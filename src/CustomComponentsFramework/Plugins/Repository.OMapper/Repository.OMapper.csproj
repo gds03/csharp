@@ -70,11 +70,13 @@
     <Compile Include="SimpleDbAccess.cs" />
     <Compile Include="Enums\SPMode.cs" />
     <Compile Include="Attributes\StoredProc.cs" />
+    <Compile Include="Types\Helpers\UsermodeInitializator.cs" />
     <Compile Include="Types\Mappings\ColumnMapping.cs" />
     <Compile Include="Types\Mappings\KeyMapping.cs" />
     <Compile Include="Types\Mappings\ProcMapping.cs" />
     <Compile Include="OMapperEagerExecuter.cs" />
     <Compile Include="Types\TypeSchema.cs" />
+    <Compile Include="Types\TypeSchemaCommandsPrePopulated.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CustomComponents.Repository\CustomComponents.Repository.csproj">

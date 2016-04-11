@@ -141,21 +141,21 @@ namespace CustomComponents.ConsoleApplication
             const int afterId = 1000;
             watch.Restart();
             Console.WriteLine($"Mapping objects into memory");
-            IList<Category> categoriesHalf = oMapper.Select<Category>(x => x.id > afterId);
-            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Select { ITERATIONS - afterId } objects");
+            IList<Category> categoriesObjs = oMapper.Select<Category>(x => x.id > afterId);
+            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Select { categoriesObjs.Count } objects");
             watch.Stop();
 
             for (int i = 0; i < ITERATIONS; i++)
             {
                 if (i % 2 == 0)
                 {
-                    categoriesHalf[i].name += "_%2";
-                    categoriesHalf[i].extraInfo = "UPDATED" + i.ToString();
+                    categoriesObjs[i].name += "_%2";
+                    categoriesObjs[i].extraInfo = "UPDATED" + i.ToString();
                 }
             }
 
-            oMapper.Delete(categoriesHalf[0]);
-            oMapper.Delete(categoriesHalf[1]);
+            oMapper.Delete(categoriesObjs[0]);
+            oMapper.Delete(categoriesObjs[1]);
 
             watch.Restart();
             Console.WriteLine($"Sending commands to database");

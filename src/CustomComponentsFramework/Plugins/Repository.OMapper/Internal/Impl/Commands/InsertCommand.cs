@@ -36,7 +36,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
             TypeSchema schema = OMapper.s_TypesSchemaMapper[objRepresentor];         // Get schema information for specific Type
 
 
-            StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'insert [{0}] (".Frmt(schema.TableName));
+            StringBuilder cmdTxt = new StringBuilder(8000).Append("exec sp_executesql N'insert [{0}] (".Frmt(schema.TableName));
 
 
             // Build header (exclude identities)

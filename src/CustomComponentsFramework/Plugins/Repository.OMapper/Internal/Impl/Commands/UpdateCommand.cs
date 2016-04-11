@@ -42,7 +42,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
             // Update only if we have keys, to find the tuple
             // 
 
-            StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'update [{0}] set ".Frmt(schema.TableName));
+            StringBuilder cmdTxt = new StringBuilder(8000).Append("exec sp_executesql N'update [{0}] set ".Frmt(schema.TableName));
 
 
             // Build Set clause

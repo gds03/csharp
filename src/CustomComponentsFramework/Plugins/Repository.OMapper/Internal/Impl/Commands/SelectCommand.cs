@@ -24,7 +24,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
         /// <returns>The SQL Command</returns>
         public string SelectCommand<T>(Expression<Func<T, bool>> predicate) where T : class
         {
-            StringBuilder cmdTxt = new StringBuilder();
+            StringBuilder cmdTxt = new StringBuilder(8000);
 
             //
             // Obtain local copy because another thread can change the reference of _typesSchema

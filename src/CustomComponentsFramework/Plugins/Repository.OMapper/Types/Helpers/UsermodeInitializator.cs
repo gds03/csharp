@@ -3,30 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace CustomComponents.Core.Types.Helpers
+namespace Repository.OMapper.Types.Helpers
 {
-    public static class AtomicInitializerUserMode
+
+    public static class UsermodeInitializator
     {
-
-        public static T ThreadSafe<T>(ref T refObjectToInitialize, Func<T> factoryValue)
-            where T : class
-        {
-            SpinWait sWait = new SpinWait();
-            do
-            {
-                if (refObjectToInitialize != null)
-                    return refObjectToInitialize;
-
-                if (refObjectToInitialize == null && Interlocked.CompareExchange(ref refObjectToInitialize, factoryValue(), null) == null)
-                    return refObjectToInitialize;
-
-                sWait.SpinOnce();
-            }
-            while (true);
-        }
-
         /// <summary>
         ///     Initializes at user-mode while possible the initializationObject
         /// </summary>

@@ -38,7 +38,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
             // Delete only if we have keys, to find the tuple
             // 
 
-            StringBuilder cmdTxt = new StringBuilder("exec sp_executesql N'delete [{0}]".Frmt(schema.TableName));
+            StringBuilder cmdTxt = new StringBuilder(4000).Append("exec sp_executesql N'delete [{0}]".Frmt(schema.TableName));
 
             // Build Where clause if keys are defined
             cmdTxt.Append(" where ");
