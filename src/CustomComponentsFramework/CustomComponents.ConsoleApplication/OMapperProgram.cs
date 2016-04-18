@@ -1,12 +1,8 @@
 ﻿using Repository.OMapper;
 using Repository.OMapper.Attributes;
-using Repository.OMapper.Internal.Metadata;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CustomComponents.ConsoleApplication
 {
@@ -31,15 +27,15 @@ namespace CustomComponents.ConsoleApplication
     {
         //[Identity]
         //[PrimaryKey] --> this is removed, now we use OMapper.Configure() method to configure instead of use custom attributes.
-        public int id { get; set; }
+        public virtual int id { get; set; }
 
-        public string name { get; set; }
+        public virtual string name { get; set; }
 
-        public DateTime creationDate { get; set; }
+        public virtual DateTime creationDate { get; set; }
 
-        public DateTime lastModifiedDate { get; set; }
+        public virtual DateTime lastModifiedDate { get; set; }
 
-        public String extraInfo { get; set; }
+        public virtual String extraInfo { get; set; }
     }
 
     public static class OMapperProgram
@@ -112,7 +108,7 @@ namespace CustomComponents.ConsoleApplication
 
         private static void AddCategoriesMassRandomOperations(OMapperContextExecuter oMapper)
         {
-            const int ITERATIONS = 20000;
+            const int ITERATIONS = 100000;
             Random r = new Random();
 
             Category c;
@@ -138,7 +134,7 @@ namespace CustomComponents.ConsoleApplication
             watch.Stop();
             Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to submit");
 
-            const int afterId = 1000;
+            const int afterId = ITERATIONS - 50;
             watch.Restart();
             Console.WriteLine($"Mapping objects into memory");
             IList<Category> categoriesObjs = oMapper.Select<Category>(x => x.id > afterId);
@@ -159,6 +155,7 @@ namespace CustomComponents.ConsoleApplication
 
             watch.Restart();
             Console.WriteLine($"Sending commands to database");
+
             oMapper.Submit();
             watch.Stop();
 
@@ -175,7 +172,7 @@ namespace CustomComponents.ConsoleApplication
 
             OMapperContextExecuter oMapper = new OMapperContextExecuter(CONNECTION_STRING);
 
-            OMapperContextExecuter.Configuration(i =>
+            oMapper.Configuration(i =>
             {
                 i.For<Category>().PrimaryKey(x => x.id)
                                  .Identity(x => x.id)

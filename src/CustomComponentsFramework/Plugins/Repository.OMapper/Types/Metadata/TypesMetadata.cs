@@ -1,13 +1,24 @@
 ﻿using Repository.OMapper.Types;
 using Repository.OMapper.Types.Mappings;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 
-namespace Repository.OMapper.Internal.Metadata
+namespace Repository.OMapper.Types.Metadata
 {
     public class TypesMetadata<T>
     {
+        internal OMapper m_oMapper;
+
+        internal TypesMetadata(OMapper oMapper)
+        {
+            Debug.Assert(oMapper != null);
+            m_oMapper = oMapper;
+        }
+
+
+
         // FluentAPI
         public TypesMetadata<T> PrimaryKey(Expression<Func<T, object>> selector)
         {
@@ -53,9 +64,9 @@ namespace Repository.OMapper.Internal.Metadata
         #region Helper Methods
 
 
-        private static TypeSchema GetSchema()
+        private TypeSchema GetSchema()
         {
-            return OMapper.AddMetadataFor(typeof(T));
+            return m_oMapper.AddMetadataFor(typeof(T));
         }
 
 

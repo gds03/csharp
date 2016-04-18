@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using Repository.OMapper.Extensions;
+using Repository.OMapper.Internal.Converters;
 
 namespace Repository.OMapper.Internal.Commands.Impl
 {
@@ -26,7 +27,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
             Debug.Assert(obj != null);
             Debug.Assert(propertiesChanged != null);
 
-            Type objRepresentor = obj.GetType();
+            Type objRepresentor = OMapperCRUDSupportBase.GetTypeFor(obj);
 
             //
             // Obtain local copy because another thread can change the reference of _typesSchema
@@ -86,7 +87,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
 
                 // set sql type based on property type of the object
                 Type propertyType = objRepresentor.GetProperty(cm.ClrProperty).PropertyType;
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupport.s_ClrToSqlTypesMapper[propertyType]));    // Map CLR property to SqlColumn Type 
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupportBase.s_ClrToSqlTypesMapper[propertyType]));    // Map CLR property to SqlColumn Type 
             }
 
             // Set the types of parameters for where region
@@ -95,7 +96,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
 
                 // set sql type based on property type of the object
                 Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupport.s_ClrToSqlTypesMapper[propertyType]));    // Map CLR property to SqlColumn Type 
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupportBase.s_ClrToSqlTypesMapper[propertyType]));    // Map CLR property to SqlColumn Type 
             }
 
             if (cmdTxt.Length > 1)
@@ -115,7 +116,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
                     continue;
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = OMapper.PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
+                String valueTxt = ValueToSQLConverter.Convert(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }
@@ -124,7 +125,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
             foreach (KeyMapping map in schema.Keys.Values)
             {
                 PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = OMapper.PrepareValue(pi.GetValue(obj, null));                          // Can contain quotes, based on property type
+                String valueTxt = ValueToSQLConverter.Convert(pi.GetValue(obj, null));                          // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }

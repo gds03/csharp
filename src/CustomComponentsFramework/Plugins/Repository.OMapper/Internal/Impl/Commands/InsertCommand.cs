@@ -2,12 +2,11 @@
 using Repository.OMapper.Types;
 using Repository.OMapper.Types.Mappings;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
 using System.Text;
 using Repository.OMapper.Extensions;
+using Repository.OMapper.Internal.Converters;
 
 namespace Repository.OMapper.Internal.Commands.Impl
 {
@@ -15,7 +14,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
     {
         const string scopy_id_name = "Scope_Identity";
 
-
+        
         /// <summary>
         ///     Creates a SQL string that will represent Insert statement.
         ///     This method will use parameterized queries.
@@ -78,7 +77,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
 
                 // set sql type based on property type of the object
                 Type propertyType = objRepresentor.GetProperty(cm.ClrProperty).PropertyType;
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupport.s_ClrToSqlTypesMapper[propertyType]));    // Map CLR property to SqlColumn Type 
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupportBase.s_ClrToSqlTypesMapper[propertyType]));    // Map CLR property to SqlColumn Type 
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
@@ -96,7 +95,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
                     continue;
 
                 PropertyInfo pi = objRepresentor.GetProperty(cm.ClrProperty);
-                String valueTxt = OMapper.PrepareValue(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
+                String valueTxt = ValueToSQLConverter.Convert(pi.GetValue(obj, null));                         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }

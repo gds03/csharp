@@ -10,10 +10,12 @@ using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
 using Repository.OMapper.Extensions;
+using Repository.OMapper.Internal.Proxies;
+using Repository.OMapper.Types.Mappings;
 
 namespace Repository.OMapper
 {
-    public abstract class OMapperCRUDSupport : OMapper
+    public abstract class OMapperCRUDSupportBase : OMapper
     {
         const int OperatorsInitCapacity = 23;
         const int ClrTypesMappingCapacity = 47;
@@ -39,7 +41,7 @@ namespace Repository.OMapper
 
         #region Instance 
 
-        protected readonly ISqlCommandTextGenerator m_sqlCommandsProvider = CommandsForTypeSchemaProvider.Current;
+        internal readonly ISqlCommandTextGenerator m_sqlCommandsProvider = CommandsForTypeSchemaProvider.Current;
 
         #endregion
 
@@ -60,7 +62,7 @@ namespace Repository.OMapper
         ///     Initialize OMapper with specified connectionString, IsolationLevel ReadCommitted and with a default command timeout of 30 seconds
         /// </summary>
         /// <param name="connectionString"></param>
-        public OMapperCRUDSupport(string connectionString) : base(connectionString)
+        public OMapperCRUDSupportBase(string connectionString) : base(connectionString)
         {
 
         }
@@ -70,7 +72,7 @@ namespace Repository.OMapper
         ///     Initialize OMapper with specified connectionString and with a default command timeout of 30 seconds
         /// </summary>
         /// <param name="connectionString"></param>
-        public OMapperCRUDSupport(string connectionString, IsolationLevel isolationLevel) : base(connectionString,isolationLevel )
+        public OMapperCRUDSupportBase(string connectionString, IsolationLevel isolationLevel) : base(connectionString,isolationLevel )
         {
  
         }
@@ -80,7 +82,7 @@ namespace Repository.OMapper
         ///     Initialize OMapper with specified connection and with a default command timeout of 30 seconds
         /// </summary>
         /// <param name="connection"></param>
-        public OMapperCRUDSupport(DbTransaction transaction) : base(transaction)
+        public OMapperCRUDSupportBase(DbTransaction transaction) : base(transaction)
         {
 
         }
@@ -91,14 +93,14 @@ namespace Repository.OMapper
         /// </summary>
         /// <param name="connection"></param>
         /// <param name="commandTimeout"></param>
-        public OMapperCRUDSupport(int commandTimeout, DbTransaction transaction)
+        public OMapperCRUDSupportBase(int commandTimeout, DbTransaction transaction)
             : base(commandTimeout, transaction)
         {
 
         }
 
 
-        static OMapperCRUDSupport()
+        static OMapperCRUDSupportBase()
         {
             s_ExpressionToSQLMapper = CLRExpressionLinq2SQLExpressionLogicNames.GetConversions(OperatorsInitCapacity);
             s_ClrToSqlTypesMapper = CLRTypes2SQLTypes.GetConversions(ClrTypesMappingCapacity);
@@ -112,16 +114,6 @@ namespace Repository.OMapper
 
 
 
-        protected abstract void InsertHandler<T>(T obj) where T : class;
-
-        protected abstract void DeleteHandler<T>(T obj) where T : class;
-
-
-
-
-
-
-
         #region Static Methods
 
 
@@ -130,10 +122,17 @@ namespace Repository.OMapper
         #region Public
 
 
+        public static Type GetTypeFor(object obj)
+        {
+            return ProxyCreator.IsProxy(obj) ? obj.GetType().BaseType : obj.GetType();
+        }
+
         #endregion
 
 
         #region Internal
+
+
 
 
 
@@ -149,6 +148,7 @@ namespace Repository.OMapper
 
 
         #region Private
+
 
 
 
@@ -196,7 +196,7 @@ namespace Repository.OMapper
         public IList<T> Select<T>(Expression<Func<T, bool>> filter) where T : class
         {
             // Lock-Free
-            TypeSchema schema = AddMetadataFor(typeof(T));
+            TypeSchema schema = base.AddMetadataFor(typeof(T));
             
             //
             // If we are here, the properties for specific type are filled 
@@ -207,11 +207,11 @@ namespace Repository.OMapper
 
             String SQLSelectCommand = m_sqlCommandsProvider.SelectCommand(filter);
 
-            return OpenCloseConnection(false, () =>
+            return base.OpenCloseConnection(false, () =>
             {
                 // Command Setup parameters
-                DbCommand cmd = CreateCommandForCurrentConnection(CommandType.Text, SQLSelectCommand);
-                return MapTo<T>(cmd.ExecuteReader());
+                DbCommand cmd = base.CreateCommandForCurrentConnection(CommandType.Text, SQLSelectCommand);
+                return base.MapTo<T>(cmd.ExecuteReader());
             });
         }
 
@@ -229,14 +229,14 @@ namespace Repository.OMapper
                 throw new ArgumentNullException("obj");
 
             // Lock-Free
-            AddMetadataFor(obj.GetType());
+            base.AddMetadataFor(obj.GetType());
 
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            this.InsertHandler(obj);
+            InsertHandler(obj);
         }
 
 
@@ -249,7 +249,7 @@ namespace Repository.OMapper
             if (objects != null)
             {
                 foreach (object o in objects)
-                    this.Insert(o);
+                    Insert(o);
             }
         }
 
@@ -268,14 +268,14 @@ namespace Repository.OMapper
                 throw new ArgumentNullException("obj");
 
             // Lock-Free
-            AddMetadataFor(obj.GetType());
+            base.AddMetadataFor(GetTypeFor(obj));
 
             //
             // If we are here, the properties for specific type are filled 
             // and never be touched (modified) again for the type.
             // 
 
-            this.DeleteHandler(obj);
+            DeleteHandler(obj);
         }
 
         /// <summary>
@@ -287,7 +287,7 @@ namespace Repository.OMapper
             if (objects != null)
             {
                 foreach (object o in objects)
-                    this.Delete(o);
+                    Delete(o);
             }
         }
 
@@ -300,11 +300,17 @@ namespace Repository.OMapper
 
 
 
-        #endregion
+
+        internal abstract void InsertHandler<T>(T obj) where T : class;
+
+        internal abstract void DeleteHandler<T>(T obj) where T : class;
 
 
 
-        #region Protected
+
+
+
+
 
 
         /// <summary>
@@ -312,7 +318,7 @@ namespace Repository.OMapper
         ///     If the object that belongs to the insertCmd has Identity property it will be updated through reflection automatically.
         /// </summary>
         /// <returns>true if has identity and was updated, otherwise return false.</returns>
-        protected bool ExecuteInsert(object obj, string insertCmd)
+        internal bool ExecuteInsert(object obj, string insertCmd)
         {
             Debug.Assert(obj != null);
             Debug.Assert(insertCmd != null);
@@ -321,7 +327,7 @@ namespace Repository.OMapper
             TypeSchema schema = s_TypesSchemaMapper[insertObjRepresentor];
 
             // Command Setup parameters
-            DbCommand cmd = CreateCommandForCurrentConnection(CommandType.Text, insertCmd);
+            DbCommand cmd = base.CreateCommandForCurrentConnection(CommandType.Text, insertCmd);
 
             // If Identity is not setted, execute the query and ignore the rest
             if (schema.IdentityPropertyName == null)
@@ -356,12 +362,12 @@ namespace Repository.OMapper
         ///     Create a DB update command and executes against database. Called by Submit()
         /// </summary>
         /// <returns>true if has rows were updated, otherwise return false.</returns>
-        protected bool ExecuteUpdate(string updateCmd)
+        internal bool ExecuteUpdate(string updateCmd)
         {
             Debug.Assert(!string.IsNullOrEmpty(updateCmd));
 
             // Command Setup parameters
-            DbCommand cmd = CreateCommandForCurrentConnection(CommandType.Text, updateCmd);
+            DbCommand cmd = base.CreateCommandForCurrentConnection(CommandType.Text, updateCmd);
             return cmd.ExecuteNonQuery() > 0;
         }
 
@@ -371,13 +377,26 @@ namespace Repository.OMapper
         ///     Create a DB delete command and executes against database. Called by Submit()
         /// </summary>
         /// <returns>true if has rows were deleted, otherwise return false.</returns>
-        protected bool ExecuteDelete(string deleteCmd)
+        internal bool ExecuteDelete(string deleteCmd)
         {
             Debug.Assert(!string.IsNullOrEmpty(deleteCmd));
             // Command Setup parameters
-            DbCommand cmd = CreateCommandForCurrentConnection(CommandType.Text, deleteCmd);
+            DbCommand cmd = base.CreateCommandForCurrentConnection(CommandType.Text, deleteCmd);
             return cmd.ExecuteNonQuery() > 0;
         }
+
+
+
+
+
+
+        #endregion
+
+
+
+        #region Protected
+
+
 
         #endregion
 

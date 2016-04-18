@@ -7,8 +7,9 @@ namespace Repository.OMapper.Types
     /// <summary>
     ///     Contains the necessary information about the table, the keys, the columns, and the identity column.
     /// </summary>
-    class TypeSchema
+    internal class TypeSchema
     {
+        internal Type CLRType;
         internal String TableName;                                                       // If != null overrides the type name (used for CUD operations)
         internal String IdentityPropertyName;                                            // If != null, this stores the property of the type that is identity
 
@@ -19,13 +20,29 @@ namespace Repository.OMapper.Types
         internal IDictionary<string, ProcMapping> Procedures;                            // Stores parameters that must be used when ExecuteProc command is executed to send them to Stored Procedures
 
 
+        internal TypeSchema(TypeSchema ts)
+        {
+            if (ts == null)
+                throw new ArgumentNullException("ts");
+
+            CLRType = ts.CLRType;
+            TableName = ts.TableName;
+            IdentityPropertyName = ts.IdentityPropertyName;
+
+            Keys = ts.Keys;
+            Columns = ts.Columns;
+            Procedures = ts.Procedures;
+        }
+
+
 
         internal TypeSchema(Type clrType)
         {
             if (clrType == null)
                 throw new ArgumentNullException("clrType");
 
-            this.TableName = clrType.Name;
+            CLRType = clrType;
+            TableName = clrType.Name;
 
             int totalPropertiesCount = clrType.GetProperties(OMapper.s_PropertiesFlags).Length;
             Keys = new Dictionary<string, KeyMapping>(totalPropertiesCount);

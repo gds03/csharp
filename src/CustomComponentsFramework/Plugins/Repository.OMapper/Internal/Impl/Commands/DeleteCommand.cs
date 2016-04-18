@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using Repository.OMapper.Extensions;
+using Repository.OMapper.Internal.Converters;
 
 namespace Repository.OMapper.Internal.Commands.Impl
 {
@@ -21,7 +22,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
         {
             Debug.Assert(obj != null);
 
-            Type objRepresentor = obj.GetType();
+            Type objRepresentor = OMapperCRUDSupportBase.GetTypeFor(obj);
 
             //
             // Obtain local copy because another thread can change the reference of _typesSchema
@@ -67,7 +68,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
             {
                 Type propertyType = objRepresentor.GetProperty(map.From).PropertyType;
 
-                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupport.s_ClrToSqlTypesMapper[propertyType]));
+                cmdTxt.Append("@{0} {1}, ".Frmt(paramIndex++, OMapperCRUDSupportBase.s_ClrToSqlTypesMapper[propertyType]));
             }
 
             cmdTxt.Remove(cmdTxt.Length - 2, 2);    // Remove last
@@ -83,7 +84,7 @@ namespace Repository.OMapper.Internal.Commands.Impl
             foreach (KeyMapping map in schema.Keys.Values)
             {
                 PropertyInfo pi = objRepresentor.GetProperty(map.From);
-                String valueTxt = OMapper.PrepareValue(pi.GetValue(obj, null));         // Can contain quotes, based on property type
+                String valueTxt = ValueToSQLConverter.Convert(pi.GetValue(obj, null));         // Can contain quotes, based on property type
 
                 cmdTxt.Append("@{0} = {1}, ".Frmt(paramIndex++, valueTxt));
             }

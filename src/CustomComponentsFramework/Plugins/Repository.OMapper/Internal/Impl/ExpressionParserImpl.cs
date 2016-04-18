@@ -1,4 +1,5 @@
 ﻿using Repository.OMapper.Interfaces;
+using Repository.OMapper.Internal.Converters;
 using System;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -39,7 +40,7 @@ namespace Repository.OMapper.Internal.Impl
                 innerText.Append(recursiveResult);
                 innerText.Append(" ");
 
-                innerText.Append(OMapperCRUDSupport.s_ExpressionToSQLMapper[bExpr.NodeType]);      // Map node types to SQL operators
+                innerText.Append(OMapperCRUDSupportBase.s_ExpressionToSQLMapper[bExpr.NodeType]);      // Map node types to SQL operators
                 innerText.Append(" ");
 
                 recursiveResult = ParseFilter(bExpr.Right);               // Go right
@@ -52,7 +53,7 @@ namespace Repository.OMapper.Internal.Impl
 
             if ((cExpr = expr as ConstantExpression) != null)
             {
-                return OMapperCRUDSupport.PrepareValue(cExpr.Value);
+                return ValueToSQLConverter.Convert(cExpr.Value);
             }
 
             if ((mExpr = expr as MemberExpression) == null)
@@ -71,7 +72,7 @@ namespace Repository.OMapper.Internal.Impl
 
             if ((pInnerExpr = innerExpr as ParameterExpression) != null)
             {
-                return OMapperCRUDSupport.GetMappingForProperty(pInnerExpr.Type, mExpr.Member.Name);        // We must map property of the type to SQL Column
+                return OMapper.PropertyToSQLMapping(pInnerExpr.Type, mExpr.Member.Name);        // We must map property of the type to SQL Column
             }
 
             if ((cInnerExpr = innerExpr as ConstantExpression) != null)
@@ -79,7 +80,7 @@ namespace Repository.OMapper.Internal.Impl
                 object obj = cInnerExpr.Value;                                           // Get anonymous object (captured by the compiler)
 
                 FieldInfo value = obj.GetType().GetField(mExpr.Member.Name);             // Get the field of the anonymous object 
-                return OMapperCRUDSupport.PrepareValue(value.GetValue(obj));
+                return ValueToSQLConverter.Convert(value.GetValue(obj));
             }
 
             if ((mInnerExpr = innerExpr as MemberExpression) == null)
@@ -94,7 +95,7 @@ namespace Repository.OMapper.Internal.Impl
             FieldInfo fieldValue = objValue.GetType().GetField(mInnerExpr.Member.Name);             // Get the field of the anonymous object 
             object obj2 = fieldValue.GetValue(objValue);                                            // Get the object in the field
 
-            return OMapperCRUDSupport.PrepareValue(obj2.GetType().GetProperty(mExpr.Member.Name).GetValue(obj2, null));       // Based on the object, finally get the value in the property 
+            return ValueToSQLConverter.Convert(obj2.GetType().GetProperty(mExpr.Member.Name).GetValue(obj2, null));       // Based on the object, finally get the value in the property 
         }
 
     }

@@ -1,21 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.SqlClient;
-using System.Reflection;
-using System.Threading;
 using System.Data;
-using Repository.OMapper.Attributes;
-using Repository.OMapper.Exceptions;
-using Repository.OMapper.Types;
-using System.Linq.Expressions;
-using System.Diagnostics;
-using Repository.OMapper.Types.Mappings;
+using System.Linq;
 using Repository.OMapper.Internal;
-using Repository.OMapper.Internal.CLR2SQL;
-using Repository.OMapper.Providers;
-using Repository.OMapper.Interfaces;
-using Repository.OMapper.Internal.Metadata;
+using Repository.OMapper.Internal.Proxies;
+using System.Reflection;
+using Repository.OMapper.Types;
+using System.Diagnostics;
+using System.Threading;
 
 namespace Repository.OMapper
 {
@@ -24,12 +17,14 @@ namespace Repository.OMapper
     ///     You can Select, Insert, Change Objects returned by select, Delete and Submit().
     ///     All the commands will run in a transactional manner.
     /// </summary>
-    public class OMapperContextExecuter : OMapperCRUDSupport
+    public class OMapperContextExecuter : OMapperCRUDSupportBase
     { 
         // queue for commands
-        readonly List<SelectObjectInfo> m_selectedObjects    = new List<SelectObjectInfo>();
-        readonly List<object> m_insertCommandsQueue          = new List<object>();
-        readonly List<object> m_deleteObjectQueue            = new List<object>();
+        readonly Dictionary<long, ProxyObjectInfo> m_changedObjects         = new Dictionary<long, ProxyObjectInfo>();
+        readonly List<object> m_insertCommandsQueue                         = new List<object>();
+        readonly List<object> m_deleteObjectQueue                           = new List<object>();
+
+        private volatile int ProxiesMapped                                  = 0;
 
 
 
@@ -79,7 +74,7 @@ namespace Repository.OMapper
         {
             SetEventHandler();
         }
-        
+
 
 
 
@@ -115,8 +110,7 @@ namespace Repository.OMapper
 
         #region Internal
 
-
-
+      
 
         #endregion
 
@@ -183,12 +177,12 @@ namespace Repository.OMapper
                 }
 
                 // Updates
-                foreach (SelectObjectInfo selectInfo in m_selectedObjects)
+                foreach (ProxyObjectInfo changedObject in m_changedObjects.Values)
                 {
-                    string[] propertiesChanged = selectInfo.GetPropertiesChanged();
-                    if (propertiesChanged != null)
+                    string[] propertiesChanged = changedObject.PropertiesChanged.Keys.ToArray();
+                    if (propertiesChanged != null && propertiesChanged.Length > 0)
                     {
-                        object o = selectInfo.Object;
+                        object o = changedObject.ProxyObject;
 
                         // Prepare update statement for type
                         String SQLUpdateCommand = m_sqlCommandsProvider.UpdateCommand(o, propertiesChanged);
@@ -220,6 +214,75 @@ namespace Repository.OMapper
 
         #region Internal
 
+        internal override T MapToInstance<T>(TypeSchema ts)
+        {
+            TypeSchemaProxy tsp = ts as TypeSchemaProxy;
+            Debug.Assert(tsp != null);
+            Debug.Assert(tsp.ProxyType != null);
+            return (T)Activator.CreateInstance(tsp.ProxyType);
+        }
+
+
+
+        internal override TypeSchema CreateSchema(Type type)
+        {
+            TypeSchema ts = base.CreateSchema(type);
+
+            // Create specific TypeSchema 
+            TypeSchemaProxy tsp = new TypeSchemaProxy(ts);
+            return tsp;
+        }
+
+
+
+        internal override void MapToHandleProperty(object newInstance, PropertyInfo property, object propertyValue)
+        {
+            // we need to access field instead of property to not cause Proxy setter execution behind the scenes.
+            GetBackingField(newInstance, property.Name).SetValue(newInstance, propertyValue);
+        }
+
+
+
+        internal override void InsertHandler<T>(T obj)
+        {
+            m_insertCommandsQueue.Add(obj);
+        }
+
+        internal override void DeleteHandler<T>(T obj)
+        {
+            m_deleteObjectQueue.Add(obj);
+        }
+
+
+        /// <summary>
+        ///     Method that will be called by Proxy Objects
+        /// </summary>
+        /// <param name="proxyObj"></param>
+        /// <param name="propertyToUpdate"></param>
+        public void PutObjectForUpdate(object proxyObj, string propertyToUpdate)
+        {
+            if (proxyObj == null)
+                throw new ArgumentNullException("proxyObj");
+
+            if (string.IsNullOrEmpty(propertyToUpdate))
+                throw new ArgumentException("propertyToUpdate");
+
+            PropertyInfo pi = null;
+            if ((pi = proxyObj.GetType().GetProperty(ProxyCreator.PROXY_InternalID, OMapper.s_PropertiesFlags)) == null)
+                throw new InvalidOperationException("THis method cannot be called explicitly. Proxy objects call this method to indicate properties that are changing.");
+
+            ProxyObjectInfo soi = null;
+            long ProxyID = (long) pi.GetValue(proxyObj, null);
+
+            if (!m_changedObjects.TryGetValue(ProxyID, out soi))
+
+            {
+                soi = new ProxyObjectInfo(proxyObj);
+                m_changedObjects.Add(ProxyID, soi);
+            }
+
+            soi.PropertiesChanged.Add(propertyToUpdate, true);
+        }
 
 
 
@@ -229,17 +292,10 @@ namespace Repository.OMapper
 
         #region Protected
 
-        protected override void InsertHandler<T>(T obj)
-        {
-            m_insertCommandsQueue.Add(obj);
-        }
+       
 
-        protected override void DeleteHandler<T>(T obj)
-        {
-            m_deleteObjectQueue.Add(obj);
-        }
 
-      
+
 
 
 
@@ -251,13 +307,15 @@ namespace Repository.OMapper
 
 
 
-        private void SetEventHandler()
+
+        private static string _getBackingFieldName(string propertyName)
         {
-            OnMappingOneEntry += (objInstance) =>
-            {
-                // Track those elements behind the scenes for update scenarios
-                m_selectedObjects.Add(new SelectObjectInfo(objInstance));
-            };
+            return string.Format("<{0}>k__BackingField", propertyName);
+        }
+
+        private static FieldInfo GetBackingField(object obj, string propertyName)
+        {
+            return obj.GetType().BaseType.GetField(_getBackingFieldName(propertyName), BindingFlags.Instance | BindingFlags.NonPublic);
         }
 
 
@@ -267,9 +325,27 @@ namespace Repository.OMapper
         private void CleanupCommands()
         {
             m_insertCommandsQueue.Clear();
-            m_selectedObjects.Clear();
+            m_changedObjects.Clear();
             m_deleteObjectQueue.Clear();
         }
+
+
+
+        private void SetEventHandler()
+        {
+            OnNewInstanceCreated += (objInstance) =>
+            {
+
+                // indicate that we are a proxy.
+                objInstance.GetType().GetProperty(ProxyCreator.PROXY_InternalID, s_PropertiesFlags).SetValue(objInstance, Interlocked.Increment(ref ProxiesMapped), null);
+                objInstance.GetType().GetProperty(ProxyCreator.OMapper_PROPERTY_NAME, s_PropertiesFlags).SetValue(objInstance, this, null);
+
+                // changes will be tracked by proxy properties overload that will contact this object.
+            };
+        }
+
+
+        
 
 
         #endregion

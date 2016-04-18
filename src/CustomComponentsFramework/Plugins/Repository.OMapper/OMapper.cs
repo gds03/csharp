@@ -10,7 +10,6 @@
 
 using Repository.OMapper.Attributes;
 using Repository.OMapper.Exceptions;
-using Repository.OMapper.Internal.Metadata;
 using Repository.OMapper.Types;
 using Repository.OMapper.Types.Mappings;
 using System;
@@ -19,15 +18,14 @@ using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Diagnostics;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using Repository.OMapper.Extensions;
+using Repository.OMapper.Types.Metadata;
 
 namespace Repository.OMapper
 {
-	public class OMapper : IDisposable
+    public class OMapper : IDisposable
 	{
 		const int SchemaInitCapacity = 53;
 		const IsolationLevel DEFAULT_ISOLATION_LEVEL = IsolationLevel.ReadCommitted;
@@ -45,7 +43,7 @@ namespace Repository.OMapper
 
 		// For specific type, stores the properties that must be mapped from SQL (Accessed in context of multiple threads)
 		internal static volatile Dictionary<Type, TypeSchema> s_TypesSchemaMapper;
-        private static volatile int s_addingType = 0;
+        private static volatile int s_addingNewTypeToTypeSchemaMapper = 0;
         
 
         #endregion
@@ -68,7 +66,7 @@ namespace Repository.OMapper
 
 
 
-        protected event Action<object> OnMappingOneEntry;
+        protected event Action<object> OnNewInstanceCreated;
 
 
 		#endregion
@@ -143,13 +141,13 @@ namespace Repository.OMapper
 
 		~OMapper()
 		{
-			Dispose(false);
+			this.Dispose(false);
 		}
 
 
 
 
-		#endregion
+        #endregion
 
 
 
@@ -157,280 +155,64 @@ namespace Repository.OMapper
 
 
 
-		#region Static Methods
+        
 
 
 
 
-		#region Public
 
 
-		/// <summary>
-		///     Allows user to configure fluently types options/properties that will be used by the OMapper.
-		/// </summary>
-		/// <param name="userFunc"></param>
-		public static void Configuration(Action<InitializationMetadata> userFunc)
-		{
-			if (userFunc == null)
-				throw new ArgumentNullException("userFunc");
+        #region Static Methods
 
 
-            // use lock here since is called once - at startup time.
-            lock (s_initializationlocker)
-            {
 
-                if (s_InitializationUserFunc != null)
-                    throw new InvalidOperationException("Initialization code is already defined");
 
-                userFunc(new InitializationMetadata());
-                s_InitializationUserFunc = userFunc;
-            }
+        #region Public
+
+
+
+
+
+
+        #endregion
+
+
+        #region Internal
+
+
+
+
+        /// <summary>
+        ///     Get SQL column mapping to the respective propertyName.
+        /// </summary>
+        internal static String PropertyToSQLMapping(Type type, String propertyName)
+        {
+            if (type == null)
+                throw new ArgumentNullException("type");
+
+            if (string.IsNullOrEmpty(propertyName))
+                throw new ArgumentNullException("propertyName");
+
+            TypeSchema schema = s_TypesSchemaMapper[type];
+            Debug.Assert(schema != null);
+
+            ColumnMapping cm = schema.Columns[propertyName];
+            Debug.Assert(cm != null);
+
+            return cm.ToSqlTableColumn;
         }
 
 
+       
+        #endregion
 
-		#endregion
 
+        #region Private
 
-		#region Internal
 
+        
 
 
-		/// <summary>
-		///     Converts value into string correctly formatted and supported by SQL.
-		/// </summary>
-		internal static String PrepareValue(object value)
-		{
-			if (value == null)
-				return "NULL";
-
-			// We must know the concrete type
-			Type type = value.GetType();
-
-			if (type == typeof(bool))
-				return ((bool)value) ? "1" : "0";
-
-			if (type == typeof(DateTime))
-			{
-				DateTime d = (DateTime)value;
-				return "'" + d.ToString("yyyy-MM-dd HH:mm:ss") + "'";
-			}
-
-			if (type == typeof(Nullable<DateTime>))
-			{
-				DateTime? dn = (DateTime?)value;
-
-				if (dn.HasValue)
-				{
-					return "'" + dn.Value.ToString("yyyy-MM-dd HH:mm:ss") + "'";
-				}
-				else
-				{
-					return dn.ToString();
-				}
-			}
-
-			if (type == typeof(Guid) || type == typeof(String) || type == typeof(Char) || type == typeof(Char[]))
-				return "'" + value.ToString() + "'";
-
-
-			// return normal
-			return value.ToString();
-		}
-
-
-		/// <summary>
-		///     Get SQL column mapping to the respective propertyName.
-		/// </summary>
-		internal static String GetMappingForProperty(Type t, String propertyName)
-		{
-			TypeSchema schema = s_TypesSchemaMapper[t];
-			Debug.Assert(schema != null);
-
-			ColumnMapping cm = schema.Columns[propertyName];
-			Debug.Assert(cm != null);
-
-			return cm.ToSqlTableColumn;
-		}
-
-
-
-
-		/// <summary>
-		///     Loads or adds metadata (Schema) to the static dictionary that holds all the information related to all types handled by OMapper.
-		/// </summary>
-		/// <param name="type">The type that will cause metadata to be loaded or added.</param>
-		internal static TypeSchema AddMetadataFor(Type type)
-		{
-			Debug.Assert(type != null);
-            SpinWait sWait = new SpinWait();
-
-			do
-			{
-				TypeSchema s;
-
-				if (s_TypesSchemaMapper.TryGetValue(type, out s)) // Typically, this is the most common case to occur
-					return s;
-
-                //
-                // Schema must be setted! - multiple threads can be here;
-                // Threads can be here concurrently when a new type is added, 
-                // or then 2 or more threads are setting the same type metadata
-                // 
-
-#pragma warning disable 420
-
-                if (s_addingType == 0 && Interlocked.CompareExchange(ref s_addingType, 1, 0) == 0)
-                {
-                    // only one thread is here.
-                    var newSchema = OMapper.NewCopyWithAddedTypeSchema(type);                   // Copy and add metadata for specific Type
-                    s_TypesSchemaMapper = newSchema;
-
-                    s_addingType = 0;
-                    return newSchema[type];
-                }
-#pragma warning restore 420
-
-
-                sWait.SpinOnce();
-
-            }
-			while (true);
-		}
-
-
-		#endregion
-
-
-		#region Private
-
-		/// <summary>
-		///     Create TypeSchema object representing the type and type properties in database.
-		/// </summary>
-		private static TypeSchema CreateSchema(Type type)
-		{
-			TypeSchema newSchema = new TypeSchema(type);
-
-			// Search for Table attribute on the type
-			foreach (object o in type.GetCustomAttributes(true))
-			{
-				Table t = o as Table;
-
-				if (t != null)
-				{
-					newSchema.TableName = t.OverridedName;       // override the default name
-					break;                                          // We are done.
-				}
-			}
-
-			// Iterate over each property of the type
-			foreach (PropertyInfo pi in type.GetProperties(s_PropertiesFlags))
-			{
-				bool mapProperty = true;                                    // Always to map, unless specified Exclude costum attribute
-				bool isPrimaryKey = false;                                  // Only if attribute were found, sets this flag to true
-				bool isIdentity = false;                                    // For each type, we must have only one Entity
-
-				ColumnMapping columnMapping = new ColumnMapping(pi.Name);      // By convention all mappings match the propertyName
-
-
-				// Iterate over each attribute on context property
-				foreach (object o in pi.GetCustomAttributes(false))
-				{
-					if (o is Exclude)
-					{
-						mapProperty = false;
-						break;                                              // break immediately the inner loop - and don't map this property
-					}
-
-					PrimaryKey k = o as PrimaryKey;
-
-					if (k != null)
-					{
-						isPrimaryKey = true;
-						continue;
-					}
-
-					Identity i = o as Identity;
-
-					if (i != null)
-					{
-						isIdentity = true;
-						continue;
-					}
-
-					BindFrom bf = o as BindFrom;
-
-					if (bf != null)
-					{
-						columnMapping.FromResultSetColumn = bf.OverridedReadColumn;      // override read column behavior
-						continue;
-					}
-
-					BindTo bt = o as BindTo;
-
-					if (bt != null)
-					{
-						columnMapping.ToSqlTableColumn = bt.OverridedSqlColumn;          // override CUD behavior
-						continue;
-					}
-
-					StoredProc sp = o as StoredProc;
-
-					if (sp != null)
-					{
-						ProcMapping pm = new ProcMapping(pi.Name, sp.Mode);
-
-						if (sp.ParameterName != null)
-							pm.Map.To = sp.ParameterName;                            // override sp parameter
-
-						newSchema.Procedures.Add(pi.Name, pm);
-						continue;
-					}
-				}
-
-				if (mapProperty)
-				{
-
-					//
-					// We are here if Exclude wasn't present on the property
-					// 
-
-					newSchema.Columns.Add(pi.Name, columnMapping);
-
-					if (isPrimaryKey)
-					{
-						// Add on keys collection
-						newSchema.Keys.Add(pi.Name, new KeyMapping(columnMapping.ToSqlTableColumn, pi.Name));
-					}
-
-					if (isIdentity)
-					{
-						//
-						// Only can exist one identity!
-						//
-
-						if (newSchema.IdentityPropertyName != null)
-							throw new InvalidOperationException("Type {0} cannot have multiple identity columns".Frmt(type.Name));
-
-						newSchema.IdentityPropertyName = pi.Name;
-					}
-				}
-			}
-
-			return newSchema;
-		}
-
-
-
-		/// <summary>
-		///     Creates a new dictionary with previous dictionary containing all information for previous types and the new added type.
-		/// </summary>
-		private static Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
-		{
-
-			TypeSchema schema = OMapper.CreateSchema(type);
-			return new Dictionary<Type, TypeSchema>(s_TypesSchemaMapper) { { type, schema } };
-		}
 
 
         #endregion
@@ -457,6 +239,27 @@ namespace Repository.OMapper
 
 
 
+        /// <summary>
+		///     Allows user to configure fluently types options/properties that will be used by the OMapper.
+		/// </summary>
+		/// <param name="userFunc"></param>
+		public void Configuration(Action<InitializationMetadata> userFunc)
+        {
+            if (userFunc == null)
+                throw new ArgumentNullException("userFunc");
+
+
+            // use lock here since is called once - at startup time.
+            lock (s_initializationlocker)
+            {
+
+                if (s_InitializationUserFunc != null)
+                    throw new InvalidOperationException("Initialization code is already defined");
+
+                userFunc(new InitializationMetadata(this));
+                s_InitializationUserFunc = userFunc;
+            }
+        }
 
 
         /// <summary>
@@ -473,7 +276,7 @@ namespace Repository.OMapper
         public void Dispose()
         {
             GC.SuppressFinalize(this);
-            Dispose(true);
+            this.Dispose(true);
         }
 
 
@@ -524,9 +327,9 @@ namespace Repository.OMapper
 			where T1 : class
 			where T2 : class
 		{
-			// Lock-Free
-			AddMetadataFor(typeof(T1));
-			AddMetadataFor(typeof(T2));
+            // Lock-Free
+            AddMetadataFor(typeof(T1));
+            AddMetadataFor(typeof(T2));
 
             //
             // If we are here, the properties for specific type are filled 
@@ -573,10 +376,10 @@ namespace Repository.OMapper
 			where T2 : class
 			where T3 : class
 		{
-			// Lock-Free
-			AddMetadataFor(typeof(T1));
-			AddMetadataFor(typeof(T2));
-			AddMetadataFor(typeof(T3));
+            // Lock-Free
+            AddMetadataFor(typeof(T1));
+            AddMetadataFor(typeof(T2));
+            AddMetadataFor(typeof(T3));
 
             //
             // If we are here, the properties for specific type are filled 
@@ -709,11 +512,13 @@ namespace Repository.OMapper
 
 
 
+        #region Internal
 
-        #region Protected
 
 
-        protected DbCommand CreateCommandForCurrentConnection(CommandType commandType, string commandText)
+
+
+        internal DbCommand CreateCommandForCurrentConnection(CommandType commandType, string commandText)
         {
             Debug.Assert(!string.IsNullOrEmpty(commandText));
             DbCommand cmd = m_curr_connection.CreateCommand();
@@ -726,12 +531,12 @@ namespace Repository.OMapper
             return cmd;
         }
 
-        protected TResult OpenCloseConnection<TResult>(bool makeTransactional, Func<TResult> userFunc)
+        internal TResult OpenCloseConnection<TResult>(bool makeTransactional, Func<TResult> userFunc)
         {
             DbTransaction dbTran = null;
             DbConnection dbConn = null;
 
-            if( m_transaction != null )
+            if (m_transaction != null)
             {
                 dbTran = m_transaction;
                 dbConn = m_transaction.Connection;
@@ -740,7 +545,7 @@ namespace Repository.OMapper
             else
             {
                 dbConn = new SqlConnection(m_connectionString);
-                if ( makeTransactional)
+                if (makeTransactional)
                 {
                     dbConn.Open();
                     dbTran = dbConn.BeginTransaction(m_isolationLevel);
@@ -752,17 +557,17 @@ namespace Repository.OMapper
             m_curr_transaction = dbTran;
 
             if (dbConn.State == ConnectionState.Closed)
-                dbConn.Open();            
+                dbConn.Open();
 
             using (m_curr_connection)
             {
-                
+
                 try
                 {
                     return userFunc();
                 }
 
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     if (dbTran != null)
                         dbTran.Rollback();
@@ -777,118 +582,326 @@ namespace Repository.OMapper
                         dbTran.Commit();
                         dbTran.Dispose();
                     }
+                    m_curr_connection = null;
+                }
+            }
+        }
+
+
+        /// <summary>
+        ///     Iterate over the reader and maps properties that are not excluded to the OMapper.
+        /// </summary>
+        /// <typeparam name="T">the type of objects being returned</typeparam>
+        /// <param name="reader">the reader that is currently pointing to the Result set entry</param>
+        /// <param name="CloseDbReader">true will close the reader, otherwise will still be open.</param>
+        /// <returns>The list of objects within the reader for the type T</returns>
+        internal List<T> MapTo<T>(DbDataReader reader, bool CloseDbReader = true) where T : class
+        {
+            if (reader == null)
+                throw new NullReferenceException("reader cannot be null");
+
+            if (reader.IsClosed)
+                throw new InvalidOperationException("reader connection is closed and objects cannot be mapped");
+
+            if (!reader.HasRows)
+                return new List<T>();
+
+
+            Type type = typeof(T);
+            TypeSchema schema = s_TypesSchemaMapper[type];
+
+            //
+            // If we are here, the properties for specific type are filled 
+            // and never be touched (modified) again for the type.
+            // 
+
+            // Map cursor lines from database to CLR objects based on T
+
+            List<T> objectsQueue = new List<T>();
+
+            while (reader.Read())
+            {
+                T newInstance = MapToInstance<T>(schema);
+                Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
+
+                // Map properties to the newInstance
+                foreach (ColumnMapping map in schema.Columns.Values)
+                {
+                    object value;
+                    string sqlColumn = map.FromResultSetColumn;
+
+                    try { value = reader[sqlColumn]; }
+                    catch (IndexOutOfRangeException)
+                    {
+                        throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".Frmt(sqlColumn));
+                    }
+
+                    PropertyInfo ctxProperty = newInstanceRep.GetProperty(map.ClrProperty);
+
+                    //
+                    // Nullable condition checker!
+                    //
+
+                    if (value.GetType() == typeof(DBNull))
+                    {
+                        if (ctxProperty.PropertyType.IsPrimitive)
+                        {
+                            throw new PropertyMustBeNullable(
+                                "Property {0} must be nullable for mapping a null value".Frmt(ctxProperty.Name)
+                            );
+                        }
+
+                        value = null;
+                    }
+
+                    // when property mapping occurs, this can be specific.
+                    MapToHandleProperty(newInstance, ctxProperty, value);
+                }
+
+                if (OnNewInstanceCreated != null)
+                {
+                    OnNewInstanceCreated(newInstance);
+                }
+
+
+
+                // Add element to the collection
+                objectsQueue.Add(newInstance);
+            }
+
+            if (CloseDbReader)
+            {
+                // Free Connection Resources
+                reader.Close();
+                reader.Dispose();
+            }
+
+            return objectsQueue;
+        }
+
+
+
+        /// <summary>
+        ///     Loads or adds metadata (Schema) to the static dictionary that holds all the information related to all types handled by OMapper.
+        /// </summary>
+        /// <param name="type">The type that will cause metadata to be loaded or added.</param>
+        internal TypeSchema AddMetadataFor(Type type)
+        {
+            Debug.Assert(type != null);
+            SpinWait sWait = new SpinWait();
+
+            do
+            {
+                TypeSchema s;
+
+                if (s_TypesSchemaMapper.TryGetValue(type, out s)) // Typically, this is the most common case to occur
+                    return s;
+
+                //
+                // Schema must be setted! - multiple threads can be here;
+                // Threads can be here concurrently when a new type is added, 
+                // or then 2 or more threads are setting the same type metadata
+                // 
+
+#pragma warning disable 420
+
+                if (s_addingNewTypeToTypeSchemaMapper == 0 && Interlocked.CompareExchange(ref s_addingNewTypeToTypeSchemaMapper, 1, 0) == 0)
+                {
+                    // only one thread is here.
+                    var newSchema = this.NewCopyWithAddedTypeSchema(type);                   // Copy and add metadata for specific Type
+                    s_TypesSchemaMapper = newSchema;
+
+                    s_addingNewTypeToTypeSchemaMapper = 0;
+                    return newSchema[type];
+                }
+#pragma warning restore 420
+
+
+                sWait.SpinOnce();
+
+            }
+            while (true);
+        }
+
+
+        /// <summary>
+        ///     Create TypeSchema object representing the type and type properties in database.
+        /// </summary>
+        internal virtual TypeSchema CreateSchema(Type type)
+        {
+            TypeSchema newSchema = new TypeSchema(type);
+
+            // Search for Table attribute on the type
+            foreach (object o in type.GetCustomAttributes(true))
+            {
+                Table t = o as Table;
+
+                if (t != null)
+                {
+                    newSchema.TableName = t.OverridedName;       // override the default name
+                    break;                                          // We are done.
                 }
             }
 
-            m_curr_connection = null;
+            // Iterate over each property of the type
+            foreach (PropertyInfo pi in type.GetProperties(s_PropertiesFlags))
+            {
+                bool mapProperty = true;                                    // Always to map, unless specified Exclude costum attribute
+                bool isPrimaryKey = false;                                  // Only if attribute were found, sets this flag to true
+                bool isIdentity = false;                                    // For each type, we must have only one Entity
+
+                ColumnMapping columnMapping = new ColumnMapping(pi.PropertyType, pi.Name);      // By convention all mappings match the propertyName
+
+
+                // Iterate over each attribute on context property
+                foreach (object o in pi.GetCustomAttributes(false))
+                {
+                    if (o is Exclude)
+                    {
+                        mapProperty = false;
+                        break;                                              // break immediately the inner loop - and don't map this property
+                    }
+
+                    PrimaryKey k = o as PrimaryKey;
+
+                    if (k != null)
+                    {
+                        isPrimaryKey = true;
+                        continue;
+                    }
+
+                    Identity i = o as Identity;
+
+                    if (i != null)
+                    {
+                        isIdentity = true;
+                        continue;
+                    }
+
+                    BindFrom bf = o as BindFrom;
+
+                    if (bf != null)
+                    {
+                        columnMapping.FromResultSetColumn = bf.OverridedReadColumn;      // override read column behavior
+                        continue;
+                    }
+
+                    BindTo bt = o as BindTo;
+
+                    if (bt != null)
+                    {
+                        columnMapping.ToSqlTableColumn = bt.OverridedSqlColumn;          // override CUD behavior
+                        continue;
+                    }
+
+                    StoredProc sp = o as StoredProc;
+
+                    if (sp != null)
+                    {
+                        ProcMapping pm = new ProcMapping(pi.Name, sp.Mode);
+
+                        if (sp.ParameterName != null)
+                            pm.Map.To = sp.ParameterName;                            // override sp parameter
+
+                        newSchema.Procedures.Add(pi.Name, pm);
+                        continue;
+                    }
+                }
+
+                if (mapProperty)
+                {
+
+                    //
+                    // We are here if Exclude wasn't present on the property
+                    // 
+
+                    newSchema.Columns.Add(pi.Name, columnMapping);
+
+                    if (isPrimaryKey)
+                    {
+                        // Add on keys collection
+                        newSchema.Keys.Add(pi.Name, new KeyMapping(columnMapping.ToSqlTableColumn, pi.Name));
+                    }
+
+                    if (isIdentity)
+                    {
+                        //
+                        // Only can exist one identity!
+                        //
+
+                        if (newSchema.IdentityPropertyName != null)
+                            throw new InvalidOperationException("Type {0} cannot have multiple identity columns".Frmt(type.Name));
+
+                        newSchema.IdentityPropertyName = pi.Name;
+                    }
+                }
+            }
+
+            return newSchema;
         }
 
-        
-		/// <summary>
-		///     Iterate over the reader and maps properties that are not excluded to the OMapper.
-		/// </summary>
-		/// <typeparam name="T">the type of objects being returned</typeparam>
-		/// <param name="reader">the reader that is currently pointing to the Result set entry</param>
-		/// <param name="CloseDbReader">true will close the reader, otherwise will still be open.</param>
-		/// <returns>The list of objects within the reader for the type T</returns>
-		protected List<T> MapTo<T>(DbDataReader reader, bool CloseDbReader = true) where T : class
-		{
-			if (reader == null)
-				throw new NullReferenceException("reader cannot be null");
-
-			if (reader.IsClosed)
-				throw new InvalidOperationException("reader connection is closed and objects cannot be mapped");
-
-			if (!reader.HasRows)
-				return new List<T>();
 
 
-			Type type = typeof(T);
-			TypeSchema schema = s_TypesSchemaMapper[type];
+        /// <summary>
+        ///     Called when is time queries into objects, usully over Select statements.
+        ///     Default behavior return POCO Objects.
+        /// </summary>
+        internal virtual T MapToInstance<T>(TypeSchema ts) where T : class
+        {
+            return Activator.CreateInstance<T>();
+        }
 
-			//
-			// If we are here, the properties for specific type are filled 
-			// and never be touched (modified) again for the type.
-			// 
 
-			// Map cursor lines from database to CLR objects based on T
+        /// <summary>
+        ///     Called when is time to map propertyValue into property over the newInstance object.
+        ///     Default behavior does that by property access.
+        /// </summary>
+        internal virtual void MapToHandleProperty(object newInstance, PropertyInfo property, object propertyValue)
+        {
+            Debug.Assert(newInstance != null && property != null);
+            property.SetValue(newInstance, propertyValue, null);
 
-			List<T> objectsQueue = new List<T>();
+        }
 
-			while (reader.Read())
-			{
-				T newInstance = (T)Activator.CreateInstance(type);
-				Type newInstanceRep = newInstance.GetType();            // Mirror instance to reflect newInstance
 
-				// Map properties to the newInstance
-				foreach (ColumnMapping map in schema.Columns.Values)
-				{
-					object value;
-					string sqlColumn = map.FromResultSetColumn;
-
-					try { value = reader[sqlColumn]; }
-					catch (IndexOutOfRangeException)
-					{
-						throw new SqlColumnNotFoundException("Sql column with name: {0} is not found".Frmt(sqlColumn));
-					}
-
-					PropertyInfo ctxProperty = newInstanceRep.GetProperty(map.ClrProperty);
-
-					//
-					// Nullable condition checker!
-					//
-
-					if (value.GetType() == typeof(DBNull))
-					{
-						if (ctxProperty.PropertyType.IsPrimitive)
-						{
-							throw new PropertyMustBeNullable(
-								"Property {0} must be nullable for mapping a null value".Frmt(ctxProperty.Name)
-							);
-						}
-
-						value = null;
-					}
+        #endregion
 
 
 
-					//
-					// Set property value
-					// 
 
-
-					ctxProperty.SetValue(newInstance, value, null);     // WARNING: Conversion Types..
-				}
-
-				// Add element to the collection
-				objectsQueue.Add(newInstance);
-
-				if (OnMappingOneEntry != null)
-					OnMappingOneEntry(newInstance);
-			}
-
-			if (CloseDbReader)
-			{
-				// Free Connection Resources
-				reader.Close();
-				reader.Dispose();
-			}
-
-			return objectsQueue;
-		}
-
-		#endregion
+        #region Protected
 
 
 
-		#region Private
 
 
-		/// <summary>
-		///     Free the DbConnection associated with the OMapper.
-		/// </summary>
-		/// <param name="explicitlyCalled">true if called by developer, otherwise called by finalizer.</param>
-		private void Dispose(bool explicitlyCalled)
+
+        #endregion
+
+
+
+        #region Private
+
+
+
+
+        /// <summary>
+        ///     Creates a new dictionary with previous dictionary containing all information for previous types and the new added type.
+        /// </summary>
+        private Dictionary<Type, TypeSchema> NewCopyWithAddedTypeSchema(Type type)
+        {
+
+            TypeSchema schema = CreateSchema(type);
+            return new Dictionary<Type, TypeSchema>(s_TypesSchemaMapper) { { type, schema } };
+        }
+
+
+
+        /// <summary>
+        ///     Free the DbConnection associated with the OMapper.
+        /// </summary>
+        /// <param name="explicitlyCalled">true if called by developer, otherwise called by finalizer.</param>
+        private void Dispose(bool explicitlyCalled)
 		{
 			if (m_disposed)
 				throw new ObjectDisposedException(this.GetType().Name);

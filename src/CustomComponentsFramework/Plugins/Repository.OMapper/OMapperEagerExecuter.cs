@@ -7,7 +7,7 @@ using System.Text;
 
 namespace Repository.OMapper
 {
-    public class OMapperEagerExecuter : OMapperCRUDSupport
+    public class OMapperEagerExecuter : OMapperCRUDSupportBase
     {
 
         #region Constructors
@@ -128,7 +128,7 @@ namespace Repository.OMapper
                 throw new ArgumentNullException("obj");
 
             // Lock-Free
-            AddMetadataFor(obj.GetType());
+            base.AddMetadataFor(GetTypeFor(obj));
 
             //
             // If we are here, the properties for specific type are filled 
@@ -136,7 +136,7 @@ namespace Repository.OMapper
             // 
 
             String SQLUpdateCommand = m_sqlCommandsProvider.UpdateCommand(obj, obj.GetType().GetProperties(OMapper.s_PropertiesFlags).Select(x => x.Name).ToArray());
-            ExecuteUpdate(SQLUpdateCommand);
+            base.ExecuteUpdate(SQLUpdateCommand);
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace Repository.OMapper
             if (objects != null)
             {
                 foreach (object o in objects)
-                    this.Update(o);
+                    Update(o);
             }
         }
 
@@ -171,22 +171,27 @@ namespace Repository.OMapper
 
         #region Protected
 
-        #endregion Instance Methods
+        #endregion
 
 
 
-        protected override void InsertHandler<T>(T obj)
+
+        #region Internal
+
+
+
+        internal override void InsertHandler<T>(T obj)
         {
             // Prepare insert statement for type
             String SQLInsertCommand = m_sqlCommandsProvider.InsertCommand(obj);
-            ExecuteInsert(obj, SQLInsertCommand);
+            base.ExecuteInsert(obj, SQLInsertCommand);
         }
 
 
-        protected override void DeleteHandler<T>(T obj)
+        internal override void DeleteHandler<T>(T obj)
         {
             String SQLDeleteCommand = m_sqlCommandsProvider.DeleteCommand(obj);
-            ExecuteDelete(SQLDeleteCommand);
+            base.ExecuteDelete(SQLDeleteCommand);
         }
 
 
@@ -194,7 +199,7 @@ namespace Repository.OMapper
         #endregion
 
 
-
+        #endregion Instance Methods
 
     }
 }
