@@ -282,6 +282,7 @@ namespace Repository.OMapper
             }
 
             soi.PropertiesChanged.Add(propertyToUpdate, true);
+
         }
 
 

@@ -40,8 +40,8 @@ namespace CustomComponents.ConsoleApplication
 
     public static class OMapperProgram
     {
-
-        const string CONNECTION_STRING = "Server=.\\MSSQLSERVER2012;Database=TestDB;Trusted_Connection=True;";
+        const string CONNECTION_STRING = "Server=VMWin2012Server\\MSSQLSERVER12;User Id=user; password=Password1!"; 
+        // const string CONNECTION_STRING = "Server=.\\MSSQLSERVER2012;Database=TestDB;Trusted_Connection=True;";
 
 
 
@@ -108,7 +108,7 @@ namespace CustomComponents.ConsoleApplication
 
         private static void AddCategoriesMassRandomOperations(OMapperContextExecuter oMapper)
         {
-            const int ITERATIONS = 100000;
+            const int ITERATIONS = 50000;
             Random r = new Random();
 
             Category c;
@@ -141,17 +141,23 @@ namespace CustomComponents.ConsoleApplication
             Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Select { categoriesObjs.Count } objects");
             watch.Stop();
 
+            int updatedObjects = 0;
             for (int i = 0; i < ITERATIONS; i++)
             {
                 if (i % 2 == 0)
                 {
+                    updatedObjects++;
                     categoriesObjs[i].name += "_%2";
                     categoriesObjs[i].extraInfo = "UPDATED" + i.ToString();
                 }
             }
 
+            int deletedObjects = 0;
             oMapper.Delete(categoriesObjs[0]);
+            deletedObjects++;
             oMapper.Delete(categoriesObjs[1]);
+            deletedObjects++;
+
 
             watch.Restart();
             Console.WriteLine($"Sending commands to database");
@@ -159,7 +165,7 @@ namespace CustomComponents.ConsoleApplication
             oMapper.Submit();
             watch.Stop();
 
-            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Submit the changes");
+            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Submit the changes with { updatedObjects } Updated objects and { deletedObjects } deleted Objects");
             Console.WriteLine("Press any key to leave <<<");
             Console.Read();
 
