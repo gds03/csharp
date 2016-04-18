@@ -90,7 +90,7 @@ namespace Repository.OMapper.Internal.Proxies
 
             var t =  proxy.CreateType();
 
-            s_assemblyBuilder.Save(s_assemblyName.Name + "_.dll");
+            s_assemblyBuilder.Save(s_assemblyName.Name + ".dll");
 
             return t;
 
