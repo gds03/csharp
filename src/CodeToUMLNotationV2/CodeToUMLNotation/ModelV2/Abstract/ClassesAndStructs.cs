@@ -31,7 +31,7 @@ namespace CodeToUMLNotation.ModelV2.Abstract
 
         protected bool WriteFieldsUML(IRichStringbuilder richSb)
         {
-            Fields.OrderBy(x => x.Static).ToList().ForEach(f => f.Design(richSb).WriteLine());
+            Fields.OrderByDescending(x => !x.Static).ToList().ForEach(f => f.Design(richSb).WriteLine());
             return Fields.Count > 0;
         }
     }

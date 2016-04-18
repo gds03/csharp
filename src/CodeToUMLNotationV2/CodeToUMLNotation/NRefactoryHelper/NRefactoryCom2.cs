@@ -36,7 +36,8 @@ namespace CodeToUMLNotation.NRefactoryHelper
             switch (type)
             {
                 case PARSE_TYPE.FIELDS:
-                    CLRDeclarations.OfType<ClassesAndStructs>().ToList().ForEach(cs => cs.Fields.ToList().ForEach(f => f.Design(m_richSb).WriteLine()));
+                    CLRDeclarations.OfType<ClassesAndStructs>().ToList().ForEach(cs => 
+                        cs.Fields.OrderByDescending(x => !x.Static).ToList().ForEach(f => f.Design(m_richSb).WriteLine()));
                     break;
                     
                 case PARSE_TYPE.PROPERTIES:
@@ -44,11 +45,14 @@ namespace CodeToUMLNotation.NRefactoryHelper
                     break;
 
                 case PARSE_TYPE.METHODS:                    
-                    CLRDeclarations.OfType<ClassesAndStructsAndInterfaces>().ToList().ForEach(csi => csi.Methods.OrderByDescending(x => !x.Static).ToList().Aggregate(new List<Method>(), (l, m) => {
-                        l.Insert((m.Ctor && m.Static) ? 0 : l.Count, m);
-                        return l;
-                    })
-                    .ForEach(m => m.Design(m_richSb).WriteLine()));
+                    CLRDeclarations.OfType<ClassesAndStructsAndInterfaces>().ToList().ForEach(csi => 
+                        csi.Methods.OrderByDescending(x => !x.Static).ToList().Aggregate(new List<Method>(), (l, m) => 
+                        {
+                            l.Insert((m.Ctor && m.Static) ? 0 : l.Count, m);
+                            return l;
+                        })
+                        .ForEach(m => m.Design(m_richSb).WriteLine())
+                     );
                     break;
 
                 case PARSE_TYPE.ALL:
