@@ -71,12 +71,12 @@ namespace OMapper.Internal.Proxies
                 MethodInfo SetMethodHook = pi.GetSetMethod();
                 if (SetMethodHook == null)
                 {
-                    throw new InvalidOperationException(String.Format("Property {0} does not contain a Setter method. Please define a virtual setter method for property {0}", pi.Name));
+                    throw new InvalidOperationException(String.Format("Property '{0}' does not contain a Setter method. Please define a virtual setter method for property '{0}'", pi.Name));
                 }
 
                 if( !SetMethodHook.IsVirtual)
                 {
-                    throw new InvalidOperationException(String.Format("Property must be virtual since OMapper creates a subclass of {0} type at runtime to notify OMapper about the changes that happen in the proxy object", type.Name));
+                    throw new InvalidOperationException(String.Format("Property '{0}' must be virtual since OMapper creates a subclass of '{1}' type at runtime to notify OMapper about the changes that happen in the proxy object", pi.Name, type.Name));
                 }
 
                 MethodAttributes attributes = MethodAttributes.Public | MethodAttributes.ReuseSlot | MethodAttributes.HideBySig | MethodAttributes.Virtual;
