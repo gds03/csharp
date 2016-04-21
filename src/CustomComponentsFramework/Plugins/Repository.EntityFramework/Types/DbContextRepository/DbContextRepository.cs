@@ -1,10 +1,13 @@
-﻿using Repository.EntityFramework.Interfaces;
+﻿using CustomComponents.Database.Types.Generic;
+using CustomComponents.Repository.Interfaces;
+using Repository.EntityFramework.Interfaces;
 using Repository.EntityFramework.Types.ObjectContextRepository;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Data.Entity.Infrastructure;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,45 +21,40 @@ namespace Repository.EntityFramework.Types.DbContextRepository
             ((IObjectContextAdapter)context).ObjectContext
             )
         {
+            if (context == null)
+                throw new ArgumentNullException("context");
 
-        }
-        
-        protected override IRepositorySet<TEntity> SetHook<TEntity>(object DbSetOrObjectSet)
-        {
-            DbSet<TEntity> property = (DbSet<TEntity>)DbSetOrObjectSet;
-            return new DbContextSet<TEntity>(property);
+            DbContext = context;
         }
 
 
 
-        private class DbContextSet<TEntity> : IRepositorySet<TEntity>
-            where TEntity : class
+        public override IRepository Delete<TEntity>(TEntity @object)
         {
-            private readonly DbSet<TEntity> m_set;
+            this.Table<TEntity>().Remove(@object);
+            return this;
+        }
 
-            public DbContextSet(DbSet<TEntity> Set)
-            {
-                if (Set == null)
-                    throw new ArgumentNullException("Set");
+        public override IRepository Insert<TEntity>(TEntity @object)
+        {
+            this.Table<TEntity>().Add(@object);
+            return this;
+        }
 
-                m_set = Set;
-            }
+        public override QueryResult<TEntity> Query<TEntity>()
+        {
+            return new QueryResult<TEntity>(Table<TEntity>());
+        }
 
+        public override IList<TEntity> Query<TEntity>(Expression<Func<TEntity, bool>> predicate)
+        {
+            return Table<TEntity>().Where(predicate).ToList();
+        }
 
-            public IQueryable<TEntity> Query
-            {
-                get { return m_set; }
-            }
-
-            public void Add(TEntity entity)
-            {
-                m_set.Add(entity);
-            }
-
-            public void Remove(TEntity entity)
-            {
-                m_set.Remove(entity);
-            }
+        private DbSet<TEntity> Table<TEntity>() where TEntity : class
+        {
+            return (DbSet<TEntity>)
+                DbContext.GetType().GetProperty(typeof(TEntity).Name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public).GetValue(DbContext, null);
         }
     }
 }

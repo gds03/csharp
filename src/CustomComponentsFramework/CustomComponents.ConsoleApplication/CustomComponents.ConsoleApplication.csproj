@@ -34,8 +34,19 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -52,22 +63,76 @@
     <Compile Include="EightQueenProgram.cs" />
     <Compile Include="MazeProgram.cs" />
     <Compile Include="OMapperProgram.cs" />
+    <Compile Include="ORMs\EFGenerated\Category.cs">
+      <DependentUpon>TestDB.tt</DependentUpon>
+    </Compile>
+    <Compile Include="ORMs\EFGenerated\Product.cs">
+      <DependentUpon>TestDB.tt</DependentUpon>
+    </Compile>
+    <Compile Include="ORMs\EFGenerated\TestDB.Context.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>TestDB.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="ORMs\EFGenerated\TestDB.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>TestDB.tt</DependentUpon>
+    </Compile>
+    <Compile Include="ORMs\EFGenerated\TestDB.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>TestDB.edmx</DependentUpon>
+    </Compile>
+    <Compile Include="ORMs\OMapper\Category.cs" />
+    <Compile Include="ORMs\OMapper\Product.cs" />
     <Compile Include="SortingAlgorithmsProgram.cs" />
     <Compile Include="ThreadPoolProgram.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <EntityDeploy Include="ORMs\EFGenerated\TestDB.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>TestDB.Designer.cs</LastGenOutput>
+    </EntityDeploy>
+    <None Include="ORMs\EFGenerated\TestDB.edmx.diagram">
+      <DependentUpon>TestDB.edmx</DependentUpon>
+    </None>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Algorithms\CustomComponents.Algorithms\CustomComponents.Algorithms.csproj">
       <Project>{096c5155-4fcb-442d-98ad-8eb1c2551832}</Project>
       <Name>CustomComponents.Algorithms</Name>
     </ProjectReference>
+    <ProjectReference Include="..\CustomComponents.Repository\CustomComponents.Repository.csproj">
+      <Project>{d23e3a2e-0dc5-4364-aa05-ead57b1db7a0}</Project>
+      <Name>CustomComponents.Repository</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Plugins\Repository.EntityFramework\Repository.EntityFramework.csproj">
+      <Project>{e8201f94-365b-49cd-806e-6429c90c8505}</Project>
+      <Name>Repository.EntityFramework</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Plugins\Repository.OMapper\Repository.OMapper.csproj">
       <Project>{92025a68-039f-4ff3-bc77-060afea16495}</Project>
       <Name>Repository.OMapper</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ORMs\EFGenerated\TestDB.Context.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>TestDB.edmx</DependentUpon>
+      <LastGenOutput>TestDB.Context.cs</LastGenOutput>
+    </Content>
+    <Content Include="ORMs\EFGenerated\TestDB.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>TestDB.edmx</DependentUpon>
+      <LastGenOutput>TestDB.cs</LastGenOutput>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

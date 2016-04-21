@@ -51,7 +51,7 @@
     <Compile Include="Enums\Entry.cs" />
     <Compile Include="Types\DbContextRepository\DbContextRepository.cs" />
     <Compile Include="Types\ObjectContextRepository\ObjectContextRepository.cs" />
-    <Compile Include="Types\ObjectContextRepository\ObjectContextRepositoryBase.cs" />
+    <Compile Include="Types\ObjectContextRepository\_ObjectContextRepositoryBase.cs" />
     <Compile Include="Types\ObjectEntry.cs" />
     <Compile Include="Types\ObjectEntryMap.cs" />
   </ItemGroup>

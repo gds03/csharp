@@ -13,6 +13,7 @@ using System.Data.Common;
 using System.Data;
 using Repository.EntityFramework.Interfaces;
 using CustomComponents.Repository.Types.Generic;
+using System.Linq.Expressions;
 
 namespace Repository.EntityFramework.Types.ObjectContextRepository
 {
@@ -160,59 +161,25 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
 
 
 
-        private IRepositorySet<TEntity> Set<TEntity>() where TEntity : class
-        {
-            //
-            // As the entity framework creates the properties with the same name of the Type we want to access,
-            // it is really easy to map those types to properties throught reflection
-            // Get the property of the context with the name of the type.
-            //
-            
-            var propertyValue = ObjectContext.GetType().GetProperty(typeof(TEntity).Name).GetValue(ObjectContext, null);
-
-            //
-
-            return SetHook<TEntity>(propertyValue);
-
-        }
-
-        protected abstract IRepositorySet<TEntity> SetHook<TEntity>(object DbSetOrObjectSet) where TEntity : class;
-       
-
-        /// <summary>
-        ///     Allow Queries with LINQ to Entities throught IQueryable interface
-        /// </summary>
-        public QueryResult<TEntity> Query<TEntity>() where TEntity : class
-        {
-            return new QueryResult<TEntity>(Set<TEntity>().Query);
-        }
 
 
-        /// <summary>
-        ///     Insert the e object in specific table.
-        ///     The inserted object is only on database after Synchronize was called.
-        /// </summary>
-        public IRepository Insert<TEntity>(TEntity e) where TEntity : class
-        {
-            Set<TEntity>().Add(e);
-            return this;
-        }
+
+   
 
 
-        /// <summary>
-        ///     Delete the e object from specific table.
-        ///     The deleted object is only removed from database after Synchronize was called.
-        /// </summary>
-        public IRepository Delete<TEntity>(TEntity e) where TEntity : class
-        {
-            Set<TEntity>().Remove(e);
-            return this;
-        }
 
 
-        /// <summary>
-        ///     Synchronize the database with all pending operations.
-        /// </summary>
+
+
+        public abstract IRepository Insert<TEntity>(TEntity @object) where TEntity : class;
+
+        public abstract IRepository Delete<TEntity>(TEntity @object) where TEntity : class;
+
+        public abstract QueryResult<TEntity> Query<TEntity>() where TEntity : class;
+
+        public abstract IList<T> Query<T>(Expression<Func<T, bool>> predicate) where T : class;
+
+        
         public IRepository Submit()
         {
             if (ExaclyBeforeSaveCalled != null)
@@ -223,18 +190,13 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
         }
 
 
-        /// <summary>
-        ///     Free all managed resources such the connection and ObjectContext associated with the repository
-        /// </summary>
         public void Dispose()
         {
             ObjectContext.Dispose();
         }
 
 
-        /// <summary>
-        ///     Get the connection to the repository
-        /// </summary>
+
         public IDbConnection RepositoryConnection
         {
             get { return ObjectContext.Connection; }
@@ -294,5 +256,6 @@ namespace Repository.EntityFramework.Types.ObjectContextRepository
                 return externMethod(callerInstance);
             }
         }
+
     }
 }

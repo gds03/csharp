@@ -1,33 +1,41 @@
 ﻿using CustomComponents.Database.Types.Generic;
 using CustomComponents.Repository.Types.Generic;
 using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq.Expressions;
 
 namespace CustomComponents.Repository.Interfaces
 {
     public interface IRepository : IDisposable
-    {
+    { 
         /// <summary>
-        ///     Allow Queries with LINQ to Entities throught IQueryable interface
+        ///     Returns a QueryResult with all available queries for the specific type.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <returns>Teste</returns>
         QueryResult<T> Query<T>() where T : class;
 
+
         /// <summary>
-        ///     Insert the e object in specific table.
-        ///     The inserted object is only on database after Synchronize was called.
+        ///     Returns a list of T objects that match the specific predicate
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        IList<T> Query<T>(Expression<Func<T, bool>> predicate) where T : class;
+
+        /// <summary>
+        ///     Inserts the specific e object in the table.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="e"></param>
+        /// <returns></returns>
         IRepository Insert<T>(T e) where T : class;
 
         /// <summary>
-        ///     Delete the e object from specific table.
-        ///     The deleted object is only removed from database after Synchronize was called.
+        ///     Deletes the specific e object from the table.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="e"></param>
+        /// <returns></returns>
         IRepository Delete<T>(T e) where T : class;
     }
 }

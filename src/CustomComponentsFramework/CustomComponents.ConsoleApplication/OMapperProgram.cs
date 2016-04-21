@@ -3,45 +3,21 @@ using Repository.OMapper.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+// using CustomComponents.ConsoleApplication.ORMs.OMapper;
+using CustomComponents.Repository.Interfaces;
+using CustomComponents.ConsoleApplication.ORMs.EFGenerated;
+using Repository.EntityFramework.Types.ObjectContextRepository;
+using Repository.EntityFramework.Types.DbContextRepository;
 
 namespace CustomComponents.ConsoleApplication
 {
-    public class Product
-    {
-        [Identity]
-        [PrimaryKey]
-        public int id { get; set; }
-        public int categoryId { get; set; }
-
-        public string name { get; set; }
-
-        public DateTime creationDate { get; set; }
-
-        public DateTime lastModifiedDate { get; set; }
-
-        public String extraInfo { get; set; }
-    }
 
 
-    public class Category
-    {
-        //[Identity]
-        //[PrimaryKey] --> this is removed, now we use OMapper.Configure() method to configure instead of use custom attributes.
-        public virtual int id { get; set; }
-
-        public virtual string name { get; set; }
-
-        public virtual DateTime creationDate { get; set; }
-
-        public virtual DateTime lastModifiedDate { get; set; }
-
-        public virtual String extraInfo { get; set; }
-    }
 
     public static class OMapperProgram
     {
-        const string CONNECTION_STRING = "Server=VMWin2012Server\\MSSQLSERVER12;User Id=user; password=Password1!"; 
-        // const string CONNECTION_STRING = "Server=.\\MSSQLSERVER2012;Database=TestDB;Trusted_Connection=True;";
+        // const string CONNECTION_STRING = "Server=VMWin2012Server\\MSSQLSERVER12;User Id=user; password=Password1!"; 
+        const string CONNECTION_STRING = "Server=.\\MSSQLSERVER2012;Database=TestDB;Trusted_Connection=True;";
 
 
 
@@ -106,9 +82,18 @@ namespace CustomComponents.ConsoleApplication
 
 
 
-        private static void AddCategoriesMassRandomOperations(OMapperContextExecuter oMapper)
+        private static void AddCategoriesMassRandomOperations<TORM>(TORM oMapper, string ORMName) 
+            where TORM : IRepository, IDatabaseStored
         {
-            const int ITERATIONS = 50000;
+            if (string.IsNullOrEmpty(ORMName))
+            {
+                throw new ArgumentException("ORMName");
+            }
+
+            const int ITERATIONS = 10000;
+            Console.WriteLine($"---------------- { ORMName } --------------- \n\n");
+            Console.WriteLine($"--- Number of operations { ITERATIONS } --- \n\n");
+            
             Random r = new Random();
 
             Category c;
@@ -126,7 +111,7 @@ namespace CustomComponents.ConsoleApplication
                 oMapper.Insert(c);
             }
             watch.Stop();
-            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to insert { ITERATIONS } elements into OMapper");
+            Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to insert { ITERATIONS } elements");
 
             Console.WriteLine($"Sending commands to database");
             watch.Restart();
@@ -137,7 +122,7 @@ namespace CustomComponents.ConsoleApplication
             const int afterId = ITERATIONS - 50;
             watch.Restart();
             Console.WriteLine($"Mapping objects into memory");
-            IList<Category> categoriesObjs = oMapper.Select<Category>(x => x.id > afterId);
+            IList<Category> categoriesObjs = oMapper.Query<Category>(x => x.id > afterId);
             Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Select { categoriesObjs.Count } objects");
             watch.Stop();
 
@@ -174,24 +159,28 @@ namespace CustomComponents.ConsoleApplication
         public static void Main(String[] args)
         {
             // OMapperEagerExecuter oMapperEager = new OMapperEagerExecuter(CONNECTION_STRING);
+            // OMapperContextExecuter oMapperInstance = new OMapperContextExecuter(CONNECTION_STRING);
 
+            // var repository = new OMapperRepository(oMapperInstance);
 
-            OMapperContextExecuter oMapper = new OMapperContextExecuter(CONNECTION_STRING);
+            // OMapperContextExecuter oMapper = new OMapperContextExecuter(CONNECTION_STRING);
 
-            oMapper.Configuration(i =>
-            {
-                i.For<Category>().PrimaryKey(x => x.id)
-                                 .Identity(x => x.id)
-                                 // .BindFrom()
-                                 // .BindTo()
-                                ;
+            //oMapperInstance.Configuration(i =>
+            //{
+            //    i.For<Category>().PrimaryKey(x => x.id)
+            //                     .Identity(x => x.id)
+            //                    // .BindFrom()
+            //                    // .BindTo()
+            //                    ;
 
-                //i.For<Product>().PrimaryKey(x => x.name)
-                //                .Identity(x => x.id);
-            });
+            //    //i.For<Product>().PrimaryKey(x => x.name)
+            //    //                .Identity(x => x.id);
+            //});
 
-            AddCategoriesMassRandomOperations(oMapper);
-            // AddCategoriesAndUpdate(mapper);
+            // AddCategoriesMassRandomOperations(repository, "OMAPPER");
+            DbContextRepository repository = new DbContextRepository(new TestDBEntities());
+
+            AddCategoriesMassRandomOperations(repository, "Entity Framework");
         }
 
         

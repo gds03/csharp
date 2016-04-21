@@ -6,6 +6,8 @@ using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 
 namespace Repository.OMapper
 {
@@ -17,6 +19,15 @@ namespace Repository.OMapper
         public OMapperRepository(string connectionString)
         {
             m_oMapper = new OMapperContextExecuter(connectionString, IsolationLevel.ReadCommitted);
+        }
+
+
+        public OMapperRepository(OMapperContextExecuter oMapperExecuter)
+        {
+            if (oMapperExecuter == null)
+                throw new ArgumentNullException("oMapperExecuter");
+
+            m_oMapper = oMapperExecuter;
         }
 
 
@@ -102,6 +113,12 @@ namespace Repository.OMapper
 
 
 
+        public IList<T> Query<T>(Expression<Func<T, bool>> predicate) where T : class
+        {
+            return m_oMapper.Select(predicate);
+        }
+
+
 
         QueryResult<T> IRepository.Query<T>()
         {
@@ -120,9 +137,13 @@ namespace Repository.OMapper
 
 
 
+
+
         private IQueryable<T> Query<T>() where T : class
         {
             return m_oMapper.Select<T>().AsQueryable<T>();
         }
+
+       
     }
 }
