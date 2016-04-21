@@ -39,53 +39,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Attributes\BindFrom.cs" />
-    <Compile Include="Attributes\BindTo.cs" />
-    <Compile Include="Attributes\Exclude.cs" />
-    <Compile Include="Attributes\Identity.cs" />
-    <Compile Include="Attributes\PrimaryKey.cs" />
-    <Compile Include="Attributes\Table.cs" />
-    <Compile Include="Exceptions\PropertyMustBeNullable.cs" />
-    <Compile Include="Exceptions\SqlColumnNotFoundException.cs" />
-    <Compile Include="Extensions\StringExtensions.cs" />
-    <Compile Include="Extensions\TypeBuilderExtensions.cs" />
-    <Compile Include="Interfaces\IPredicateParser.cs" />
-    <Compile Include="Interfaces\ISqlCommandTextGenerator.cs" />
-    <Compile Include="Internal\CLR2SQL\CLRExpressionLinq2SQLExpressionLogicNames.cs" />
-    <Compile Include="Internal\CLR2SQL\CLRTypes2SQLTypes.cs" />
-    <Compile Include="Internal\Converters\ValueToSQLConverter.cs" />
-    <Compile Include="Internal\Impl\Commands\DeleteCommand.cs" />
-    <Compile Include="Internal\Impl\Commands\InsertCommand.cs" />
-    <Compile Include="Internal\Impl\Commands\SelectCommand.cs" />
-    <Compile Include="Internal\Impl\Commands\UpdateCommand.cs" />
-    <Compile Include="Internal\Impl\ExpressionParserImpl.cs" />
-    <Compile Include="Types\Metadata\InitializationMetadata.cs" />
-    <Compile Include="Types\Metadata\TypesMetadata.cs" />
-    <Compile Include="OMapperContextExecuter.cs" />
-    <Compile Include="OMapperCRUDSupportBase.cs" />
-    <Compile Include="OMapper.cs" />
     <Compile Include="OMapperRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Internal\ProxyObjectInfo.cs" />
-    <Compile Include="Providers\CommandsForTypeSchemaProvider.cs" />
-    <Compile Include="Providers\PredicateParserProvider.cs" />
-    <Compile Include="SimpleDbAccess.cs" />
-    <Compile Include="Enums\SPMode.cs" />
-    <Compile Include="Attributes\StoredProc.cs" />
-    <Compile Include="Internal\Proxies\ProxyCreator.cs" />
-    <Compile Include="Internal\Proxies\ProxyMapper.cs" />
-    <Compile Include="Types\Helpers\UsermodeInitializator.cs" />
-    <Compile Include="Types\Mappings\ColumnMapping.cs" />
-    <Compile Include="Types\Mappings\KeyMapping.cs" />
-    <Compile Include="Types\Mappings\ProcMapping.cs" />
-    <Compile Include="OMapperEagerExecuter.cs" />
-    <Compile Include="Types\TypeSchema.cs" />
-    <Compile Include="Types\TypeSchemaProxy.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\CustomComponents.Repository\CustomComponents.Repository.csproj">
       <Project>{d23e3a2e-0dc5-4364-aa05-ead57b1db7a0}</Project>
       <Name>CustomComponents.Repository</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\OMapper\OMapper.csproj">
+      <Project>{e2181fb2-8ce8-40bc-bdf4-8d07fa778df9}</Project>
+      <Name>OMapper</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

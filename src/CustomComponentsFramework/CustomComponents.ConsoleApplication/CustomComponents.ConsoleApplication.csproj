@@ -110,6 +110,10 @@
       <Project>{d23e3a2e-0dc5-4364-aa05-ead57b1db7a0}</Project>
       <Name>CustomComponents.Repository</Name>
     </ProjectReference>
+    <ProjectReference Include="..\OMapper\OMapper.csproj">
+      <Project>{e2181fb2-8ce8-40bc-bdf4-8d07fa778df9}</Project>
+      <Name>OMapper</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Plugins\Repository.EntityFramework\Repository.EntityFramework.csproj">
       <Project>{e8201f94-365b-49cd-806e-6429c90c8505}</Project>
       <Name>Repository.EntityFramework</Name>
