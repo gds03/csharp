@@ -53,7 +53,7 @@ namespace OMapper.Internal.Proxies
             MethodBuilder methodNotifyPropertyChangeBuilder = proxy.AddMethod("NotifyPropertyChange", MethodAttributes.Public, typeof(void), new[] { typeof(string) }, il =>
             {
                 // private void NotifyPropertyChange(string propertyName) {
-                //      this.OMapperProperty.PutObjectForUpdate(proxy, propertyName);
+                //      this.OMapperProperty.PutObjectForUpdate(this, propertyName);
                 // }
                 il.Emit(op.Ldarg_0);    // push this.
                 il.Emit(op.Call, propOMapperInstance.GetGetMethod());
@@ -63,14 +63,22 @@ namespace OMapper.Internal.Proxies
                 MethodInfo OMapperContextExecuterUpdateMethod = typeof(OMapperContextExecuter).GetMethod("PutObjectForUpdate", BindingFlags.Public | BindingFlags.Instance); /* new[] { typeof(object), typeof(string) });*/
                 il.Emit(op.Call, OMapperContextExecuterUpdateMethod);
             });
-
-
-
+            
             // override base properties
             foreach (var pi in type.GetProperties(OMapper.s_PropertiesFlags))
             {
                 // save base setMethod - same logic
                 MethodInfo SetMethodHook = pi.GetSetMethod();
+                if (SetMethodHook == null)
+                {
+                    throw new InvalidOperationException(String.Format("Property {0} does not contain a Setter method. Please define a virtual setter method for property {0}", pi.Name));
+                }
+
+                if( !SetMethodHook.IsVirtual)
+                {
+                    throw new InvalidOperationException(String.Format("Property must be virtual since OMapper creates a subclass of {0} type at runtime to notify OMapper about the changes that happen in the proxy object", type.Name));
+                }
+
                 MethodAttributes attributes = MethodAttributes.Public | MethodAttributes.ReuseSlot | MethodAttributes.HideBySig | MethodAttributes.Virtual;
 
                 MethodBuilder overrideSetBuilder = proxy.AddMethod("set_" + pi.Name, attributes, SetMethodHook.ReturnType, new[] { pi.PropertyType }, il =>
