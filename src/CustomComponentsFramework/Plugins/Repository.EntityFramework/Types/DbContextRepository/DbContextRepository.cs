@@ -16,6 +16,7 @@ namespace Repository.EntityFramework.Types.DbContextRepository
     public class DbContextRepository : ObjectContextRepositoryBase
     {
         public DbContext DbContext { get; private set; }
+        private readonly Dictionary<Type, object> m_sets = new Dictionary<Type, object>();
 
         public DbContextRepository(DbContext context) : base(
             ((IObjectContextAdapter)context).ObjectContext
@@ -53,8 +54,16 @@ namespace Repository.EntityFramework.Types.DbContextRepository
 
         private DbSet<TEntity> Table<TEntity>() where TEntity : class
         {
-            return (DbSet<TEntity>)
-                DbContext.GetType().GetProperty(typeof(TEntity).Name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public).GetValue(DbContext, null);
+            Type t = typeof(TEntity);
+            if (!m_sets.ContainsKey(t))
+            {
+                object value = DbContext.GetType().GetProperty(typeof(TEntity).Name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public).GetValue(DbContext, null);
+                if (value == null)
+                    throw new NotSupportedException("Property do not exist. Please unselect the option to pluralize table names.");
+
+                m_sets.Add(t, value);
+            }
+            return (DbSet<TEntity>) m_sets[t];
         }
     }
 }

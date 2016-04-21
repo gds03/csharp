@@ -3,9 +3,11 @@ using Repository.OMapper.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using CustomComponents.ConsoleApplication.ORMs.OMapper;
+// using CustomComponents.ConsoleApplication.ORMs.OMapper;
 using CustomComponents.Repository.Interfaces;
-// using CustomComponents.ConsoleApplication.ORMs.EFGenerated;
+using CustomComponents.ConsoleApplication.ORMs.EFGenerated;
+using Repository.EntityFramework.Types.DbContextRepository;
+
 namespace CustomComponents.ConsoleApplication
 {
 
@@ -87,7 +89,7 @@ namespace CustomComponents.ConsoleApplication
                 throw new ArgumentException("ORMName");
             }
 
-            const int ITERATIONS = 10000;
+            const int ITERATIONS = 25000;
             Console.WriteLine($"---------------- { ORMName } --------------- \n\n");
             Console.WriteLine($"--- Number of operations { ITERATIONS } --- \n\n");
             
@@ -149,35 +151,37 @@ namespace CustomComponents.ConsoleApplication
 
             Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Submit the changes with { updatedObjects } Updated objects and { deletedObjects } deleted Objects");
             Console.WriteLine("Press any key to leave <<<");
-            Console.Read();
+            Console.ReadLine();
 
         }
 
         public static void Main(String[] args)
         {
-            OMapperEagerExecuter oMapperEager = new OMapperEagerExecuter(CONNECTION_STRING);
-            OMapperContextExecuter oMapperInstance = new OMapperContextExecuter(CONNECTION_STRING);
+            //OMapperEagerExecuter oMapperEager = new OMapperEagerExecuter(CONNECTION_STRING);
+            //OMapperContextExecuter oMapperInstance = new OMapperContextExecuter(CONNECTION_STRING);
 
-            var repository = new OMapperRepository(oMapperInstance);
+            //var repository = new OMapperRepository(oMapperInstance);
 
-            OMapperContextExecuter oMapper = new OMapperContextExecuter(CONNECTION_STRING);
+            //OMapperContextExecuter oMapper = new OMapperContextExecuter(CONNECTION_STRING);
 
-            oMapperInstance.Configuration(i =>
-            {
-                i.For<Category>().PrimaryKey(x => x.id)
-                                 .Identity(x => x.id)
-                                // .BindFrom()
-                                // .BindTo()
-                                ;
+            //oMapperInstance.Configuration(i =>
+            //{
+            //    i.For<Category>().PrimaryKey(x => x.id)
+            //                     .Identity(x => x.id)
+            //                    // .BindFrom()
+            //                    // .BindTo()
+            //                    ;
 
-                //i.For<Product>().PrimaryKey(x => x.name)
-                //                .Identity(x => x.id);
-            });
+            //    //i.For<Product>().PrimaryKey(x => x.name)
+            //    //                .Identity(x => x.id);
+            //});
+            //AddCategoriesMassRandomOperations(repository, "OMAPPER");
 
-            AddCategoriesMassRandomOperations(repository, "OMAPPER");
-            //DbContextRepository repository = new DbContextRepository(new TestDBEntities());
 
-            //AddCategoriesMassRandomOperations(repository, "Entity Framework");
+
+            DbContextRepository repository = new DbContextRepository(new TestDBEntities());
+
+            AddCategoriesMassRandomOperations(repository, "Entity Framework");
         }
 
         
