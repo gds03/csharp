@@ -39,6 +39,9 @@ namespace OMapper.Types.Metadata
             TypeSchema schema = GetSchema();
             string selected = GetPropertySelected(selector);
 
+            if (!string.IsNullOrEmpty(schema.IdentityPropertyName))
+                throw new InvalidOperationException(string.Format("Identity property is already defined for type {0} on the column {1}", typeof(T).Name, schema.IdentityPropertyName));
+
             schema.IdentityPropertyName = selected;
             return this;
         }

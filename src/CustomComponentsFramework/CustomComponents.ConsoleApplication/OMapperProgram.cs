@@ -90,7 +90,7 @@ namespace CustomComponents.ConsoleApplication
                 throw new ArgumentException("ORMName");
             }
 
-            const int ITERATIONS = 25000;
+            const int ITERATIONS = 10000;
             Console.WriteLine($"---------------- { ORMName } --------------- \n\n");
             Console.WriteLine($"--- Number of objects to insert { ITERATIONS } --- \n\n");
 
@@ -122,7 +122,7 @@ namespace CustomComponents.ConsoleApplication
             const int afterId = ITERATIONS - 50;
             watch.Restart();
             Console.WriteLine($"Making a select operation.");
-            Console.WriteLine("Mapping objects into memory"); 
+            Console.WriteLine("Mapping objects into memory");
             IList<Category> categoriesObjs = oMapper.Query<Category>(x => x.id > afterId);
             Console.WriteLine($"Took { watch.ElapsedMilliseconds }ms to Select { categoriesObjs.Count } objects");
             watch.Stop();
@@ -180,9 +180,9 @@ namespace CustomComponents.ConsoleApplication
 
 
 
-            //    DbContextRepository repository = new DbContextRepository(new TestDBEntities());
+            //DbContextRepository repository = new DbContextRepository(new TestDBEntities());
 
-            //    AddCategoriesMassRandomOperations(repository, "Entity Framework");
+            //AddCategoriesMassRandomOperations(repository, "Entity Framework");
         }
     }
 }
