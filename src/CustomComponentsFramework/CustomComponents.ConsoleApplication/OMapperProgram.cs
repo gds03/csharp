@@ -3,12 +3,9 @@ using Repository.OMapper.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-// using CustomComponents.ConsoleApplication.ORMs.OMapper;
+using CustomComponents.ConsoleApplication.ORMs.OMapper;
 using CustomComponents.Repository.Interfaces;
-using CustomComponents.ConsoleApplication.ORMs.EFGenerated;
-using Repository.EntityFramework.Types.ObjectContextRepository;
-using Repository.EntityFramework.Types.DbContextRepository;
-
+// using CustomComponents.ConsoleApplication.ORMs.EFGenerated;
 namespace CustomComponents.ConsoleApplication
 {
 
@@ -158,29 +155,29 @@ namespace CustomComponents.ConsoleApplication
 
         public static void Main(String[] args)
         {
-            // OMapperEagerExecuter oMapperEager = new OMapperEagerExecuter(CONNECTION_STRING);
-            // OMapperContextExecuter oMapperInstance = new OMapperContextExecuter(CONNECTION_STRING);
+            OMapperEagerExecuter oMapperEager = new OMapperEagerExecuter(CONNECTION_STRING);
+            OMapperContextExecuter oMapperInstance = new OMapperContextExecuter(CONNECTION_STRING);
 
-            // var repository = new OMapperRepository(oMapperInstance);
+            var repository = new OMapperRepository(oMapperInstance);
 
-            // OMapperContextExecuter oMapper = new OMapperContextExecuter(CONNECTION_STRING);
+            OMapperContextExecuter oMapper = new OMapperContextExecuter(CONNECTION_STRING);
 
-            //oMapperInstance.Configuration(i =>
-            //{
-            //    i.For<Category>().PrimaryKey(x => x.id)
-            //                     .Identity(x => x.id)
-            //                    // .BindFrom()
-            //                    // .BindTo()
-            //                    ;
+            oMapperInstance.Configuration(i =>
+            {
+                i.For<Category>().PrimaryKey(x => x.id)
+                                 .Identity(x => x.id)
+                                // .BindFrom()
+                                // .BindTo()
+                                ;
 
-            //    //i.For<Product>().PrimaryKey(x => x.name)
-            //    //                .Identity(x => x.id);
-            //});
+                //i.For<Product>().PrimaryKey(x => x.name)
+                //                .Identity(x => x.id);
+            });
 
-            // AddCategoriesMassRandomOperations(repository, "OMAPPER");
-            DbContextRepository repository = new DbContextRepository(new TestDBEntities());
+            AddCategoriesMassRandomOperations(repository, "OMAPPER");
+            //DbContextRepository repository = new DbContextRepository(new TestDBEntities());
 
-            AddCategoriesMassRandomOperations(repository, "Entity Framework");
+            //AddCategoriesMassRandomOperations(repository, "Entity Framework");
         }
 
         

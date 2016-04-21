@@ -20,9 +20,9 @@ namespace Repository.OMapper
     public class OMapperContextExecuter : OMapperCRUDSupportBase
     { 
         // queue for commands
-        readonly Dictionary<long, ProxyObjectInfo> m_changedObjects         = new Dictionary<long, ProxyObjectInfo>();
-        readonly List<object> m_insertCommandsQueue                         = new List<object>();
-        readonly List<object> m_deleteObjectQueue                           = new List<object>();
+        readonly Dictionary<long, ProxyObjectInfo> m_changedObjects            = new Dictionary<long, ProxyObjectInfo>();
+        readonly HashSet<object> m_insertCommandsQueue                         = new HashSet<object>();
+        readonly HashSet<object> m_deleteObjectQueue                           = new HashSet<object>();
 
         private volatile int ProxiesMapped                                  = 0;
 
@@ -245,12 +245,14 @@ namespace Repository.OMapper
 
         internal override void InsertHandler<T>(T obj)
         {
-            m_insertCommandsQueue.Add(obj);
+            if(!m_insertCommandsQueue.Contains(obj) )
+                m_insertCommandsQueue.Add(obj);
         }
 
         internal override void DeleteHandler<T>(T obj)
         {
-            m_deleteObjectQueue.Add(obj);
+            if( m_deleteObjectQueue.Contains(obj) )
+                m_deleteObjectQueue.Add(obj);
         }
 
 
