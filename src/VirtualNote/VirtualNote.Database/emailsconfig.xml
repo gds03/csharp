@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<config>
+  <admin>
+    <user id="1">
+      <value>4</value>
+      <value>5</value>
+    </user>
+  </admin>
+  <member>
+    <user id="4">
+      <value>4</value>
+    </user>
+    <user id="6">
+      <value>4</value>
+      <value>5</value>
+    </user>
+    <user id="3">
+      <value>4</value>
+      <value>5</value>
+    </user>
+  </member>
+  <client>
+    <user id="8">
+      <value>1</value>
+      <value>3</value>
+    </user>
+    <user id="5">
+      <value>1</value>
+      <value>2</value>
+      <value>3</value>
+    </user>
+  </client>
+</config>

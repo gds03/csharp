@@ -1,0 +1,67 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Clients.ClientQueryDetails
+
+
+@section Header
+{
+    <h1 class="">Clients</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="/Configurations/Members">Clients</a> / 	
+        <a href="" class="current_page">Details</a>
+	</div> <!-- #bread_crumbs -->
+}
+
+<fieldset class="isFieldSet floatedRight" class="width_auto">
+
+    <legend> Actions </legend>
+
+    @Html.ButtonIconized("Edit", "Edit", null, 
+                         new { id = Model.ClientId }, 
+                         new { @class = "btn-icon btn-black btn-person" })
+
+    @if(Model.UserInfo.Enabled){
+        @Html.ButtonIconized("Delete", "Delete", null,
+                        new { id = Model.ClientId },
+                        new { 
+                            @class = "btn-icon btn-maroon btn-minus marginLeft_10px",
+                            onclick = "javascript:return confirm('You are sure that you want to remove this user?');" 
+                        })
+        }
+</fieldset> 
+
+
+<h2 class="width_500px"> Details </h2>
+
+@Html.ValidationSummary()
+
+<div class="form label-inline uniform floatedleft">
+    @Html.Partial("_UserDetails", Model.UserInfo)
+
+    <div class="field">
+        <label for="Projects"> Enabled Projects </label>
+         @if (Model.EnabledProjects.Count() == 0) {
+            @: None
+        }
+         else {
+            @Model.EnabledProjects.PrintSequence()
+         }      
+    </div>
+
+    <div class="field">
+        <label for="Projects"> Disabled Projects </label>
+         @if (Model.DisabledProjects.Count() == 0) {
+            @: None
+        }
+         else {
+            @Model.DisabledProjects.PrintSequence()
+         }      
+    </div>
+
+    <div class="field">
+        <label for="Issues"> Issues Reported </label>
+        @Model.Issues
+    </div>
+</div>
+
+                

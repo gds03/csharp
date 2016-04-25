@@ -1,0 +1,181 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{3B7EC317-E221-4DD8-BB50-3A3687E895B5}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>VirtualNote.Kernel</RootNamespace>
+    <AssemblyName>VirtualNote.Kernel</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="StructureMap, Version=2.6.1.0, Culture=neutral, PublicKeyToken=e60ad81abae3c223, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Configurations\StructureMap\StructureMap.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.XML" />
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Configurations\StructureMap\ObjectsManager.cs" />
+    <Compile Include="Configurations\VnDatabaseConfiguration.cs" />
+    <Compile Include="Contracts\Exceptions\ProjectDisabledException.cs" />
+    <Compile Include="Managers\TransactionManager.cs" />
+    <Compile Include="Contracts\Comments\ICommentsClientService.cs" />
+    <Compile Include="Contracts\Comments\ICommentsMemberService.cs" />
+    <Compile Include="Contracts\Emails\IEmailAdminService.cs" />
+    <Compile Include="Contracts\Emails\IEmailClientService.cs" />
+    <Compile Include="Contracts\Emails\IEmailMemberService.cs" />
+    <Compile Include="Contracts\IRepositoryService.cs" />
+    <Compile Include="Contracts\Issues\IIssueAdminService.cs" />
+    <Compile Include="Contracts\Issues\IIssueMemberService.cs" />
+    <Compile Include="Contracts\Notificator\INotificatorClientService.cs" />
+    <Compile Include="Contracts\Notificator\INotificatorMemberService.cs" />
+    <Compile Include="DTO\Extensions\IssuesExt\IssueClientExtensions.cs" />
+    <Compile Include="DTO\Extensions\IssuesExt\IssueMemberExtensions.cs" />
+    <Compile Include="DTO\Query\Clients\ClientQueryDetails.cs" />
+    <Compile Include="DTO\Query\Clients\ClientQueryList.cs" />
+    <Compile Include="DTO\Query\Comments\CommentQueryDetails.cs" />
+    <Compile Include="DTO\Query\Comments\CommentQueryList.cs" />
+    <Compile Include="DTO\Query\Home\HomeAdminQueryDetails.cs" />
+    <Compile Include="DTO\Query\Home\HomeClientQueryDetails.cs" />
+    <Compile Include="DTO\Query\Home\HomeMemberQueryDetails.cs" />
+    <Compile Include="DTO\Query\IQueryDTO.cs" />
+    <Compile Include="DTO\Query\Issues\Details\InitialData\IssueQueryInitialData.cs" />
+    <Compile Include="DTO\Query\Issues\Details\IssuesClientQueryDetails.cs" />
+    <Compile Include="DTO\Query\Issues\Details\IssuesMemberQueryDetails.cs" />
+    <Compile Include="DTO\Query\Issues\Index\IssueClientQueryList.cs" />
+    <Compile Include="DTO\Query\Issues\Index\IssueMemberQueryList.cs" />
+    <Compile Include="DTO\Query\Issues\Index\Common\IssueProjectsData.cs" />
+    <Compile Include="DTO\Query\Issues\Index\Common\IssueRequestsData.cs" />
+    <Compile Include="DTO\Query\Issues\Index\Common\IssueRequestsInfo.cs" />
+    <Compile Include="DTO\Query\Issues\Index\Tuple\IIssueQueryTyple.cs" />
+    <Compile Include="DTO\Query\Issues\Index\Tuple\IssueClientQueryTuple.cs" />
+    <Compile Include="DTO\Query\Issues\Index\Tuple\IssueMemberQueryTuple.cs" />
+    <Compile Include="DTO\Query\KeyIdValueString.cs" />
+    <Compile Include="DTO\Query\Members\MemberQueryDetails.cs" />
+    <Compile Include="DTO\Query\Members\MemberQueryList.cs" />
+    <Compile Include="DTO\Query\Projects\ProjectQueryAssign.cs" />
+    <Compile Include="DTO\Query\Projects\ProjectQueryCreateUpdate.cs" />
+    <Compile Include="DTO\Query\Projects\ProjectQueryDetails.cs" />
+    <Compile Include="DTO\Query\Projects\ProjectQueryList.cs" />
+    <Compile Include="DTO\Query\User\UserQueryInfo.cs" />
+    <Compile Include="DTO\Services\ClientServiceDTO.cs" />
+    <Compile Include="DTO\Services\CommentServiceDTO.cs" />
+    <Compile Include="DTO\EnumClass.cs" />
+    <Compile Include="DTO\Extensions\ClientExtensions.cs" />
+    <Compile Include="DTO\Extensions\CommentExtensions.cs" />
+    <Compile Include="DTO\Extensions\MemberExtensions.cs" />
+    <Compile Include="DTO\Extensions\ProjectsExtensions.cs" />
+    <Compile Include="DTO\Services\IServiceDTO.cs" />
+    <Compile Include="DTO\Services\IssueServiceDTO.cs" />
+    <Compile Include="DTO\Services\MemberServiceDTO.cs" />
+    <Compile Include="DTO\Services\Notificator\NotificatorClientDTO.cs" />
+    <Compile Include="DTO\Services\Notificator\NotificatorMemberDTO.cs" />
+    <Compile Include="DTO\Services\ProjectServiceDTO.cs" />
+    <Compile Include="Services\Comments\CommentAdminService.cs" />
+    <Compile Include="Services\Comments\CommentMemberService.cs" />
+    <Compile Include="Contracts\Exceptions\IssueWasAlreadyTakedByAnotherMember.cs" />
+    <Compile Include="Contracts\Exceptions\HijackedException.cs" />
+    <Compile Include="Contracts\Exceptions\MemberLastAdminException.cs" />
+    <Compile Include="Contracts\Exceptions\ServiceAccessDeniedException.cs" />
+    <Compile Include="Services\Emails\EmailAdminService.cs" />
+    <Compile Include="Services\Emails\EmailClientService.cs" />
+    <Compile Include="Services\Emails\EmailCommonService.cs" />
+    <Compile Include="Services\Emails\EmailMemberService.cs" />
+    <Compile Include="Services\Issues\IssueAdminService.cs" />
+    <Compile Include="Services\Issues\IssueMembersCommon.cs" />
+    <Compile Include="Services\Issues\IssueMemberService.cs" />
+    <Compile Include="Services\Notificator\NotificatorBase.cs" />
+    <Compile Include="Services\Notificator\NotificatorClientService.cs" />
+    <Compile Include="Services\Notificator\NotificatorMemberService.cs" />
+    <Compile Include="Services\ServiceBase.cs" />
+    <Compile Include="DTO\Services\UserServiceDTO.cs" />
+    <Compile Include="Enumerations.cs" />
+    <Compile Include="Query\ConversionsDTO\IssuesConversionsQueryExtensions.cs" />
+    <Compile Include="Query\ConversionsDTO\MembersConversionsQueryExtensions.cs" />
+    <Compile Include="Query\ConversionsDTO\ProjectsConversionsQueryExtensions.cs" />
+    <Compile Include="Services\Comments\CommentClientService.cs" />
+    <Compile Include="Services\Issues\IssueClientService.cs" />
+    <Compile Include="Services\LoginService.cs" />
+    <Compile Include="Services\MembersService.cs" />
+    <Compile Include="Services\ClientsService.cs" />
+    <Compile Include="Services\ProjectsService.cs" />
+    <Compile Include="Services\QueryService.cs" />
+    <Compile Include="Contracts\Comments\ICommentsAdminService.cs" />
+    <Compile Include="Contracts\Issues\IIssueClientService.cs" />
+    <Compile Include="Contracts\IMembersService.cs" />
+    <Compile Include="Contracts\IClientsService.cs" />
+    <Compile Include="Contracts\IProjectsService.cs" />
+    <Compile Include="Contracts\IQueryService.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Query\ConversionsDTO\ClientsConversionsQueryExtensions.cs" />
+    <Compile Include="Query\Include\IQueryableExtensions.cs" />
+    <Compile Include="Query\Repository\ClientsRepositoryQueryExtensions.cs" />
+    <Compile Include="Query\Repository\CommentsRepositoryQueryExtensions.cs" />
+    <Compile Include="Query\Repository\IssuesRepositoryQueryExtensions.cs" />
+    <Compile Include="Query\Repository\MembersRepositoryQueryExtensions.cs" />
+    <Compile Include="Query\Repository\ProjectsRepositoryQueryExtensions.cs" />
+    <Compile Include="Query\Repository\UsersRepositoryQueryExtensions.cs" />
+    <Compile Include="Managers\EmailConfigMngr.cs" />
+    <Compile Include="Contracts\IEmailConfigMngr.cs" />
+    <Compile Include="Types\LambdaComparer.cs" />
+    <Compile Include="Types\PaginatedList.cs" />
+    <Compile Include="Validation\DataAnnotations\EmailValidationAttribute.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VirtualNote.Common\VirtualNote.Common.csproj">
+      <Project>{FF424E86-5E63-438C-845B-45289E187375}</Project>
+      <Name>VirtualNote.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\VirtualNote.Database\VirtualNote.Database.csproj">
+      <Project>{83DE5625-CF88-4868-BDD1-24F06F459131}</Project>
+      <Name>VirtualNote.Database</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Configurations\StructureMap\StructureMap.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\packages\OctoPack.3.0.60\tools\OctoPack.targets" Condition="Exists('..\packages\OctoPack.3.0.60\tools\OctoPack.targets')" />
+  <Target Name="EnsureOctoPackImported" BeforeTargets="BeforeBuild" Condition="'$(OctoPackImported)' == ''">
+    <Error Condition="!Exists('..\packages\OctoPack.3.0.60\tools\OctoPack.targets') And ('$(RunOctoPack)' != '' And $(RunOctoPack))" Text="You are trying to build with OctoPack, but the NuGet targets file that OctoPack depends on is not available on this computer. This is probably because the OctoPack package has not been committed to source control, or NuGet Package Restore is not enabled. Please enable NuGet Package Restore to download them. For more information, see http://go.microsoft.com/fwlink/?LinkID=317567." HelpKeyword="BCLBUILD2001" />
+    <Error Condition="Exists('..\packages\OctoPack.3.0.60\tools\OctoPack.targets') And ('$(RunOctoPack)' != '' And $(RunOctoPack))" Text="OctoPack cannot be run because NuGet packages were restored prior to the build running, and the targets file was unavailable when the build started. Please build the project again to include these packages in the build. You may also need to make sure that your build server does not delete packages prior to each build. For more information, see http://go.microsoft.com/fwlink/?LinkID=317568." HelpKeyword="BCLBUILD2002" />
+  </Target>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

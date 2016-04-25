@@ -1,0 +1,77 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Issues.Index.Common.IssueRequestsData<VirtualNote.Kernel.DTO.Query.Issues.Index.Tuple.IssueClientQueryTuple>
+@using VirtualNote.MVC.Enums
+@using VirtualNote.Kernel
+
+
+@if (Model.Requests.Count() == 0)
+{
+    <p> For this project you got no issues reported </p>
+}
+else
+{     
+    <div id="pager" class="marginButton_10px floatedRight">
+        @Html.Pager(Model.RequestsInfo.CurrentPage,     // Current Page
+                    Model.RequestsInfo.Take,            // Page Size
+                    Model.RequestsInfo.Total,           // Total
+                    10,                                 // Anchors
+                    "pager_anchor_selected"             // Selected Class
+        )
+    </div>
+       
+    <table class="data display">
+        <thead>
+            <tr>
+                <th> Project </th>
+                <th> Member Fixing </th>
+                <th> Created@@ </th>
+                <th> Description </th>                
+                <th class="spacing_10"> Priority </th>
+                <th class="spacing_10"> Type </th>
+                <th class="spacing_10"> State </th>
+                <th> Comments </th>
+                <th class="spacing_10"> </th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var item in Model.Requests) {
+                <tr>
+
+                    <td> @Html.DisplayFor(x => item.ProjectName) </td>
+                    <td> @Html.DisplayFor(x => item.MemberSolvingName).CheckForEmpty() </td>
+                    <td> @Html.DisplayFor(x => item.CreatedAt) </td>
+                    <td> @Html.DisplayFor(x => item.ShortDescription) </td>
+
+                    <td class="spacing_50"> @(PriorityEnumResolver.GetByKey(item.Priority)) </td>
+                    <td class="spacing_50"> @(TypeEnumResolver.GetByKey(item.Type)) </td>
+                    <td class="spacing_50 center">
+                        @Html.ImageFromImagesDirectory(
+                            StateEnumResolver.GetByKey(item.State) + ".png",
+                            StateEnumResolver.GetByKey(item.State)
+                        )                            
+                    </td>
+
+                    <td class="center">
+                        @if (item.NumComments == 0) {
+                            @Html.RouteLink("Add",
+                                        new { controller = "Comments", action = "Index", issueId = item.IssueId })
+                        }
+                        else {
+                           
+                            @Html.ImageLinkFromImagesDirectory("comment.png", "View Comments", "Index", "Comments", new { issueId = item.IssueId })
+                             @:(@item.NumComments.ToString())
+                        }
+                    </td>
+
+                    <td class="spacing_10">
+                       @Html.ImageLinkFromImagesDirectory("edit.png", "Details", "Edit",
+                                        new { id = item.IssueId })
+                    </td>
+                </tr>
+            }        
+        </tbody>
+
+    </table>
+    
+    
+}

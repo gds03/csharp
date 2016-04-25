@@ -1,0 +1,52 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Projects.ProjectQueryAssign
+
+
+         
+@section Header
+{
+    <h1 class="">Projects</h1>
+
+     <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="/Configurations/Projects">Projects</a> / 	
+        <a href="" class="current_page">Assign</a>
+	</div> <!-- #bread_crumbs -->
+}
+
+
+@if (Model.AvailableWorkers.Count() == 0)
+{
+    @: <h3>Please add some members to the application first.</h3>
+}
+else
+{
+    <h2>Assigning Workers to @Model.ProjectName </h2>
+
+    <div>
+    @using (Html.BeginForm(null, null, FormMethod.Post, new { @class = "form label-inline uniform" }))
+    {
+        <div class="field">
+            @Html.LabelFor(model => model.ResponsableName, "Project Responsable")
+            @Html.DisplayFor(model => model.ResponsableName, new { size = "50", @class = "medium" })
+        </div>
+    
+        <div class="controlset field">
+            <span class="label">Assigned Workers</span>
+            <div class="controlset-pad">
+                @(Html.CheckboxList("workers", 
+                                    Model.AvailableWorkers
+                                         .ToCheckboxListItem(x => x.Id,
+                                                             x => x.Value,
+                                                             x => Model.WorkersIdsWorking.Any(y => y == x.Id))))
+                                                                            
+                
+            </div>
+        </div>
+        <br />
+    
+        <input type="submit" value="Save Changes" class="btn btn-black" />
+    }
+
+    </div>
+}
+

@@ -1,0 +1,81 @@
+﻿@model VirtualNote.Kernel.DTO.ProjectServiceDTO
+
+
+@section Header
+{
+    <h1 class="">Projects</h1>
+
+     <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="/Configurations/Projects">Projects</a> / 	
+        <a href="" class="current_page">Edit</a>
+	</div> <!-- #bread_crumbs -->
+}
+
+
+@section PageScripts {
+    @Content.Script("jquery/jquery.validate.min.js", Url)
+    @Content.Script("jquery/jquery.validate.unobtrusive.min.js", Url)
+}
+
+@{
+    if(Model.InitialData.Members.Count() == 0){
+        <h3>To create a Project you must first define Members. Use the following @Html.ActionLink("Link", "Create", "Members") to create a member </h3>        
+    }
+
+    else if (Model.InitialData.Clients.Count() == 0)
+    {
+        <h3>To create a Project you must first define Clients. Use the following @Html.ActionLink("Link", "Create", "Clients") to create a client </h3>        
+    }else{
+
+        <h2> 
+            Editing project data
+        </h2>
+    
+        <div>
+            @using (Html.BeginForm(null, null, FormMethod.Post, new { @class = "form label-inline uniform" }))
+            {
+                @Html.ValidationSummary(true)
+
+                <div class="controlset field">
+	                <span class="label">Client</span>
+                     @(Html.MyDropDown("ClientId",
+                                            Model.InitialData.Clients.ToSelectListItem(c => c.Id.ToString(),
+                                                                                       c => c.Value,
+                                                                                       c => c.Id == Model.ClientId)
+                                            , new { @class = "spacing_200" }))  
+                </div>
+            
+                <div class="controlset field">
+	                <span class="label">Responsable</span>
+                     @(Html.MyDropDown("ResponsableId",
+                                            Model.InitialData.Members.ToSelectListItem(m => m.Id.ToString(),
+                                                                                       m => m.Value,
+                                                                                       m => m.Id == Model.ResponsableId)
+                                            , new { @class = "spacing_200" }))
+                </div>
+            
+                
+                <div class="field">
+                    @Html.Label("Name", "Name(*)")
+                    @Html.TextBox("Name", Model.Name, new { size = "30", @class = "medium" })
+                    @Html.ValidationMessage("Name")
+                </div>
+            
+                <div class="field">
+	                @Html.Label("Description", "Description(*)")
+                    @Html.TextBox("Description", Model.Description, new { size = "50", @class = "medium" })
+                    @Html.ValidationMessage("Description")
+                </div>
+            
+                <div class="controlset field">
+	                <span class="label">Enabled</span>
+                    @Html.RadioButtonTwoOptionsFor(u => u.Enabled, "Yes", "No", true)
+                </div>
+                
+                 <br />
+                 <input type="submit" value="Save Changes" class="btn btn-black" />
+            }
+        </div>
+    }
+}

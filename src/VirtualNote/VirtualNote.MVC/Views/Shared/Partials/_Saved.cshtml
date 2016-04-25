@@ -1,0 +1,18 @@
+﻿@model VirtualNote.MVC.Enums.ActionEnum
+
+<meta http-equiv="refresh" content="1;url=@ViewBag.Url"  />
+
+<h2> 
+
+    @(String.Format("{0} was sucessfully {1}", ViewBag.Who, Model.ToLowerString()))
+
+</h2>
+
+<br />
+
+<p>
+    <h3> Processing.. </h3> 
+    <br />
+    
+    @Html.ImageFromImagesDirectory("ajax-loader1.gif", "Processing")
+</p>

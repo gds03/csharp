@@ -1,0 +1,124 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Home.HomeClientQueryDetails
+@using VirtualNote.Kernel
+@using VirtualNote.MVC.Enums
+
+@section Header
+{
+    <h1 class="no_breadcrumbs">Home</h1>
+}
+
+<div id="welcome" class="x12">
+    <p>
+	    <strong>Welcome back, @Html.GetUsername()</strong>        
+        <br />
+        See your information below and consult your requested issues
+    </p>						
+			
+	<table class="data info_table">
+		<tbody>
+			<tr>
+				<td class="value">@Model.WelcomeData.Projects</td>
+				<td class="full">Projects</td>
+
+                <td class="value">@Model.WelcomeData.PendingRequests</td>
+				<td class="full">Pending Requests</td>
+
+                <td class="value">@Model.WelcomeData.SupportedRequests</td>
+				<td class="full">Supported Requests</td>
+
+                <td class="value">@(Model.WelcomeData.PendingRequests + Model.WelcomeData.SupportedRequests)</td>
+				<td class="full">Total Requests</td>
+            </tr>
+		</tbody>
+	</table>
+			
+</div> <!-- .x12 -->
+
+<div id="progress" class="x6">
+    <h2> Issues Statistics </h2>
+
+     <div id="progressbars">
+        @{
+            int idx = 0;
+            foreach (var item in Model.IssuesStatistics) {
+                <h4> @item.ProjectName </h4>
+                
+                @: 0
+                <span class="floatedRight"> <b>@item.SupportedRequests</b>/@item.TotalRequests </span>
+                <div id="progressbar_@(idx)" 
+                     data-projectName="@item.ProjectName" 
+                     data-supportedRequests="@item.SupportedRequests"
+                     data-totalRequests="@item.TotalRequests">
+                </div>
+                <br />
+                idx++;
+            }
+        }
+        
+    </div>
+
+   
+</div>
+
+<div id="requests" class="x6">
+    <h2>Support Requests</h2>
+			
+	<table class="data support_table">
+		<tbody>
+
+        @foreach (var item in Model.Requests) {
+            <tr>
+                <td>
+                    <span class="@this.GetClassForStateValue(item.State)">@StateEnumResolver.GetByKey(item.State)</span>
+                </td>
+                
+                <td class="full">@Html.ActionLink(item.ShortDescription.Truncate(40), // text
+                                                  "Edit", 
+                                                  "Issues",
+                                                  new { id = item.IssueId },
+                                                  null)
+                                                                                                  
+                </td>
+                
+                <td class="who">
+                    @if (item.UpdatedAt != null) {
+                       @Html.DisplayFor(x => item.UpdatedAt.Value)
+                    }
+                </td>		                
+			    <td class="who">Responsable @Html.DisplayFor(x => item.MemberSolving).CheckForEmpty()</td>
+            </tr>
+        }
+		
+		</tbody>
+	</table>
+
+
+</div>
+
+@section PageScripts
+{
+    <script>
+        $(function () {
+            // Carregar os atributos de todos os divs dentro de progressbars DIV
+            $('#progressbars div').each(function (idx, elem) {
+                var jQelem = $(elem);
+
+                var supportedRequests = jQelem.attr('data-supportedRequests');
+                var totalRequests = jQelem.attr('data-totalrequests');
+
+                // 
+                // Colocar o valor no dominio de 0 a 100
+                var xValue = (supportedRequests * 100) / totalRequests;
+
+                jQelem.progressbar(
+                {
+                    value: xValue,
+                });
+            });
+
+
+        });
+    
+    </script>
+
+}

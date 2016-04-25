@@ -1,0 +1,32 @@
+﻿@model VirtualNote.Business.IssueListData
+
+<h2>Create</h2>
+
+@{
+    bool isEdit = Html.IsEdit();
+}
+
+ @using (Html.BeginForm()) {
+    @Html.ValidationSummary(true)
+    <fieldset>
+        <legend> Comment </legend>
+
+        <table class="tableDetails">
+            @Html.Partial("_IssueDetails", Model)
+        </table>
+        <br />
+
+        <table>
+            <tr>
+                <td> Comment </td>
+                <td> 
+                    <textarea name="Description" rows="10" cols="50"></textarea>
+                </td>
+            </tr>           
+        </table>
+    </fieldset>
+
+    <input type="submit" value="@(!isEdit ? "Create" : "Save Changes")" />
+ }
+
+

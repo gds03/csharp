@@ -1,0 +1,138 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Issues.Details.IssuesMemberQueryDetails
+@using VirtualNote.MVC.Enums
+@using VirtualNote.Kernel
+
+@section Header
+{
+    <h1 class="">Issues</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="/Issues">Issues</a> / 	
+        <a href="" class="current_page">Edit</a>
+	</div> <!-- #bread_crumbs -->
+}  
+
+
+
+@section PageScripts
+{
+    @Content.Script("jquery/jquery.validate.min.js", Url)
+    @Content.Script("jquery/jquery.validate.unobtrusive.min.js", Url)
+}
+
+@if(Model.ShowDeleteButton)
+{
+    <fieldset class="isFieldSet floatedRight" class="width_auto">
+
+        <legend> Actions </legend>
+
+        @Html.ButtonIconized("Delete", "Delete", null,
+                            new { id = Model.IssueId },
+                            new {
+                                @class = "btn-icon btn-maroon btn-minus marginLeft_10px",
+                                onclick = "javascript:return confirm('You are sure that you want to remove this Issue?');"
+                            })
+    </fieldset> 
+}
+
+<h2 class="width_500px"> 
+    Details of this issue
+</h2>
+
+@using (Html.BeginForm())
+{    
+    @Html.ValidationSummary(true)
+    <div class="form label-inline uniform">
+
+        <div class="controlset field">
+	        <span class="label">Client</span>
+                @Html.DisplayFor(model => model.ClientName)
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Member solving</span>
+                @Html.DisplayFor(model => model.MemberSolving).CheckForEmpty()
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Created@@</span>
+             @Html.DisplayFor(model => model.CreatedAt)
+        </div>
+    
+        @if (Model.LastUpdateAt != null) {
+            <div class="controlset field">
+	            <span class="label">Last Update@@</span>
+                 @Html.DisplayFor(model => model.LastUpdateAt)
+            </div>
+        }
+        
+
+         <div class="controlset field">
+	        <span class="label">Project</span>
+             @Html.Label("Project", Model.InitialData.ClientProjects
+                                                        .Single(kivs => kivs.Id == Model.ProjectId).Value)
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Type</span>
+             @Html.Label("Type", TypeEnumResolver.GetByKey(Model.InitialData.Types
+                                                        .Single(kivs => kivs == Model.Type)))
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Priority</span>
+             @Html.Label("Priority", PriorityEnumResolver.GetByKey(Model.InitialData.Priorities
+                                                         .Single(kivs => kivs == Model.Priority)))
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Subject</span>
+             @Html.LabelFor(x => x.ShortDescription, Model.ShortDescription)
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Description</span>
+             @Html.LabelFor(x => x.LongDescription, Model.LongDescription)
+        </div>
+
+        <div class="controlset field" id="StateDIV">
+	        <span class="label">State</span>
+
+            <input type="button" class="btn pointer @(Model.State == StateEnum.Waiting ? "selectedState" : "")" 
+                    onclick="javascript:Submit(this);" data-value="0" value="Waiting" />
+            
+            &nbsp;  &nbsp;
+
+            <input type="button" class="btn pointer @(Model.State == StateEnum.InResolution ? "selectedState" : "")" 
+                    onclick="javascript:Submit(this);" data-value="1" value="Resolve" />
+                    
+            &nbsp;  &nbsp;
+
+            <input type="button" class="btn pointer @(Model.State == StateEnum.Terminated ? "selectedState" : "")" 
+                    onclick="javascript:Submit(this);" data-value="2" value="Termine">
+                    
+            &nbsp;  &nbsp;
+
+            @Html.HiddenFor(x => x.State)
+        </div>
+    </div>
+    
+    
+    <script>
+        function Submit(button) 
+        {
+            // Obter o id que tinha a class selected
+            // Para se for o id = 0, indicar ao membro que ele vai ficar repsonsavel pelo issue
+            var olderOneId = $('#StateDIV').children('input[type=button][class*=selectedState]').attr('data-value');
+
+            if (olderOneId == 0 && !confirm('By proceeding you will be responsable by this issue. Are you sure?'))
+                return;
+
+            var pressedId = $(button).attr('data-value');
+
+            $('#State').val(pressedId);
+            $('form').submit();
+        }
+    </script>
+}

@@ -1,0 +1,76 @@
+﻿@model IEnumerable<VirtualNote.Kernel.DTO.Query.Members.MemberQueryList>
+
+@section Header
+{
+    <h1 class="">Members</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="" class="current_page">Members</a>				
+	</div> <!-- #bread_crumbs -->
+}
+
+<p>
+    @Html.ButtonIconized("Add Member", "Create", null, null, new { @class = "btn-icon btn-orange btn-person" })
+</p>
+
+@if (Model.Count() == 0)
+{
+    <p> You got actually no Members. To add a member, please click Add Member </p>
+}
+else
+{
+    <table class="data display datatable">
+        <thead>
+            <tr>
+                <th> Name </th>
+                <th> Created@@ </th>
+                <th> Phone </th>
+                <th> Email </th>
+                <th class="spacing_50"> Number of projects responsable </th>
+                <th class="spacing_50"> Enabled Projects Working </th>
+                <th class="spacing_50"> Disabled Projects Registered </th>
+                <th class="spacing_50"> Issues Solved </th>
+                <th class="center spacing_10"> Admin </th>
+                <th class="center spacing_10"> Active </th>
+                <th class="center spacing_10"> </th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @{
+                int idx = 0;
+                foreach (var item in Model)
+                {
+                    string className = idx % 2 == 0 ? "odd gradeX" : "even gradeC";
+                    
+                     <tr class="@className">
+
+                        <td> @Html.DisplayFor(d => item.UserInfo.Name) </td>
+                        <td> @Html.DisplayFor(d => item.UserInfo.CreatedDate) </td>
+                        <td> @Html.DisplayFor(modelModel => item.UserInfo.Phone).CheckForEmpty() </td>
+                        <td> @Html.DisplayFor(modelModel => item.UserInfo.Email).CheckForEmpty() </td>
+                        <td> @item.ResponsableInProjects </td>
+                        <td> @item.EnabledProjects </td>
+                        <td> @item.DisabledProjects </td>
+                        <td> @item.IssuesSolved </td>
+                        <td class="center"> 
+                            @Html.SetImageIfEnabled(item.IsAdmin)                   
+                        </td>
+                        <td class="center"> 
+                            @Html.SetImageIfEnabled(item.UserInfo.Enabled)                     
+                        </td>
+                        <td class="center">
+                            @Html.ImageLinkFromImagesDirectory("edit.png", "Edit", "Details", 
+                                null, 
+                                new { id = item.MemberId }
+                            ) 
+                        </td>
+                    </tr>
+                    idx++;
+                }
+            }
+        </tbody>
+    </table>
+    
+}

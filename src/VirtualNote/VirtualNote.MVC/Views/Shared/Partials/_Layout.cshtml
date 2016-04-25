@@ -1,0 +1,106 @@
+﻿@using VirtualNote.MVC.Helpers
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>VirtualNote | Dashboard </title> 
+
+    @Content.CssName("css/master-min.css", Url)
+    @Content.CssName("css/ui-darkness/jquery-ui-1.8.12.custom-min.css", Url)
+	@Content.CssName("css/plugin/plugins-min.css", Url)
+   
+    @*@Content.CssName("css/reset.css", Url)
+    @Content.CssName("css/text.css", Url)
+    @Content.CssName("css/form.css", Url)
+    @Content.CssName("css/buttons.css", Url)
+    @Content.CssName("css/grid.css", Url)
+    @Content.CssName("css/layout.css", Url)
+    @Content.CssName("css/mvc-css.css", Url)
+    @Content.CssName("css/ui-darkness/jquery-ui-1.8.12.custom.css", Url)
+    @Content.CssName("css/custom.css", Url)
+
+    @Content.CssName("css/plugin/jquery.visualize.css", Url)
+    @Content.CssName("css/plugin/dataTables.css", Url)*@
+    
+
+    <link rel="Shortcut Icon" href="@Url.Content("~/Content/Images/favicon.ico")" />
+</head> 
+
+<body>
+    <div id="wrapper">
+	
+	    <div id="top">		
+		    <div class="content_pad">			
+			    <ul class="right">
+				    <li><a style="cursor:default; text-decoration:none"; class="top_icon"><span class="ui-icon ui-icon-person"></span>Logged in as @Html.GetUsername() </a></li>
+				    <li><a href="/Account/LogOff">Logout</a></li>
+			    </ul>
+		    </div> <!-- .content_pad -->
+		
+	    </div> <!-- #top -->	
+	
+	    <div id="header">
+		
+		    <div class="content_pad">
+			    <h1><a href="/"> VirtualNote </a></h1>
+			
+			    @Html.CreateTopbar("nav", "nav_current")
+		    </div> <!-- .content_pad -->
+		
+	    </div> <!-- #header -->
+
+        <div id="masthead">
+		
+		    <div class="content_pad">
+
+                @RenderSection("Header", false)
+
+			    <div id="search">
+				    <form action="#" method="get" />
+					    <input type="text" value="" placeholder="Search" name="search" id="search_input" title="Search" />					
+					    <input type="submit" value="" name="submit" class="submit" />					
+				    </form>
+			    </div> <!-- #search -->
+			
+		    </div> <!-- .content_pad -->
+		
+	    </div> <!-- #masthead -->	
+
+        <div id="content" class="xgrid">
+            @RenderBody()
+	    </div> <!-- #content -->
+        
+         <div id="footer">		
+		    <div class="content_pad">			
+			    <p>&copy; All copyrights reserved</p>
+		    </div> <!-- .content_pad -->
+	    </div> <!-- #footer -->			
+    </div> <!-- #wrapper -->
+
+    @Content.Script("jquery/master-min.js", Url)
+
+    @*@Content.Script("jquery/jquery-1.5.2.min.js", Url)
+    @Content.Script("jquery/jquery.extensions.js", Url)
+    @Content.Script("jquery/jquery-ui-1.8.12.custom.min.js", Url)
+    @Content.Script("jquery/jquery.visualize.js", Url)
+    @Content.Script("jquery/jquery.dataTables.min.js", Url)
+    
+    @Content.Script("jquery/jquery.uniform.min.js", Url)
+    @Content.Script("jquery/jquery.placeholder.min.js", Url)*@
+
+    @Content.Script("dev/JavaScriptExtensions.js", Url)
+    @Content.Script("dashboard.js", Url)
+
+     <script>
+
+         $(document).ready(function () {
+             Dashboard.init();
+         });
+
+    </script>
+
+    @RenderSection("PageScripts", false)
+
+
+</body>
+</html>

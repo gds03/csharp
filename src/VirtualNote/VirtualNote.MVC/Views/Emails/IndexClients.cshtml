@@ -1,0 +1,58 @@
+﻿@using VirtualNote.Kernel.Contracts
+
+@model IEnumerable<EmailConfig>
+
+@section Header
+{
+    <h1 class="">Emails</h1>
+
+     <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+        <a href="" class="current_page">Emails</a>
+	</div> <!-- #bread_crumbs -->
+}
+
+<h2>
+    Please select your notifications
+</h2>
+
+@using (Html.BeginForm(null, null, FormMethod.Post, new { @class = "form label-inline uniform" })){
+    
+    <div class="controlset field">
+        <span class="label spacing_700">Notify me when request is accepted</span>
+        <div class="controlset-pad">
+            <input type="checkbox" 
+                   name="@EmailConfig.Client_RequestAccepted.ToString()"
+                   @if (Model.Any(c => c == EmailConfig.Client_RequestAccepted)) {
+                       @: checked="checked" 
+                    } 
+                    />
+        </div>
+    </div>
+    
+    <div class="controlset field">
+        <span class="label spacing_700">Notify me when request back to wait state again</span>
+        <div class="controlset-pad">
+            <input type="checkbox" 
+                   name="@EmailConfig.Client_RequestWaitingStateAgain.ToString()"
+                   @if (Model.Any(c => c == EmailConfig.Client_RequestWaitingStateAgain)) {
+                       @: checked="checked" 
+                    } 
+                    />
+        </div>
+    </div>
+    
+    <div class="controlset field">
+        <span class="label spacing_700">Notify me when request is terminated</span>
+        <div class="controlset-pad">
+            <input type="checkbox" 
+                   name="@EmailConfig.Client_RequestTerminated.ToString()"
+                   @if (Model.Any(c => c == EmailConfig.Client_RequestTerminated)) {
+                       @: checked="checked" 
+                    } 
+                    />
+        </div>
+    </div>    
+    <br />
+    <input type="submit" value="Save Changes" class="btn btn-black" />
+}

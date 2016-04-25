@@ -1,0 +1,71 @@
+﻿@model IEnumerable<VirtualNote.Kernel.DTO.Query.Clients.ClientQueryList>
+           
+@section Header
+{
+    <h1 class="">Clients</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="" class="current_page">Clients</a>				
+	</div> <!-- #bread_crumbs -->
+}
+
+
+<p>
+    @Html.ButtonIconized("Add Client", "Create", null, null, new { @class = "btn-icon btn-orange btn-person" })
+</p>
+
+
+@if (Model.Count() == 0)
+{
+    <p> You got actually no Clients. To add Clients please click Add client </p>
+}
+else
+{
+    <table class="data display datatable">
+        <thead>
+            <tr>
+                <th> Name </th>
+                <th> Created@@ </th>
+                <th> Phone </th>
+                <th> Email </th>
+                <th class="spacing_50"> Enabled Projects </th>
+                <th class="spacing_50"> Disabled Projects </th>
+                <th class="spacing_50"> Reported Issues </th>
+                <th class="spacing_50"> Active </th>
+                <th class="spacing_10"> </th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @{
+                int idx = 0;
+                foreach (var item in Model)
+                {
+                    string className = idx % 2 == 0 ? "odd gradeX" : "even gradeC";
+                    
+                     <tr class="@className">
+                        <td> @Html.DisplayFor(d => item.UserInfo.Name) </td>
+                        <td> @Html.DisplayFor(d => item.UserInfo.CreatedDate) </td>
+                        <td> @Html.DisplayFor(x => item.UserInfo.Phone).CheckForEmpty()</td>
+                        <td> @Html.DisplayFor(x => item.UserInfo.Email).CheckForEmpty()</td>
+                        <td> @item.EnabledProjects </td>
+                        <td> @item.DisabledProjects </td>
+                        <td> @item.Issues </td>
+                        <td class="center"> 
+                            @Html.SetImageIfEnabled(item.UserInfo.Enabled)           
+                        </td>
+                        <td class="center">
+                            @Html.ImageLinkFromImagesDirectory( "edit.png", "Edit", "Details", 
+                                null, 
+                                new { id = item.ClientId }
+                            )
+                        </td>
+                    </tr>
+                    idx++;
+                }
+            }
+        </tbody>
+    </table>
+    
+}

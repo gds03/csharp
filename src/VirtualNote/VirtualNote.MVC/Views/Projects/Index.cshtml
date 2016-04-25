@@ -1,0 +1,71 @@
+﻿@model IEnumerable<VirtualNote.Kernel.DTO.Query.Projects.ProjectQueryList>
+
+@section Header
+{
+    <h1 class="">Projects</h1>
+
+     <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="" class="current_page">Projects</a>				
+	</div> <!-- #bread_crumbs -->
+}
+
+<p>
+    @Html.ButtonIconized("Add Project", "Create", null, null, new { @class = "btn-icon btn-orange btn-plus" })
+</p>
+
+
+@if (Model.Count() == 0)
+{
+    <p> You got actually no Projects. To add Projects please click Add Project</p>
+}
+else
+{    
+    <table class="data display datatable">
+        <thead>
+            <tr>
+                <th> Name </th>
+                <th> Created@@ </th>
+                <th> Client </th>
+                <th> Member Responsable </th>
+                <th class="spacing_100"> Description </th>
+                <th class="spacing_50"> Assigned Workers </th>
+                <th class="spacing_10"> Issues </th>
+                <th class="spacing_10"> Active </th>
+                <th class="spacing_10"> </th>
+            </tr>
+        </thead>
+    @{
+        int idx = 0;
+        foreach (var item in Model)
+        {
+            string className = idx % 2 == 0 ? "odd gradeX" : "even gradeC";
+                    
+            <tr class="@className">
+                <td> @Html.DisplayFor(modelItem => item.ProjectName) </td>
+                <td> @Html.DisplayFor(modelItem => item.CreatedAt) </td>
+                <td> @Html.DisplayFor(modelItem => item.ClientName) </td>
+                <td> @Html.DisplayFor(modelItem => item.ResponsableName) </td>
+                <td> @Html.DisplayFor(modelItem => item.Description) </td>
+                <td>  
+                    @{ var text = item.AssignedWorkers == 0 ? "Assign" : item.AssignedWorkers.ToString(); }
+                    @Html.RouteLink(text, new { controller = "Projects", action = "Assign", id = item.ProjectId })
+                </td>
+                <td> @item.Issues </td>
+                <td class="center"> 
+                    @Html.SetImageIfEnabled(item.Enabled)                    
+                </td>
+                <td class="center">
+                    @Html.ImageLinkFromImagesDirectory("edit.png", "Edit", "Details",
+                                    null,
+                                    new { id = item.ProjectId }
+                    ) 
+                </td>
+            </tr>
+            idx++;
+        }
+    }
+
+    </table>
+
+}

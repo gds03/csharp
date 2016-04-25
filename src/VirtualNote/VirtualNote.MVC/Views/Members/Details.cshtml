@@ -1,0 +1,85 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Members.MemberQueryDetails
+
+@section Header
+{
+    <h1 class="">Members</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="/Configurations/Members">Members</a> / 	
+        <a href="" class="current_page">@Html.GetActionName()</a>
+	</div> <!-- #bread_crumbs -->
+}
+
+<fieldset class="isFieldSet floatedRight" class="width_auto">
+
+    <legend> Actions </legend>
+
+    @Html.ButtonIconized("Edit", "Edit", null, 
+                         new { id = Model.MemberId }, 
+                         new { @class = "btn-icon btn-black btn-person" })
+
+    @if(Model.UserInfo.Enabled){
+        @Html.ButtonIconized("Delete", "Delete", null,
+                        new { id = Model.MemberId },
+                        new { 
+                            @class = "btn-icon btn-maroon btn-minus marginLeft_10px",
+                            onclick = "javascript:return confirm('You are sure that you want to remove this user?');" 
+                        })
+        }
+</fieldset> 
+
+<h2 class="width_500px"> Details </h2>
+
+@Html.ValidationSummary()
+
+<div class="form label-inline uniform">
+    @Html.Partial("_UserDetails", Model.UserInfo)
+
+    <div class="field">
+	    <label for="IsAdmin">Admin</label>
+        @Html.SetImageIfEnabled(Model.IsAdmin)   
+    </div>
+
+    <div class="field">
+	    <label for="Responsabilities">Responsable By</label>
+    
+        @if (Model.ResponsableInProjects.Count() == 0) 
+        {
+            @: None
+        }
+        else {
+             @Model.ResponsableInProjects.PrintSequence()
+        }  
+    </div>
+
+    <div class="field">
+	    <label for="EnabledProjects">Enabled Projects Working</label>
+    
+        @if (Model.EnabledProjects.Count() == 0) 
+        {
+            @: None
+        }
+        else {
+             @Model.EnabledProjects.PrintSequence()
+        }  
+    </div>
+
+    <div class="field">
+	    <label for="DisabledProjects">Disabled Projects Registered</label>
+    
+        @if (Model.DisabledProjects.Count() == 0) 
+        {
+            @: None
+        }
+        else {
+             @Model.DisabledProjects.PrintSequence()
+        }  
+    </div>
+
+    <div class="field">
+	    <label for="Issues">Issues Solved</label>
+        @Model.IssuesSolved
+    </div>
+
+</div>

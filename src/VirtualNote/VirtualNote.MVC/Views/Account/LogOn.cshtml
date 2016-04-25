@@ -1,0 +1,59 @@
+﻿@model VirtualNote.MVC.Models.LogOnModel
+
+@{
+    Layout = "";    
+}
+
+<!DOCTYPE html>
+ 
+<html xmlns="http://www.w3.org/1999/xhtml"> 
+ 
+<head> 
+	<title>Login | VirtualNote </title> 
+	
+    @Content.CssName("css/reset.css", Url)
+    @Content.CssName("css/text.css", Url)
+    @Content.CssName("css/form.css", Url)
+    @Content.CssName("css/buttons.css", Url)
+    @Content.CssName("css/login.css", Url)
+    @Content.CssName("css/mvc-css.css", Url)
+
+</head> 
+ 
+<body> 
+
+<div id="login">
+	<h1> </h1>
+	<div id="login_panel">
+        @using(Html.BeginForm())
+        {
+			<div class="login_fields">
+
+				<div class="field">
+					<label for="Username">Username</label>
+                    @Html.TextBoxFor(x => x.Username, new { tabindex = 1, placeholder = "username" })					
+                    @Html.ValidationMessageFor(m => m.Username)
+				</div>
+				
+				<div class="field">
+					<label for="Password">Password</label>
+					@Html.PasswordFor(x => x.Password, new { tabindex = 2, placeholder = "password" })					
+                    @Html.ValidationMessageFor(m => m.Password)	
+				</div>
+
+			</div> <!-- .login_fields -->
+			
+			<div class="login_actions">
+				<button type="submit" class="btn btn-orange" tabindex="3">Login</button>
+			</div>
+		}
+	</div> <!-- #login_panel -->		
+</div> <!-- #login -->
+
+@Content.Script("jquery/jquery-1.5.2.min.js", Url)
+@Content.Script("jquery/jquery.validate.min.js", Url)
+@Content.Script("jquery/jquery.validate.unobtrusive.min.js", Url)
+
+
+</body>  
+</html>

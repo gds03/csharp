@@ -1,0 +1,35 @@
+﻿@using VirtualNote.Common
+@model VirtualNote.Kernel.DTO.UserServiceDTO
+           
+
+<div class="field">
+	<label for="Name">Name(*)</label>
+    @Html.TextBoxFor(u => u.Name, new { size = "50", @class="medium" })
+    @Html.ValidationMessageFor(model => model.Name)
+</div>
+
+<div class="field">
+	<label for="Password">Password(*)</label>
+    @{ String val = Model != null ? PasswordUtils.Confuse() : ""; }
+    @Html.TextBox("Password", val, new { size = "50", @class="medium" })
+    @Html.ValidationMessageFor(model => model.Password)
+</div>
+
+<div class="field">
+	<label for="Phone">Phone</label>
+    @Html.TextBoxFor(u => u.Phone, new { size = "50", @class="medium" })
+    @Html.ValidationMessageFor(model => model.Phone)
+</div>
+
+<div class="field">
+	<label for="Email">Email</label>
+    @Html.TextBoxFor(u => u.Email, new { size = "50", @class = "medium" })
+    @Html.ValidationMessageFor(model => model.Email)
+</div>
+
+<div class="controlset field">
+	<span class="label">Enabled</span>
+    @Html.RadioButtonTwoOptionsFor(u => u.Enabled, "Yes", "No", true)
+</div>
+
+

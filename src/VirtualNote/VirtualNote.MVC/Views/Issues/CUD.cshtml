@@ -1,0 +1,19 @@
+﻿@model VirtualNote.MVC.Enums.ActionEnum
+
+@section Header
+{
+    <h1 class="">Issues</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="" class="current_page">Issues</a>				
+	</div> <!-- #bread_crumbs -->
+}
+
+
+
+@{
+    ViewBag.Url = @Html.GetUrlFrom("Index", "Issues");
+}
+
+@Html.Partial("_Saved", Model)

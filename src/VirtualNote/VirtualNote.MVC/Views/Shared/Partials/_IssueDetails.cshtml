@@ -1,0 +1,64 @@
+﻿@model VirtualNote.Business.IssueListData
+@using VirtualNote.DomainObjects
+@using VirtualNote.MVC.Enums;
+
+
+<div class="controlset field">
+	<span class="label">Belongs to Project</span>
+    @(Html.DisplayFor(model => model.Issue.Project.Name))
+</div>
+
+<div class="controlset field">
+	<span class="label">Belongs to Client</span>
+    @(Html.DisplayFor(model => model.Issue.Client.Name))
+</div>
+
+<div class="controlset field">
+	<span class="label">Description</span>
+    @(Html.DisplayFor(model => model.Issue.ShortDescription))
+</div>
+
+<div class="controlset field">
+	<span class="label">Detailed Description</span>
+    @(Html.DisplayFor(model => model.Issue.LongDescription))
+</div>
+
+<div class="controlset field">
+	<span class="label">Last Update On</span>
+    @(Html.DisplayFor(model => model.Issue.LastUpdateDate).CheckForEmpty())
+</div>
+
+<div class="controlset field">
+	<span class="label">State</span>
+    @(StateEnumResolver.get(Model.Issue.State))
+</div>
+
+<div class="controlset field">
+	<span class="label">Priority</span>
+    @(PriorityEnumResolver.get(Model.Issue.Priority))
+</div>
+
+<div class="controlset field">
+	<span class="label">Type</span>
+    @(TypeEnumResolver.get(Model.Issue.Type))
+</div>
+
+<div class="controlset field">
+	<span class="label">Member solving this issue</span>
+    @{
+        if(Model.Issue.Member == null){
+            @: None
+        }else{
+            @Model.Issue.Member.Name   
+        }
+    }
+</div>
+
+<div class="controlset field">
+	<span class="label">Comments for this issue</span>
+    @Model.Issue.Comments.Count
+    @if (Model.Issue.Comments.Count > 0) {
+        @: &nbsp; <a href="/Issues/Comments/@Model.Issue.IssueID/"> (Follow) </a>
+    }    
+</div>
+

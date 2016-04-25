@@ -16,8 +16,8 @@ namespace CustomComponents.ConsoleApplication
 
     public static class OMapperProgram
     {
-        // const string CONNECTION_STRING = "Server=VMWin2012Server\\MSSQLSERVER12;User Id=user; password=Password1!"; 
-        const string CONNECTION_STRING = "Server=.\\MSSQLSERVER2012;Database=TestDB;Trusted_Connection=True;";
+        const string CONNECTION_STRING = "Server=VMWin2012Server\\MSSQLSERVER12;User Id=user; password=Password1!"; 
+        // const string CONNECTION_STRING = "Server=.\\MSSQLSERVER2012;Database=TestDB;Trusted_Connection=True;";
 
 
 

@@ -1,0 +1,27 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Home.HomeMemberQueryDetailsWelcomeData
+
+<div id="welcome" class="x12">						
+	 <p>
+	    <strong>Welcome back, @Html.GetUsername()</strong>        
+        <br />
+        See your information below and consult your requested issues
+    </p>	
+			
+	<table class="data info_table">
+		<tbody>
+			<tr>
+				<td class="value">@Model.ProjectsResponsable</td>
+				<td class="full">Projects Responsable</td>
+
+                <td class="value">@Model.ProjectsWorking</td>
+				<td class="full">Projects Working</td>
+
+                <td class="value">@Model.PendingRequests</td>
+				<td class="full">Pending Requests</td>
+
+                <td class="value">@Model.SupportedRequests</td>
+				<td class="full">Supported Requests</td>
+            </tr>
+		</tbody>
+	</table>			
+</div> <!-- .x12 -->

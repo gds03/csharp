@@ -1,0 +1,62 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Issues.Index.IssueClientQueryList
+@using VirtualNote.MVC.Enums
+@using VirtualNote.Kernel
+
+@section Header
+{
+    <h1 class="">Issues</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="" class="current_page">Issues</a>				
+	</div> <!-- #bread_crumbs -->
+}
+
+@section PageScripts
+{
+    @Content.Script("dev/IssuesIndex.js", Url)
+}
+
+@if (Model.ProjectsData.Projects.Count() == 0) {
+    <h3> To report or see issues you need to have projects </h3>
+}
+
+else {
+
+    <p>
+        @Html.ButtonIconized("Add Issue", "Create", null, null,
+            new { @class = "btn-icon btn-orange btn-plus floatedRight" })
+    </p>
+
+
+      <div class="form controlset field">
+	        <span class="label" style="width: auto;">Project</span>
+
+                @(Html.MyDropDown("projectId",
+                                Model.ProjectsData.Projects.ToSelectListItem(
+                                    x => x.Id.ToString(),
+                                    x => x.Value,
+                                    x => x.Id == Model.ProjectsData.ProjectSelectedId),
+                                    new { @class = "spacing_200", style = "margin-right: 10px;" }))
+        
+      </div>
+
+       <div class="form controlset field">
+	        <span class="label" style="width: auto;">Order By</span>
+
+               @(Html.MyDropDown("sortBy",
+                            Model.ProjectsData.Filters.ToSelectListItem(
+                                x => x.Id.ToString(),
+                                x => IssueSortByEnumResolver.GetByKey((IssuesSortBy) x.Id),
+                                x => x.Id == (int)IssuesSortBy.DescendingDate),
+                                new { @class = "spacing_200", style = "margin-right: 10px;" }))
+
+            <input class="btn btn-grey" type="button" value="Filter" onclick="javascript:FilterRequest();" />
+        
+      </div>
+
+    <div id="requests" class="clearBoth">
+        @Html.Partial("_IndexClientsRequests", Model.Requests)
+    </div>
+    
+}

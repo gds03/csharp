@@ -1,0 +1,53 @@
+﻿@model IEnumerable<VirtualNote.Kernel.DTO.Query.Home.HomeMemberQueryDetailsRequests>
+@using VirtualNote.Kernel
+@using VirtualNote.MVC.Enums
+
+
+<div id="requests" class="x12">
+    <h2>Recent Requests</h2>
+			
+	<table class="data support_table">
+		<tbody>
+		    
+            @foreach (var item in Model) {
+                    <tr>
+                    <td>
+                        <span class="@this.GetClassForStateValue(item.State)">@StateEnumResolver.GetByKey(item.State)</span>
+                    </td>
+                    
+                    <td class="who">
+                        Responsable <br />
+                        @Html.DisplayFor(x => item.MemberSolving).CheckForEmpty()
+                    </td>
+                
+                    <td class="who">
+                        Project <br />
+                        @Html.DisplayFor(x => item.ProjectName)
+                    </td>
+                
+                    <td class="who">
+                        @@ @Html.DisplayFor(x => item.CreatedAt)
+                    </td>
+                
+                    <td class="who">
+                        @PriorityEnumResolver.GetByKey(item.Priority)
+                    </td>
+                                
+                    <td class="who">@Html.ActionLink("Link", // text
+                                                      "Edit",
+                                                      "Issues",
+                                                      new { id = item.IssueId },
+                                                      null)
+                                                                                                  
+                    </td>				
+                
+			        <td class="full">Posted by @Html.DisplayFor(x => item.PostedBy)</td>
+                </tr>
+
+
+
+            }
+
+		</tbody>
+	</table>
+</div>

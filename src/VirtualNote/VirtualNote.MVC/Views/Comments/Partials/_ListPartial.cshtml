@@ -1,0 +1,43 @@
+﻿@model VirtualNote.Kernel.Types.PaginatedList<VirtualNote.Kernel.DTO.Query.Comments.CommentQueryDetails>
+
+<div>
+    @if (Model.HasPreviousPage) {
+        <button class="commentsSubmit"
+                onclick="javascript:MakeRequestForPage(@(Model.CurrentPage - 1))"> <<< </button>
+    }
+
+    
+    @if (Model.HasNextPage) {
+        <button class="commentsSubmit"
+                onclick="javascript:MakeRequestForPage(@(Model.CurrentPage + 1))"> >>> </button>
+    }
+</div><br>
+@{
+    foreach (var item in Model) 
+    {
+        <div class="break-word spacing_600">
+            @item.Description     
+        
+            <table>
+                <tr> 
+                    <td> - <b>@item.ReportedBy</b> </td>
+                    <td> @@ @Html.DisplayFor(x => item.CreatedAt) </td>
+                    <td>
+                        @if (item.CanEdit) {
+                          <img src="@Url.Content("~/Content/images/remove_comment.png")" 
+                               alt="Remove Comment" 
+                               class="pointer"
+                               data-id="@item.CommentId"
+                               onclick="javascript:RemoveCommentWithId(this)" />
+                                }
+                    </td>
+                </tr>
+            </table>
+        </div>
+    
+    
+        <h2></h2>
+       
+        <br />
+    }
+}

@@ -1,0 +1,119 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Issues.Details.IssuesClientQueryDetails
+@using VirtualNote.MVC.Enums
+
+@section Header
+{
+    <h1 class="">Issues</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="/Issues">Issues</a> / 	
+        <a href="" class="current_page">Edit</a>
+	</div> <!-- #bread_crumbs -->
+}  
+
+@section PageScripts
+{
+    @Content.Script("jquery/jquery.validate.min.js", Url)
+    @Content.Script("jquery/jquery.validate.unobtrusive.min.js", Url)
+}
+
+
+@using (Html.BeginForm()) {    
+
+    <fieldset class="isFieldSet floatedRight" class="width_auto">
+
+        <legend> Actions </legend>
+
+        <input type="submit" value="Save Changes" class="btn btn-black" />
+
+        @Html.ButtonIconized("Delete", "Delete", null,
+                            new { id = Model.IssueId },
+                            new {
+                                @class = "btn-icon btn-maroon btn-minus marginLeft_10px",
+                                onclick = "javascript:return confirm('You are sure that you want to remove this Issue?');"
+                            })
+    </fieldset> 
+
+    <h2 class="width_500px"> 
+        Editing a existing Issue
+    </h2>
+
+
+    @Html.ValidationSummary(true)
+    <div class="form label-inline uniform">
+
+        <div class="controlset field">
+	        <span class="label">Created@@</span>
+                @Html.DisplayFor(model => model.CreatedAt)
+        </div>
+    
+        @if (Model.LastUpdateAt != null) {
+            <div class="controlset field">
+	            <span class="label">Last Update@@</span>
+                    @Html.DisplayFor(model => model.LastUpdateAt)
+            </div>
+        }
+    </div>
+    
+    <div class="form label-inline uniform">
+        <div class="controlset field">
+	        <span class="label">Project</span>
+
+                @(Html.MyDropDown("ProjectId",
+                                Model.InitialData.ClientProjects
+                                        .ToSelectListItem(kivs => kivs.Id.ToString(),
+                                                        kivs => kivs.Value,
+                                                        kivs => kivs.Id == Model.ProjectId),
+                                new { @class = "spacing_200", disabled = "disabled" }))
+            
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Type</span>
+            @(Html.MyDropDown("Type",
+                                Model.InitialData.Types
+                                        .ToSelectListItem(kivs => ((int)kivs).ToString(),
+                                                        kivs => TypeEnumResolver.GetByKey(kivs),
+                                                        kivs => kivs == Model.Type),
+                            new { @class = "spacing_200" }))
+            
+        </div>
+        <div class="controlset field">
+	        <span class="label">Priority</span>
+                @(Html.MyDropDown("Priority",
+                            Model.InitialData.Priorities
+                                .ToSelectListItem(kivs => ((int)kivs).ToString(),
+                                                    kivs => PriorityEnumResolver.GetByKey(kivs),
+                                                    kivs => kivs == Model.Priority),
+                            new { @class = "spacing_200" }))
+             
+        </div>  
+
+        <div class="controlset field">
+	        <span class="label">State</span>
+                @(Html.MyDropDown("State",
+                            Model.InitialData.States
+                                    .ToSelectListItem(kivs => ((int)kivs).ToString(),
+                                                    kivs => StateEnumResolver.GetByKey(kivs),
+                                                    kivs => kivs == Model.State),
+                            new { @class = "spacing_200", disabled = "disabled" }))
+        </div>
+        
+    </div>
+    
+        <div class="form label-inline uniform">
+        <div class="controlset field">
+	        <span class="label">Subject</span>
+            @(Html.TextBoxFor(x => x.ShortDescription, new { @class = "spacing_400" }))
+            @Html.ValidationMessageFor(x => x.ShortDescription)
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Description</span>
+            @(Html.TextAreaFor(x => x.LongDescription, new { @class = "spacing_400", rows = 10, cols = 50, style = "resize: none;" }))
+            @Html.ValidationMessageFor(x => x.LongDescription)
+        </div>
+    </div>
+
+}

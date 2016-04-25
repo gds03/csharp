@@ -1,0 +1,76 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Issues.Details.IssuesClientQueryDetails
+@using VirtualNote.MVC.Enums
+@using VirtualNote.Kernel
+
+@section Header
+{
+    <h1 class="">Issues</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="/Issues">Issues</a> / 	
+        <a href="" class="current_page">Create</a>
+	</div> <!-- #bread_crumbs -->
+}  
+
+
+@section PageScripts
+{
+    @Content.Script("jquery/jquery.validate.min.js", Url)
+    @Content.Script("jquery/jquery.validate.unobtrusive.min.js", Url)
+}
+
+<h2> 
+    Inserting a new Issue
+</h2>
+
+@using (Html.BeginForm())
+{    
+    @Html.ValidationSummary(true)
+
+    <div class="form label-inline uniform">
+        <div class="controlset field">
+	        <span class="label">Project</span>
+
+             @(Html.MyDropDown("ProjectId",
+                                Model.InitialData.ClientProjects
+                                     .ToSelectListItem(kivs => kivs.Id.ToString(), kivs => kivs.Value),
+                                new { @class = "spacing_200" }))
+            
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Type</span>
+
+            @(Html.MyDropDown("Type",
+                                Model.InitialData.Types
+                                     .ToSelectListItem(kivs => ((int)kivs).ToString(), kivs => TypeEnumResolver.GetByKey(kivs)),
+                                new { @class = "spacing_200" }))
+            
+        </div>
+        <div class="controlset field">
+	        <span class="label">Priority</span>
+             @(Html.MyDropDown("Priority",
+                           Model.InitialData.Priorities
+                                .ToSelectListItem(kivs => ((int)kivs).ToString(), kivs => PriorityEnumResolver.GetByKey(kivs), x => x == PriorityEnum.Normal),
+                           new { @class = "spacing_200" }))
+             
+        </div>  
+    </div>
+    
+     <div class="form label-inline uniform">
+        <div class="controlset field">
+	        <span class="label">Subject</span>
+            @(Html.TextBoxFor(x => x.ShortDescription, new { @class = "spacing_400" }))
+            @Html.ValidationMessageFor(x => x.ShortDescription)
+        </div>
+
+        <div class="controlset field">
+	        <span class="label">Description</span>
+            @(Html.TextAreaFor(x => x.LongDescription, new { @class = "spacing_400", rows = 10, cols = 50, style = "resize: none;" }))
+            @Html.ValidationMessageFor(x => x.LongDescription)
+        </div>
+    </div>
+    
+    <input type="submit" value="Create" class="btn btn-black" />
+}

@@ -1,0 +1,40 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Home.HomeAdminQueryDetails
+
+@section Header
+{
+    <h1 class="no_breadcrumbs">Home</h1>
+}
+
+@Html.Partial("_IndexWelcome", Model.WelcomeData)
+
+<div id="configvals" class="x12">			
+	<table class="data info_table">
+		<tbody>
+			<tr>
+				<td class="value">@Model.ConfigsData.ClientsSubscribed</td>
+				<td class="full">
+                    Clients Subscribed
+                    (@Model.ConfigsData.ClientsSubscribedEnabled/Enabled) -
+                    (@(Model.ConfigsData.ClientsSubscribed - Model.ConfigsData.ClientsSubscribedEnabled)/Disabled)
+                </td>
+
+                <td class="value">@Model.ConfigsData.MembersRegistered</td>
+				<td class="full">
+                    Members Registered
+                    (@Model.ConfigsData.MembersRegisteredEnabled/Enabled) -
+                    (@(Model.ConfigsData.MembersRegistered - Model.ConfigsData.MembersRegisteredEnabled)/Disabled)   
+                </td>
+
+                <td class="value">@Model.ConfigsData.ProjectsRegistered</td>
+				<td class="full">
+                    Projects Registered
+                    (@Model.ConfigsData.ProjectsRegisteredEnabled/Enabled) -
+                    (@(Model.ConfigsData.ProjectsRegistered - Model.ConfigsData.ProjectsRegisteredEnabled)/Disabled)   
+                </td>
+            </tr>
+		</tbody>
+	</table>
+			
+</div> <!-- .x12 -->
+
+@Html.Partial("_IndexRequests", Model.Requests)

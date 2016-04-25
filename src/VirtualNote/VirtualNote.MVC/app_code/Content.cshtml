@@ -1,0 +1,9 @@
+﻿@using System.Web.Mvc;
+
+@helper Script(string ScriptName, UrlHelper Url){
+    <script src="@Url.Content("~/Scripts/" + ScriptName)" type="text/javascript"></script>
+}
+
+@helper CssName(string CssName, UrlHelper Url) {
+    <link href="@Url.Content("~/Content/" + CssName)" rel="stylesheet" type="text/css" />
+}

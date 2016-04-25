@@ -1,0 +1,33 @@
+﻿@using VirtualNote.Common
+@model VirtualNote.Kernel.DTO.Query.User.UserQueryInfo
+
+
+<div class="field">
+	<label for="Name">Name</label>
+    @Html.DisplayFor(u => u.Name)
+</div>
+
+<div class="field">
+	<label for="Password">Password</label>
+    @PasswordUtils.Confuse()
+</div>
+
+<div class="field">
+	<label for="CreatedDate">Created@@</label>
+    @Html.DisplayFor(u => u.CreatedDate)
+</div>
+
+<div class="field">
+	<label for="Enabled">Active</label>
+    @Html.SetImageIfEnabled(Model.Enabled)   
+</div>
+
+<div class="field">
+	<label for="Email">Email</label>
+    @Html.DisplayFor(u => u.Email).CheckForEmpty()
+</div>
+
+<div class="field">
+	<label for="Phone">Phone</label>
+    @Html.DisplayFor(u => u.Phone).CheckForEmpty()
+</div>

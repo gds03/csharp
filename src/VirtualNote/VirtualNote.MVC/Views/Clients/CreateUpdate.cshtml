@@ -1,0 +1,39 @@
+﻿@model VirtualNote.Kernel.DTO.ClientServiceDTO
+           
+@section Header
+{
+    <h1 class="">Clients</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="/Configurations/Clients">Clients</a> / 	
+        <a href="" class="current_page">@Html.GetActionName()</a>
+	</div> <!-- #bread_crumbs -->
+}
+
+
+<h2> 
+    @(Html.IsEdit() ? "Editing client data" : "Create new client")
+</h2>
+
+@section PageScripts
+{
+    @Content.Script("jquery/jquery.validate.min.js", Url)
+    @Content.Script("jquery/jquery.validate.unobtrusive.min.js", Url)
+}
+
+<div>
+
+    @using (Html.BeginForm(null, null, FormMethod.Post, new { @class = "form label-inline uniform" }))
+    {
+        @Html.ValidationSummary(true)
+        
+        @Html.Partial("_UserCreateUpdate", Model)
+    
+        <br />
+        <input type="submit" value="@(Html.IsCreate() ? "Create"
+                                                      : "Save Changes")" class="btn btn-black" />
+    }
+
+
+</div>

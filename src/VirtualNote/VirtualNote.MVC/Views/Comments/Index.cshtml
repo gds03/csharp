@@ -1,0 +1,48 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Comments.CommentQueryList
+
+@section Header
+{
+    <h1 class="">Comments</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="" class="current_page">Comments</a>				
+	</div> <!-- #bread_crumbs -->
+}
+
+<h2>
+     Reported by: 
+     @Html.DisplayFor(x => Model.IssueReportedBy) 
+</h2>
+
+<fieldset id="fieldSet_IssueId" data-issueId="@Model.IssueId">
+    <strong>Issue Created@@</strong>: @Html.DisplayFor(x => Model.IssueCreatedAt) <br />
+    <strong>Description:</strong> @Html.DisplayFor(x => Model.IssueShortDescription)<br />
+    <strong>Member solving the Issue:</strong> @Html.DisplayFor(x => Model.IssueMemberSolving).CheckForEmpty()     
+</fieldset>
+<h2>
+</h2>
+
+@section PageScripts
+{
+    <script type="text/javascript" src="../../Scripts/dev/CommentsIndex.js"></script>
+}
+
+<div id="new_comment" style="display:none;">
+    <fieldset>
+        <legend> Insert your comment here </legend>
+        <textarea id="comment_text" rows="3" name="newComment" style="resize:none; width:400px;"></textarea>
+    </fieldset>
+
+    <button id="submit_comment"> Submit </button>
+    <h2></h2>
+</div>
+
+<div>
+    <input id="add_comment" type="button" class="commentsSubmit" value="Add Comment" />
+</div>
+<br />
+
+<div id="comments_list">
+    @Html.Partial("_ListPartial", Model.Data)
+</div>

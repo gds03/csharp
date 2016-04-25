@@ -1,0 +1,41 @@
+﻿@model VirtualNote.Kernel.DTO.MemberServiceDTO
+           
+@section Header
+{
+    <h1 class="">Members</h1>
+
+    <div id="bread_crumbs">
+		<a href="/">Home</a> / 
+		<a href="/Configurations/Members">Members</a> / 	
+        <a href="" class="current_page">@Html.GetActionName()</a>
+	</div> <!-- #bread_crumbs -->
+}
+
+
+<h2> 
+    @(Html.IsEdit() ? "Editing member data" : "Create new member")
+</h2
+
+@section PageScripts
+{
+    @Content.Script("jquery/jquery.validate.min.js", Url)
+    @Content.Script("jquery/jquery.validate.unobtrusive.min.js", Url)
+}
+
+<div>
+    @using (Html.BeginForm(null, null, FormMethod.Post, new { @class = "form label-inline uniform"}))
+    {
+        @Html.ValidationSummary(true) 
+
+        @Html.Partial("_UserCreateUpdate", Model)
+
+        <div class="controlset field">
+	        <span class="label">Admin</span>
+            @Html.RadioButtonTwoOptionsFor(u => u.IsAdmin, "Yes", "No", false)
+        </div>
+    
+        <br />
+        <input type="submit" value="@(Html.IsCreate() ? "Create" 
+                                                      : "Save Changes")" class="btn btn-black" />
+    } 
+ </div>

@@ -1,0 +1,8 @@
+﻿@model int
+
+@{
+    ViewBag.Url = String.Format("/Issues/Comments/{0}", Model);
+    ViewBag.Who = "Comment";
+}
+
+@Html.Partial("_Saved", VirtualNote.MVC.Models.CreateUpdateEnum.Created)

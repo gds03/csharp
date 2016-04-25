@@ -1,0 +1,11 @@
+﻿@model VirtualNote.Kernel.DTO.Query.Home.HomeMemberQueryDetails
+
+@section Header
+{
+    <h1 class="no_breadcrumbs">Home</h1>
+}
+
+@Html.Partial("_IndexWelcome", Model.WelcomeData)
+
+
+@Html.Partial("_IndexRequests", Model.Requests)

@@ -1,0 +1,8 @@
+﻿@model String
+
+@{
+    ViewBag.Url = "/Issues";
+    ViewBag.Who = Model;
+}
+
+@Html.Partial("_Saved", VirtualNote.MVC.Models.CreateUpdateEnum.Edited)

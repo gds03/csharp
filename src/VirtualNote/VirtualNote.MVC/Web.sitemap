@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<siteMap>
+    <siteMapNode title="Home" controller="Home" action="Index" />
+
+    <siteMapNode title="Configurations">
+        <siteMapNode title="Members" controller="Members" action="Index" roles="Admin">
+            <siteMapNode title="Create Member" controller="Members" action="Create" />
+            <siteMapNode title="Details of Member" controller="Members" action="Details" />
+            <siteMapNode title="Edit Member" controller="Members" action="Edit" />
+            <siteMapNode title="Delete Member" controller="Members" action="Delete" />
+        </siteMapNode>
+
+        <siteMapNode title="Clients" controller="Clients" action="Index" roles="Admin">
+            <siteMapNode title="Create Client" controller="Clients" action="Create" />
+            <siteMapNode title="Details of Client" controller="Clients" action="Details" />
+            <siteMapNode title="Edit Client" controller="Clients" action="Edit" />
+            <siteMapNode title="Delete Client" controller="Clients" action="Delete" />
+        </siteMapNode>
+        <siteMapNode title="Projects" controller="Projects" action="Index" roles="Admin">
+            <siteMapNode title="Create Project" controller="Projects" action="Create" />
+            <siteMapNode title="Details of Project" controller="Projects" action="Details" />
+            <siteMapNode title="Edit Project" controller="Projects" action="Edit" />
+            <siteMapNode title="Delete Project" controller="Projects" action="Delete" />
+            <siteMapNode title="Assign Workers" controller="Projects" action="Assign" />
+        </siteMapNode>
+        <siteMapNode title="Emails" controller="Emails" action="Index" />
+    </siteMapNode>
+
+    <siteMapNode title="Issues" controller="Issues" action="Index">
+        <siteMapNode title="Create Issue" controller="Issues" action="Create" />
+        <siteMapNode title="Edit Issue" controller="Issues" action="Edit" />
+    </siteMapNode>
+</siteMap>
